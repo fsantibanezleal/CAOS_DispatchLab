@@ -7,6 +7,7 @@ import '@fasl-work/caos-app-shell/styles.css';
 import './dispatchlab.css';
 import { CITATIONS } from './data/citations';
 import Sim from './pages/Sim';
+import Compare from './pages/Compare';
 import Methodology from './pages/Methodology';
 import About from './pages/About';
 
@@ -16,11 +17,12 @@ const config: ShellConfig = {
   product: { name: 'DispatchLab', mark: <Truck size={18} aria-hidden="true" /> },
   routes: [
     { path: '/', en: 'Bench', es: 'Banco' },
+    { path: '/compare', en: 'Compare', es: 'Comparar' },
     { path: '/methodology', en: 'Methodology', es: 'Metodología' },
     { path: '/about', en: 'About', es: 'Acerca' },
   ],
   links: { github: 'https://github.com/fsantibanezleal/CAOS_DispatchLab' },
-  version: '0.01.000',
+  version: '0.02.000',
 };
 
 createRoot(document.getElementById('root')!).render(
@@ -30,6 +32,7 @@ createRoot(document.getElementById('root')!).render(
         <AppShell config={config}>
           <Routes>
             <Route path="/" element={<Sim />} />
+            <Route path="/compare" element={<Compare />} />
             <Route path="/methodology" element={<Methodology />} />
             <Route path="/about" element={<About />} />
             <Route path="*" element={<Sim />} />
