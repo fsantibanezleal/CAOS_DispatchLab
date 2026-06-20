@@ -59,5 +59,23 @@ const c12Mine: MineSpec = {
 };
 export const C12: CaseSpec = { id: 'C12', name: '1-truck-1-shovel oracle', mine: c12Mine, fleet: fleet(1, '793F', [1]), shiftSec: SHIFT };
 
-export const CASES: CaseSpec[] = [C01, C02, C03, C04, C05, C12];
+// ---- C06 three shovels, mixed distances (a real multi-way dispatch choice — where learning matters) ----
+const c06Mine: MineSpec = {
+  name: 'Three-shovel pit',
+  shovels: [shovel(1, 'Shovel 1 (near)', 120, 110), shovel(2, 'Shovel 2 (mid)', 120, 220), shovel(3, 'Shovel 3 (far)', 120, 330)],
+  dumps: [crusher(10, 'Crusher', 560, 220)],
+  routes: { '1->10': route(1400, 3), '2->10': route(2400, 4), '3->10': route(3600, 5) },
+};
+export const C06: CaseSpec = { id: 'C06', name: 'Three shovels, mixed distances', mine: c06Mine, fleet: fleet(12, '793F', [1, 2, 3]), shiftSec: SHIFT };
+
+// ---- C07 four shovels, asymmetric + a near/far split (rich assignment space) ----
+const c07Mine: MineSpec = {
+  name: 'Four-shovel pit',
+  shovels: [shovel(1, 'Shovel 1', 110, 90), shovel(2, 'Shovel 2', 110, 190), shovel(3, 'Shovel 3', 110, 290), shovel(4, 'Shovel 4 (far)', 110, 390)],
+  dumps: [crusher(10, 'Crusher', 580, 240)],
+  routes: { '1->10': route(1500, 3), '2->10': route(2000, 4), '3->10': route(2600, 4), '4->10': route(4000, 6) },
+};
+export const C07: CaseSpec = { id: 'C07', name: 'Four shovels, asymmetric', mine: c07Mine, fleet: fleet(18, '793F', [1, 2, 3, 4]), shiftSec: SHIFT };
+
+export const CASES: CaseSpec[] = [C01, C02, C03, C04, C05, C06, C07, C12];
 export const caseById = (id: string): CaseSpec => CASES.find((c) => c.id === id) ?? C01;

@@ -18,4 +18,9 @@ export const CITATIONS: Citation[] = [
   // physics + stochastics
   { id: 'catHandbook', label: 'Caterpillar Performance Handbook', citation: 'Caterpillar Inc. Caterpillar Performance Handbook (many editions). Total resistance % = grade % + rolling-resistance %; enter the rimpull chart at TR %, intersect the gross-machine-weight line, read the gear and speed.' },
   { id: 'soofastaei2016', label: 'Soofastaei et al. 2016', citation: 'Soofastaei, A., Aminossadati, S.M., Kizil, M.S., Knights, P. (2016). A discrete-event model to simulate truck bunching due to payload variance. International Journal of Mining Science and Technology 26(5), 745–752.', doi: '10.1016/j.ijmst.2016.05.046' },
+  // learned dispatch
+  { id: 'mnih2015', label: 'Mnih et al. 2015', citation: 'Mnih, V., Kavukcuoglu, K., Silver, D., et al. (2015). Human-level control through deep reinforcement learning (DQN). Nature 518(7540), 529–533.', doi: '10.1038/nature14236' },
+  { id: 'hasselt2016', label: 'van Hasselt et al. 2016', citation: 'van Hasselt, H., Guez, A., Silver, D. (2016). Deep reinforcement learning with double Q-learning. AAAI 2016, 2094–2100.', doi: '10.1609/aaai.v30i1.10295' },
+  { id: 'peters2007', label: 'Peters & Schaal 2007', citation: 'Peters, J., Schaal, S. (2007). Reinforcement learning by reward-weighted regression for operational space control. ICML 2007, 745–750.', doi: '10.1145/1273496.1273590' },
+  { id: 'noriega2024', label: 'Noriega et al. 2024', citation: 'Noriega, R., Pourrahimian, Y., Askari-Nasab, H. (2024). Deep reinforcement learning based real-time open-pit mining truck dispatching system. Computers & Operations Research 165, 106815.', doi: '10.1016/j.cor.2024.106815' },
 ];

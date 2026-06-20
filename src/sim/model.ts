@@ -28,7 +28,7 @@ function dumpFor(mine: MineSpec, faceType: 'ore' | 'waste'): number {
   return d.id;
 }
 
-export interface RunOpts { deterministic?: boolean; trace?: boolean }
+export interface RunOpts { deterministic?: boolean; trace?: boolean; onDecision?: (state: DispatchState, chosen: number) => void }
 
 export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: RunOpts = {}): SimResult {
   const sim = new Sim();
@@ -144,6 +144,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     // DISPATCH decision
     const state = buildState(truckId, dumpId, now);
     const chosen = policy(state);
+    opts.onDecision?.(state, chosen);   // log (state, action) for the offline-RL / imitation dataset
     const target = sh.get(chosen) ?? sh.get(mine.shovels[0].id)!;
     target.inbound++;
     const rt = route(target.id, dumpId);
