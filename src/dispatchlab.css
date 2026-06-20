@@ -46,5 +46,19 @@
 .u-legend .u-series { display: inline-flex; align-items: center; gap: 0.3rem; margin-right: 0.9rem; }
 .u-legend .u-value { font-family: var(--font-mono); color: var(--color-fg); }
 
+/* /compare — Pareto scatter + paired bars + verdict */
+.dl-scatter-wrap { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px; padding: 0.5rem; }
+.dl-bars { display: flex; flex-direction: column; gap: 0.4rem; }
+.dl-bar-row { display: grid; grid-template-columns: 150px 1fr 1fr; gap: 0.6rem; align-items: center; }
+@media (max-width: 640px) { .dl-bar-row { grid-template-columns: 110px 1fr; } .dl-bar-row .dl-bar-pair:last-child { grid-column: 2; } }
+.dl-bar-label { font-size: 0.8rem; display: flex; align-items: center; gap: 0.35rem; }
+.dl-dot { width: 0.7rem; height: 0.7rem; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+.dl-bar-pair { display: flex; align-items: center; gap: 0.4rem; }
+.dl-bar { position: relative; flex: 1; height: 0.7rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 4px; overflow: hidden; min-width: 60px; }
+.dl-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; opacity: 0.85; }
+.dl-bar-band { position: absolute; top: -1px; bottom: -1px; background: color-mix(in oklab, var(--color-fg) 30%, transparent); border-left: 1px solid var(--color-fg); border-right: 1px solid var(--color-fg); }
+.dl-bar-num { font-size: 0.72rem; color: var(--color-fg-subtle); white-space: nowrap; min-width: 52px; text-align: right; }
+.dl-verdict { padding: 0.5rem 0.7rem; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); margin-top: 0.6rem; }
+
 .mono { font-family: var(--font-mono); }
 .hint { font-size: 0.82rem; color: var(--color-fg-subtle); }
