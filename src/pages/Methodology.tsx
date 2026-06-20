@@ -1,70 +1,93 @@
-import { Equation, InlineMath, Refs, useShellLang } from '@fasl-work/caos-app-shell';
+import { Equation, InlineMath, Refs, SubTabs, useShellLang } from '@fasl-work/caos-app-shell';
+
+const AR = (id: string) => <defs><marker id={id} markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--color-fg-subtle)" /></marker></defs>;
+const sv = { maxWidth: 560, display: 'block', margin: '0.5rem auto', font: '11px var(--font-sans, sans-serif)' } as const;
 
 export default function Methodology() {
   const es = useShellLang() === 'es';
+  const tabs = [
+    { id: 'des', label: es ? 'Núcleo DES' : 'DES core', content: <Des es={es} /> },
+    { id: 'pol', label: es ? 'Políticas de despacho' : 'Dispatch policies', content: <Pol es={es} /> },
+    { id: 'mf', label: es ? 'Match factor + colas' : 'Match factor + queueing', content: <Mf es={es} /> },
+    { id: 'learned', label: es ? 'Tier aprendido' : 'Learned tier', content: <Learned es={es} /> },
+  ];
   return (
     <div className="page-body prose">
       <div className="page-head">
         <h1>{es ? 'Metodología' : 'Methodology'}</h1>
-        <p className="lede">{es
-          ? 'Desde la decisión de despacho hasta la simulación de eventos discretos determinista, la física de los camiones y el match factor que sirve de verdad analítica — con el registro honesto de qué se simula y qué se sobre-afirma.'
-          : 'From the dispatch decision to the deterministic discrete-event simulation, the truck physics, and the match factor that serves as analytical ground truth — with an honest register of what is simulated and what is over-claimed.'}</p>
+        <p className="lede">{es ? 'El motor de eventos discretos, las políticas clásicas, el match factor como verdad analítica y el tier aprendido — con la matemática término por término y un diagrama por método.' : 'The discrete-event engine, the classical policies, the match factor as analytical ground truth, and the learned tier — with the maths term by term and a diagram per method.'}</p>
       </div>
-
-      <section>
-        <h2>{es ? 'La decisión de despacho' : 'The dispatch decision'}</h2>
-        <p>{es
-          ? 'En un rajo de camiones y palas, cada vez que un camión termina de descargar debe asignarse a su próxima pala. Esa única decisión recurrente determina las toneladas por turno, la cola de camiones, la ociosidad de las palas (el recurso caro) y el cumplimiento de la mezcla. DispatchLab compara políticas de despacho sobre la MISMA mina sintética y la misma semilla, así que la comparación es manzana-con-manzana.'
-          : 'In a truck-shovel open pit, each time a truck finishes dumping it must be assigned to its next shovel. That single recurring decision sets the tonnes per shift, the truck queue, the shovel idle time (the expensive resource) and blend compliance. DispatchLab compares dispatch policies on the SAME synthetic mine and seed, so the comparison is apples-to-apples.'}</p>
-        <Refs ids={['white1986', 'alarie2002']} label="Refs" />
-
-        <h2>{es ? 'El motor de eventos discretos + el contrato de determinismo' : 'The discrete-event engine + the determinism contract'}</h2>
-        <p>{es
-          ? 'El núcleo es una simulación de eventos discretos con avance al próximo evento: el reloj salta al mínimo de la lista de eventos futuros (una cola binaria), se procesa un evento, y así. El orden es un orden total estricto (tiempo, prioridad, secuencia) — el contador de secuencia monótono es la piedra angular: sin él, dos eventos simultáneos se resolverían por accidente interno de la cola.'
-          : 'The core is a next-event-time-advance discrete-event simulation: the clock jumps to the minimum of the future-event list (a binary heap), one event is processed, and so on. Order is a strict total order (time, priority, sequence) — the monotonic sequence counter is the keystone: without it, two simultaneous events would resolve by heap-internal accident.'}</p>
-        <p>{es
-          ? <>El reloj es un contador entero de centisegundos, y las duraciones muestreadas (exponencial/lognormal/Erlang) se redondean a ticks AL agendarlas. Esto importa: la aritmética IEEE-754 básica es exacta por motor, pero las funciones trascendentes (exp/log) NO están obligadas a redondeo correcto y difieren en el último bit entre V8/SpiderMonkey/JSC. Por eso el contrato honesto es: <b>bit-determinista por motor</b>, y la traza de eventos cuantizada en ticks es la verdad entre entornos — no la re-ejecución en vivo.</>
-          : <>The clock is an integer centisecond counter, and sampled durations (exponential/lognormal/Erlang) are rounded to ticks AT schedule time. This matters: basic IEEE-754 arithmetic is exact per engine, but transcendental functions (exp/log) are NOT required to be correctly rounded and differ in the last bit across V8/SpiderMonkey/JSC. So the honest contract is: <b>bit-deterministic per engine</b>, with the tick-quantised event trace as the cross-environment truth — not live re-execution.</>}</p>
-        <p className="muted small">{es
-          ? 'El generador pseudoaleatorio es xoshiro128** sobre enteros de 32 bits (no de 64: el float64 de JS no representa u64 exacto), con flujos NOMBRADOS por propósito (carga/viaje/descarga/avería) sembrados desde (semilla, nombre). Así, agregar un camión no desplaza los sorteos de los demás — lo que hace válida la comparación de políticas con números aleatorios comunes.'
-          : 'The PRNG is xoshiro128** over 32-bit integers (not 64: JS float64 cannot hold an exact u64), with per-purpose NAMED streams (load/travel/dump/breakdown) seeded from (seed, name). So adding a truck does not shift the others\' draws — which is what makes common-random-numbers policy comparison valid.'}</p>
-        <Refs ids={['banks2010', 'law2015', 'lecuyer2002', 'ieee754']} label="Refs" />
-
-        <h2>{es ? 'Cinemática del camión (rimpull / pendiente)' : 'Truck kinematics (rimpull / grade)'}</h2>
-        <p>{es
-          ? 'El tiempo de viaje por segmento sale de la física, no de una constante. La resistencia total es la pendiente más la resistencia a la rodadura; la fuerza tractiva para vencerla y la velocidad de equilibrio limitada por potencia son:'
-          : 'Segment travel time comes from physics, not a constant. Total resistance is grade plus rolling resistance; the tractive force to overcome it and the power-limited equilibrium speed are:'}</p>
-        <Equation tex={String.raw`\mathrm{TR}\% = \text{grade}\% + \text{RR}\%,\qquad F = \tfrac{\mathrm{TR}}{100}\, m\, g,\qquad v = \min\!\left(v_{\max},\ \frac{\eta\,P}{F}\right)`} />
-        <p>{es
-          ? <>con <InlineMath tex={String.raw`m`} /> la masa bruta (tara + carga subiendo cargado; sólo tara bajando vacío), <InlineMath tex={String.raw`\eta`} /> la eficiencia de transmisión y <InlineMath tex={String.raw`P`} /> la potencia. Cuesta abajo el camión está limitado por el retardador, no por la potencia. El tiempo de ciclo ideal (sin cola) que alimenta el match factor es <InlineMath tex={String.raw`t_c = t_{\text{carga}} + t_{\text{lleno}} + t_{\text{desc}} + t_{\text{vacío}}`} />. Anclas: CAT 793F ≈ 218 t de carga, ~166 t tara, ~1976 kW, ~60 km/h gobernada.</>
-          : <>with <InlineMath tex={String.raw`m`} /> the gross mass (tare + payload climbing loaded; tare only descending empty), <InlineMath tex={String.raw`\eta`} /> the drivetrain efficiency and <InlineMath tex={String.raw`P`} /> the power. Downhill the truck is retarder-limited, not power-limited. The ideal (no-queue) cycle time feeding the match factor is <InlineMath tex={String.raw`t_c = t_{\text{load}} + t_{\text{full}} + t_{\text{dump}} + t_{\text{empty}}`} />. Anchors: CAT 793F ≈ 218 t payload, ~166 t tare, ~1976 kW, ~60 km/h governed.</>}</p>
-        <Refs ids={['catHandbook', 'soofastaei2016']} label="Refs" />
-
-        <h2>{es ? 'Match factor — la verdad analítica' : 'Match factor — the analytical ground truth'}</h2>
-        <p>{es
-          ? 'El match factor compara la demanda de los camiones con la capacidad de servicio de las palas. Se fija UNA definición y se usa idéntica en todas partes:'
-          : 'The match factor compares the trucks\' demand to the shovels\' service capacity. ONE definition is pinned and used identically everywhere:'}</p>
-        <Equation tex={String.raw`\mathrm{MF} = \frac{N_{\text{trucks}}\; t_{\text{load}}}{N_{\text{shovels}}\; t_{\text{cycle}}}`} />
-        <p>{es
-          ? <>MF ≈ 1 equilibrado; &gt; 1 sobre-camionado (los camiones hacen cola); &lt; 1 sub-camionado (las palas quedan ociosas). El simulador se valida contra esta curva cerrada. La fórmula clásica supone flota homogénea (Morgan & Peterson); la corrección heterogénea (mezcla de clases de camión) de Burt & Caccetta se usa en el caso de flota mixta — y discrepan, así que prescribir tamaño de flota con la clásica sobre una flota mixta es un error que el banco demuestra.</>
-          : <>MF ≈ 1 balanced; &gt; 1 over-trucked (trucks queue); &lt; 1 under-trucked (shovels idle). The simulator is validated against this closed form. The classic formula assumes a homogeneous fleet (Morgan & Peterson); the heterogeneous (mixed truck-class) correction of Burt & Caccetta is used for the mixed-fleet case — and they disagree, so sizing a mixed fleet with the classic formula is an error the bench demonstrates.</>}</p>
-        <Refs ids={['morgan1968', 'burt2007']} label="Refs" />
-
-        <h2>{es ? 'Taxonomía de políticas + registro honesto' : 'Policy taxonomy + honesty register'}</h2>
-        <p>{es
-          ? 'Las políticas comparten una base de costo (viaje + espera esperada + desviación del plan) pero optimizan objetivos distintos. Las dos criterios clásicas — minimizar espera de camión ("maximizar camiones") y minimizar espera de pala ("maximizar palas") — entran en conflicto: no se pueden minimizar ambas a la vez, y ahí está el corazón multi-objetivo del despacho.'
-          : 'Policies share a cost basis (travel + expected wait + plan deviation) but optimise different objectives. The two classic criteria — minimise truck wait ("maximise trucks") and minimise shovel wait ("maximise shovels") — conflict: you cannot minimise both at once, and that is the multi-objective heart of dispatch.'}</p>
-        <ul>
-          <li>{es ? <><b>Fija</b> — el camión vuelve a su pala de origen; el piso sin reacción.</> : <><b>Fixed</b> — the truck returns to its home shovel; the no-reaction floor.</>}</li>
-          <li>{es ? <><b>Greedy (fin más temprano)</b> — minimiza cuándo ESTE camión termina de cargar; miope, sobre-camiona la pala cercana. En MF≈1 empata a los optimizadores.</> : <><b>Greedy (earliest completion)</b> — minimises when THIS truck finishes loading; myopic, over-trucks the near shovel. At MF≈1 it ties the optimisers.</>}</li>
-          <li>{es ? <><b>Espera esperada mínima</b> — minimiza el tiempo de cola usando cola + en-tránsito; el mejor default barato.</> : <><b>Shortest expected wait</b> — minimises queue time using queue + in-transit; the best cheap default.</>}</li>
-          <li>{es ? <><b>Mín. espera de camión / Mín. espera de pala</b> — los dos criterios clásicos en conflicto.</> : <><b>Min truck-wait / Min shovel-wait</b> — the two conflicting classic criteria.</>}</li>
-        </ul>
-        <p className="muted small">{es
-          ? 'Honestidad: el ranking de una política es específico del caso y la semilla. Ninguna ruta del código imprime un ganador único — se reporta la distribución sobre semillas. Greedy a menudo casi empata a un optimizador cuando el rajo está equilibrado; el banco lo muestra en vez de ocultarlo. Y el match factor explica el tamaño de flota, pero la rodilla de saturación de la simulación es la recomendación real (con varianza de bunching, el óptimo se corre a MF algo bajo 1). Las políticas exactas (Hungarian, LP multi-etapa, MILP con mezcla) y la de aprendizaje por refuerzo se construyen sobre esta base en los próximos incrementos.'
-          : 'Honesty: a policy\'s ranking is case- and seed-specific. No code path prints a single winner — the distribution over seeds is reported. Greedy often nearly ties an optimiser when the pit is balanced; the bench shows this rather than hiding it. And the match factor explains fleet size, but the simulation saturation knee is the real recommendation (with bunching/payload variance the optimum drifts to MF slightly below 1). The exact policies (Hungarian, multi-stage LP, blend-MILP) and the reinforcement-learning policy build on this base in the next increments.'}</p>
-        <Refs ids={['alarie2002', 'kuhn1955', 'moradi2019']} label="Refs" />
-      </section>
+      <section><SubTabs tabs={tabs} ariaLabel="methodology" /></section>
     </div>
   );
+}
+
+function Des({ es }: { es: boolean }) {
+  return (<>
+    <p>{es ? 'El núcleo es una simulación de eventos discretos con avance al próximo evento: el reloj salta al mínimo de la lista de eventos futuros (una cola binaria), se procesa un evento, y así. El orden es un orden total estricto (tiempo, prioridad, secuencia) — el contador de secuencia monótono es la piedra angular: sin él, eventos simultáneos se resolverían por accidente interno de la cola.' : 'The core is a next-event-time-advance discrete-event simulation: the clock jumps to the minimum of the future-event list (a binary heap), one event is processed, and so on. Order is a strict total order (time, priority, sequence) — the monotonic sequence counter is the keystone: without it, simultaneous events would resolve by heap-internal accident.'}</p>
+    <svg viewBox="0 0 560 110" width="100%" style={sv} role="img" aria-label="event timeline">
+      {AR('des-a')}
+      <line x1="20" y1="60" x2="540" y2="60" stroke="var(--color-fg-subtle)" markerEnd="url(#des-a)" />
+      {[60, 150, 240, 330, 420].map((x, i) => <g key={i}><line x1={x} y1="52" x2={x} y2="68" stroke="var(--color-accent)" strokeWidth="2" /><circle cx={x} cy="60" r="4" fill="var(--color-accent)" /><text x={x} y="44" textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="10">e{i + 1}</text></g>)}
+      <text x="20" y="30" fill="var(--color-fg-subtle)">{es ? 'el reloj salta de evento en evento (no por incremento fijo)' : 'the clock jumps event to event (not by fixed step)'}</text>
+      <text x="535" y="80" textAnchor="end" fill="var(--color-fg-subtle)">{es ? 'tiempo (ticks enteros)' : 'time (integer ticks)'}</text>
+    </svg>
+    <p>{es ? 'El reloj es entero (centisegundos); las duraciones (carga Erlang, viaje/descarga lognormal, averías exponenciales) se muestrean y redondean a ticks al agendar. El PRNG xoshiro128** sobre enteros con flujos nombrados hace válida la comparación con números aleatorios comunes (mismas llegadas/servicios entre políticas).' : 'The clock is integer (centiseconds); durations (Erlang load, lognormal travel/dump, exponential breakdowns) are sampled and rounded to ticks at schedule time. The xoshiro128** PRNG over integers with named streams makes common-random-numbers comparison valid (same arrivals/services across policies).'}</p>
+    <Refs ids={['banks2010', 'law2015', 'lecuyer2002']} label="Refs" />
+  </>);
+}
+
+function Pol({ es }: { es: boolean }) {
+  return (<>
+    <p>{es ? 'Las políticas comparten una base de costo (viaje + espera esperada + desviación del plan) pero optimizan objetivos distintos. Las dos criterios clásicas — minimizar espera de camión ("maximizar camiones") y minimizar espera de pala ("maximizar palas") — entran en conflicto: no se pueden minimizar ambas, y ahí está el corazón multi-objetivo del despacho.' : 'Policies share a cost basis (travel + expected wait + plan deviation) but optimise different objectives. The two classic criteria — minimise truck wait ("maximise trucks") and minimise shovel wait ("maximise shovels") — conflict: you cannot minimise both, and that is the multi-objective heart of dispatch.'}</p>
+    <svg viewBox="0 0 560 130" width="100%" style={sv} role="img" aria-label="conflicting criteria">
+      {AR('pol-a')}
+      <line x1="50" y1="110" x2="520" y2="110" stroke="var(--color-fg-subtle)" markerEnd="url(#pol-a)" /><line x1="50" y1="110" x2="50" y2="15" stroke="var(--color-fg-subtle)" markerEnd="url(#pol-a)" />
+      <text x="525" y="125" textAnchor="end" fill="var(--color-fg-subtle)">{es ? 'espera de camión →' : 'truck wait →'}</text>
+      <text x="44" y="14" textAnchor="end" fill="var(--color-fg-subtle)">{es ? 'espera de pala' : 'shovel wait'}</text>
+      <path d="M 70 30 Q 180 40 250 70 T 480 100" fill="none" stroke="var(--color-accent)" strokeWidth="1.6" strokeDasharray="4 3" />
+      <circle cx="90" cy="34" r="4" fill="#d29922" /><text x="98" y="30" fill="var(--color-fg)">min-pala</text>
+      <circle cx="470" cy="98" r="4" fill="#58a6ff" /><text x="430" y="92" fill="var(--color-fg)">min-camión</text>
+      <text x="230" y="55" fill="var(--color-fg-subtle)">{es ? 'frontera: no se pueden minimizar ambas' : 'frontier: cannot minimise both'}</text>
+    </svg>
+    <p>{es ? 'Se implementan: fija (piso), greedy (fin más temprano, miope), espera-esperada-mínima, los dos criterios en conflicto, y la asignación Hungarian (óptima para el match instantáneo). La página Benchmark mide las toneladas reales de cada una.' : 'Implemented: fixed (floor), greedy (earliest completion, myopic), shortest-expected-wait, the two conflicting criteria, and Hungarian assignment (optimal for the instantaneous match). The Benchmark page measures each one\'s real tonnes.'}</p>
+    <Refs ids={['alarie2002', 'white1986', 'kuhn1955', 'moradi2019']} label="Refs" />
+  </>);
+}
+
+function Mf({ es }: { es: boolean }) {
+  return (<>
+    <p>{es ? 'El match factor compara la demanda de los camiones con la capacidad de servicio de las palas — la verdad analítica contra la que se valida el simulador:' : 'The match factor compares the trucks\' demand to the shovels\' service capacity — the analytical ground truth the simulator is validated against:'}</p>
+    <Equation tex={String.raw`\mathrm{MF} = \frac{N_{\text{trucks}}\; t_{\text{load}}}{N_{\text{shovels}}\; t_{\text{cycle}}}`} />
+    <svg viewBox="0 0 560 150" width="100%" style={sv} role="img" aria-label="throughput saturation">
+      {AR('mf-a')}
+      <line x1="50" y1="120" x2="520" y2="120" stroke="var(--color-fg-subtle)" markerEnd="url(#mf-a)" /><line x1="50" y1="120" x2="50" y2="20" stroke="var(--color-fg-subtle)" markerEnd="url(#mf-a)" />
+      <path d="M 50 120 L 120 90 L 190 64 L 260 48 L 330 42 L 400 41 L 480 41" fill="none" stroke="var(--color-accent)" strokeWidth="2" />
+      <line x1="260" y1="20" x2="260" y2="120" stroke="var(--color-fg)" strokeDasharray="4 3" /><text x="265" y="32" fill="var(--color-fg)">MF=1</text>
+      <circle cx="260" cy="48" r="6" fill="none" stroke="#d29922" strokeWidth="2" /><text x="270" y="60" fill="#d29922">{es ? 'rodilla' : 'knee'}</text>
+      <text x="525" y="135" textAnchor="end" fill="var(--color-fg-subtle)">{es ? 'tamaño de flota →' : 'fleet size →'}</text>
+      <text x="44" y="20" textAnchor="end" fill="var(--color-fg-subtle)">{es ? 'producción' : 'throughput'}</text>
+    </svg>
+    <p>{es ? <>MF ≈ 1 equilibrado; &gt; 1 sobre-camionado (los camiones hacen cola); &lt; 1 sub-camionado (las palas quedan ociosas). La producción satura al cruzar MF=1 — la pestaña «Validación MF» del banco muestra que la rodilla medida cae en MF=1. La fórmula clásica supone flota homogénea (Morgan & Peterson); la corrección heterogénea es de Burt & Caccetta. <InlineMath tex={String.raw`t_{\text{cycle}}`} /> incluye carga + viaje + descarga + retorno.</> : <>MF ≈ 1 balanced; &gt; 1 over-trucked (trucks queue); &lt; 1 under-trucked (shovels idle). Throughput saturates as MF crosses 1 — the bench\'s "MF validation" tab shows the measured knee lands at MF=1. The classic formula assumes a homogeneous fleet (Morgan & Peterson); the heterogeneous correction is Burt & Caccetta. <InlineMath tex={String.raw`t_{\text{cycle}}`} /> includes load + haul + dump + return.</>}</p>
+    <Refs ids={['morgan1968', 'burt2007']} label="Refs" />
+  </>);
+}
+
+function Learned({ es }: { es: boolean }) {
+  return (<>
+    <p>{es ? 'El tier aprendido entrena, offline, dos redes de PUNTUACIÓN POR PALA (una MLP compartida → un escalar por pala, así un modelo maneja cualquier número de palas). En cada decisión se puntúa cada pala candidata y se elige el argmax.' : 'The learned tier trains, offline, two PER-SHOVEL SCORING nets (a shared MLP → one scalar per shovel, so one model handles any number of shovels). At each decision every candidate shovel is scored and the argmax is chosen.'}</p>
+    <Equation tex={String.raw`s_j = \mathrm{MLP}(x_j),\qquad a = \arg\max_j s_j,\qquad \mathcal{L}_{\text{RWR}} = \mathbb{E}\big[w\cdot \mathrm{CE}(\mathrm{softmax}(s), a^{\text{ref}})\big]`} />
+    <svg viewBox="0 0 560 120" width="100%" style={sv} role="img" aria-label="per-shovel scoring net">
+      {AR('ml-a')}
+      {[40, 40, 40].map((_, i) => <rect key={i} x={60} y={26 + i * 26} width="70" height="18" rx="3" fill="color-mix(in oklab, var(--color-accent) 20%, var(--color-surface))" stroke="var(--color-border)" />)}
+      <text x="95" y="18" textAnchor="middle" fill="var(--color-fg-subtle)">{es ? 'features por pala (×6)' : 'per-shovel features (×6)'}</text>
+      {[180, 240, 300].map((x, i) => <rect key={i} x={x} y={26} width="44" height="70" rx="3" fill="color-mix(in oklab, #f85149 16%, var(--color-surface))" stroke="var(--color-border)" />)}
+      <text x="262" y="18" textAnchor="middle" fill="var(--color-fg-subtle)">MLP 6→32→32→1</text>
+      <line x1="344" y1="61" x2="380" y2="61" stroke="var(--color-fg-subtle)" markerEnd="url(#ml-a)" />
+      {[40, 64, 88].map((y, i) => <g key={i}><rect x="390" y={y - 8} width={[70, 40, 24][i]} height="14" rx="2" fill={i === 0 ? '#f85149' : 'var(--color-accent)'} /><text x={390 + [70, 40, 24][i] + 6} y={y + 3} fill="var(--color-fg-subtle)" fontSize="10">{es ? 'puntaje' : 'score'} {i + 1}{i === 0 ? ' ★' : ''}</text></g>)}
+      <text x="430" y="110" textAnchor="middle" fill="#f85149" fontSize="10">{es ? 'argmax → pala elegida' : 'argmax → chosen shovel'}</text>
+    </svg>
+    <p>{es ? 'La POLÍTICA usa imitación ponderada por recompensa (RWR, Peters & Schaal 2007): reproduce las decisiones de referencia ponderadas por las toneladas del episodio. BC-best clona la mejor heurística. Ambas se exportan a ONNX y corren en vivo. Honesto: igualan a las heurísticas, no las superan — la SOTA del RL de despacho (Noriega 2024) muestra ganancias solo con entornos más ricos.' : 'The POLICY uses reward-weighted imitation (RWR, Peters & Schaal 2007): it reproduces the reference decisions weighted by episode tonnes. BC-best clones the best heuristic. Both export to ONNX and run live. Honest: they match the heuristics, not beat them — the SOTA of dispatch RL (Noriega 2024) shows gains only with richer environments.'}</p>
+    <Refs ids={['peters2007', 'mnih2015', 'hasselt2016', 'noriega2024']} label="Refs" />
+  </>);
 }
