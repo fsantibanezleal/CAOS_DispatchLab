@@ -3,7 +3,7 @@
 // multi-objective (tonnes vs truck wait), so the honest summary is a Pareto frontier, plus a TIE rule: if a
 // rival's tonnes band overlaps the leader's, the difference is "not significant" — no overconfident winner.
 import { runSimulation } from './model';
-import { POLICIES } from '../policies/heuristics';
+import { POLICIES, type PolicyDef } from '../policies/heuristics';
 import { type CaseSpec } from './types';
 
 export interface PolicyStats {
@@ -16,8 +16,8 @@ export interface PolicyStats {
 const median = (a: number[]) => { const s = [...a].sort((x, y) => x - y); const n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : NaN; };
 const pct = (a: number[], p: number) => { const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.max(0, Math.round(p * (s.length - 1))))]; };
 
-export function comparePolicies(c: CaseSpec, seeds: number[]): PolicyStats[] {
-  return POLICIES.map((p) => {
+export function comparePolicies(c: CaseSpec, seeds: number[], policies: PolicyDef[] = POLICIES): PolicyStats[] {
+  return policies.map((p) => {
     const tonnes: number[] = [], waitH: number[] = [];
     for (const s of seeds) { const r = runSimulation(c, p.fn, s); tonnes.push(r.tonnes); waitH.push(r.truckWaitSec / 3600); }
     return { id: p.id, en: p.en, es: p.es, tonnes, waitH, medTonnes: median(tonnes), medWaitH: median(waitH), loT: pct(tonnes, 0.1), hiT: pct(tonnes, 0.9), loW: pct(waitH, 0.1), hiW: pct(waitH, 0.9) };
@@ -43,4 +43,5 @@ export function tieVerdict(stats: PolicyStats[]): { leader: string; tied: string
 
 export const POLICY_COLOR: Record<string, string> = {
   greedy: '#58a6ff', shortestWait: '#3fb950', minTruckWait: '#d29922', minShovelWait: '#bc8cff', fixed: '#8b949e',
+  rwr: '#f85149', bcbest: '#f778ba',
 };

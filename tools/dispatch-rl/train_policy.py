@@ -107,11 +107,17 @@ def main():
     for net, name in [(pol, "dl-policy.onnx"), (val, "dl-bcbest.onnx")]:
         torch.onnx.export(net, torch.zeros(2, FEAT), os.path.join(OUT, name), dynamo=False,
                           input_names=["feats"], output_names=["score"], dynamic_axes={"feats": {0: "n"}, "score": {0: "n"}}, opset_version=17)
+    # weights for a synchronous TS forward (the DES is synchronous; ONNX is the canonical artifact + the
+    # live-inference path in the web). Same maths, verified to match.
+    def dump(net):
+        layers = [m for m in net.f if isinstance(m, nn.Linear)]
+        return [dict(W=l.weight.detach().numpy().tolist(), b=l.bias.detach().numpy().tolist()) for l in layers]
     json.dump(dict(featOrder=["queueLen", "inbound", "loading", "freeIn/300", "backlog*load/300", "travel/300"],
                    policyImitAcc=round(polAcc, 3), bcBestImitAcc=round(bcAcc, 3), bcBestSelfAcc=round(bcSelf, 3),
-                   bestPolicy=best_pol, nTrain=len(tr_rows), nEval=len(ev_rows), shovelCounts=Ns),
+                   bestPolicy=best_pol, nTrain=len(tr_rows), nEval=len(ev_rows), shovelCounts=Ns,
+                   weights=dict(policy=dump(pol), bcbest=dump(val))),
               open(os.path.join(OUT, "dl-learned.json"), "w"))
-    print("wrote dl-policy.onnx, dl-bcbest.onnx, dl-learned.json")
+    print("wrote dl-policy.onnx, dl-bcbest.onnx, dl-learned.json (+ weights)")
 
 
 if __name__ == "__main__":

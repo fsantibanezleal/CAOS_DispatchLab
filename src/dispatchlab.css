@@ -1,13 +1,29 @@
-/* DispatchLab — app-specific styles on top of the shared design-system tokens. */
+/* DispatchLab — app styles on top of the shared design-system tokens. The shell does NOT ship `.chip` or
+   `.gauge` — they are defined here, ported from the validated RotorVitals visual language (pill chip with a
+   filled-accent active state, gauge, control sidebar). Light AND dark via the shell tokens. */
 
-.dl-layout { display: grid; grid-template-columns: 250px 1fr; gap: 1rem; align-items: start; }
-@media (max-width: 800px) { .dl-layout { grid-template-columns: 1fr; } }
+/* validated pill chip */
+.chip { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-fg-subtle); border-radius: 999px; padding: 0.3rem 0.72rem; font-size: 0.8rem; cursor: pointer; }
+.chip:hover { color: var(--color-fg); border-color: var(--color-fg-faint); }
+.chip.on { background: var(--color-accent); color: var(--color-accent-fg); border-color: transparent; font-weight: 600; }
 
-.dl-controls { display: flex; flex-direction: column; gap: 0.7rem; position: sticky; top: 0.5rem; }
-.dl-ctl { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; }
+/* validated gauge */
+.gauge { margin-top: 0.2rem; }
+.gauge-title { font-size: 0.78rem; color: var(--color-fg-faint); margin-bottom: 0.35rem; }
+.gauge-track { position: relative; height: 14px; border-radius: 7px; background: var(--color-surface-2, var(--color-surface)); overflow: hidden; border: 1px solid var(--color-border); }
+.gauge-zone { position: absolute; top: 0; height: 100%; opacity: 0.55; }
+.gauge-needle { position: absolute; top: -3px; width: 2px; height: 20px; background: var(--color-fg); transform: translateX(-1px); }
+.gauge-scale { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--color-fg-faint); margin-top: 0.2rem; }
+.gauge-scale .gauge-val { color: var(--color-fg); font-weight: 700; font-family: var(--font-mono); }
+
+.dl-layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; align-items: start; }
+@media (max-width: 900px) { .dl-layout { grid-template-columns: 1fr; } }
+
+.dl-controls { display: flex; flex-direction: column; gap: 0.8rem; position: sticky; top: 0.5rem; }
+.dl-ctl { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.82rem; color: var(--color-fg-subtle); }
 .dl-ctl .range { width: 100%; }
-.dl-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-.dl-chips .chip { padding: 0.12rem 0.5rem; font-size: 0.74rem; }
+.dl-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.dl-chips .chip { padding: 0.18rem 0.6rem; font-size: 0.76rem; }
 .dl-play { flex-direction: row; align-items: center; gap: 0.4rem; }
 .dl-play .chip { cursor: pointer; }
 .dl-sel { background: var(--color-surface); color: var(--color-fg); border: 1px solid var(--color-border); border-radius: 6px; padding: 0.15rem 0.3rem; font-size: 0.78rem; }
@@ -62,3 +78,11 @@
 
 .mono { font-family: var(--font-mono); }
 .hint { font-size: 0.82rem; color: var(--color-fg-subtle); }
+
+/* workbench additions */
+.dl-ctl-lbl { color: var(--color-fg-faint); font-size: 0.78rem; }
+.dl-hint { font-size: 0.82rem; color: var(--color-fg-subtle); }
+.dl-note { font-size: 0.78rem; border-left: 3px solid var(--color-warn, #d29922); padding-left: 0.6rem; color: var(--color-fg-subtle); }
+.dl-learned-chip { border-color: #f85149 !important; }
+.dl-learned-chip.on { background: #f85149 !important; }
+.tw-note { font-size: 0.78rem; color: var(--color-fg-subtle); }
