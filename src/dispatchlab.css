@@ -86,3 +86,14 @@
 .dl-learned-chip { border-color: #f85149 !important; }
 .dl-learned-chip.on { background: #f85149 !important; }
 .tw-note { font-size: 0.78rem; color: var(--color-fg-subtle); }
+
+/* stat cards (experiments/benchmark) */
+.tw-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin: 0.6rem 0 0.9rem; }
+@media (max-width: 640px) { .tw-stats { grid-template-columns: repeat(2, 1fr); } }
+.tw-stat { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px; padding: 0.6rem 0.7rem; text-align: center; }
+.tw-stat-v { font-family: var(--font-mono); font-size: 1.5rem; font-weight: 700; color: var(--color-fg); line-height: 1.1; }
+.tw-stat-l { font-size: 0.72rem; color: var(--color-fg-subtle); margin-top: 0.2rem; }
+.cmp-table { border-collapse: collapse; width: 100%; font-size: 0.84rem; margin-top: 0.6rem; }
+.cmp-table th, .cmp-table td { padding: 0.4rem 0.55rem; text-align: center; border-bottom: 1px solid var(--color-border); }
+.cmp-table thead th { color: var(--color-fg-faint); font-weight: 600; font-size: 0.78rem; }
+.cmp-table td.lo, .cmp-table th.lo { text-align: left; }

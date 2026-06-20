@@ -197,7 +197,7 @@ function DecisionInspector({ decisions, es }: { decisions: Decision[]; es: boole
   const [i, setI] = useState(0);
   const [scores, setScores] = useState<number[] | null>(null);
   const d = decisions.length ? decisions[Math.min(i, decisions.length - 1)] : null;
-  useEffect(() => { let a = true; setScores(null); if (d) onnxScore('dl-policy.onnx', d.feats).then((s) => { if (a) setScores(s); }).catch(() => setScores(null)); return () => { a = false; }; }, [d]);
+  useEffect(() => { let a = true; setScores(null); if (d) onnxScore('dl-policy.onnx', d.feats).then((s) => { if (a) setScores(s); }).catch(() => { if (a) setScores(null); }); return () => { a = false; }; }, [d]);
   if (!d) return <Panel t="Decision inspector"><p className="dl-hint">{es ? 'No hay decisiones capturadas (caso de una sola pala).' : 'No captured decisions (single-shovel case).'}</p></Panel>;
   const argmax = scores ? scores.indexOf(Math.max(...scores)) : -1;
   const maxS = scores ? Math.max(...scores) : 1, minS = scores ? Math.min(...scores) : 0;
