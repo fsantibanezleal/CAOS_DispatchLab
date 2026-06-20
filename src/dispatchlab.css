@@ -1,0 +1,50 @@
+/* DispatchLab — app-specific styles on top of the shared design-system tokens. */
+
+.dl-layout { display: grid; grid-template-columns: 250px 1fr; gap: 1rem; align-items: start; }
+@media (max-width: 800px) { .dl-layout { grid-template-columns: 1fr; } }
+
+.dl-controls { display: flex; flex-direction: column; gap: 0.7rem; position: sticky; top: 0.5rem; }
+.dl-ctl { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; }
+.dl-ctl .range { width: 100%; }
+.dl-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.dl-chips .chip { padding: 0.12rem 0.5rem; font-size: 0.74rem; }
+.dl-play { flex-direction: row; align-items: center; gap: 0.4rem; }
+.dl-play .chip { cursor: pointer; }
+.dl-sel { background: var(--color-surface); color: var(--color-fg); border: 1px solid var(--color-border); border-radius: 6px; padding: 0.15rem 0.3rem; font-size: 0.78rem; }
+.dl-scrub { width: 100%; }
+.dl-clock { font-family: var(--font-mono); text-align: right; }
+
+.dl-diag { display: flex; flex-direction: column; gap: 0.45rem; padding: 0.6rem 0.7rem; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); }
+.dl-diag-h { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-fg-subtle); font-weight: 600; }
+.dl-mfgauge { display: flex; flex-direction: column; gap: 0.3rem; }
+.dl-mfbar { position: relative; height: 0.7rem; border-radius: 4px; background: linear-gradient(90deg, #d29922 0%, #3fb950 38% 50%, #d29922 62%, #f85149 100%); border: 1px solid var(--color-border); }
+.dl-mfzone.ok { display: none; }
+.dl-mfref { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--color-fg); }
+.dl-mfmark { position: absolute; top: -3px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--color-fg); transform: translateX(-5px); }
+
+.dl-main { display: flex; flex-direction: column; gap: 0.7rem; min-width: 0; }
+.dl-map-wrap { position: relative; }
+.dl-readout { position: absolute; pointer-events: none; background: color-mix(in oklab, var(--color-surface) 92%, transparent); border: 1px solid var(--color-border); border-radius: 6px; padding: 0.2rem 0.45rem; font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-fg); white-space: nowrap; }
+
+.dl-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
+@media (max-width: 560px) { .dl-kpis { grid-template-columns: repeat(2, 1fr); } }
+.dl-kpi { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px; padding: 0.5rem 0.6rem; text-align: center; }
+.dl-kpi-v { font-family: var(--font-mono); font-size: 1.35rem; font-weight: 700; color: var(--color-fg); line-height: 1.1; }
+.dl-kpi-l { font-size: 0.7rem; color: var(--color-fg-subtle); margin-top: 0.15rem; }
+
+.dl-panel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px; padding: 0.6rem 0.75rem; }
+.dl-panel-t { font-size: 0.82rem; color: var(--color-fg-subtle); margin-bottom: 0.3rem; }
+.dl-shovels { display: flex; flex-direction: column; gap: 0.4rem; }
+.dl-shovel { display: flex; flex-direction: column; gap: 0.15rem; }
+.dl-ubar { height: 0.5rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 4px; overflow: hidden; }
+.dl-ubar span { display: block; height: 100%; background: var(--color-accent); }
+
+.dl-note { font-size: 0.76rem; border-left: 3px solid var(--color-warn); padding-left: 0.6rem; }
+
+.uplot-host { width: 100%; }
+.u-legend { font-size: 0.74rem; color: var(--color-fg-subtle); margin-top: 0.1rem; }
+.u-legend .u-series { display: inline-flex; align-items: center; gap: 0.3rem; margin-right: 0.9rem; }
+.u-legend .u-value { font-family: var(--font-mono); color: var(--color-fg); }
+
+.mono { font-family: var(--font-mono); }
+.hint { font-size: 0.82rem; color: var(--color-fg-subtle); }
