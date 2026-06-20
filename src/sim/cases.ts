@@ -40,6 +40,18 @@ const c05Mine: MineSpec = {
 };
 export const C05: CaseSpec = { id: 'C05', name: 'Asymmetric roads (near + far shovel)', mine: c05Mine, fleet: fleet(8, '793F', [1, 2]), shiftSec: SHIFT };
 
+// ---- C03 under-trucked (MF<1; shovel sits idle — min-shovel-wait helps least, nothing can feed it) ----
+export const C03: CaseSpec = { id: 'C03', name: 'Under-trucked (MF≈0.5)', mine: c01Mine, fleet: fleet(2, '793F', [1]), shiftSec: SHIFT };
+
+// ---- C04 two shovels, symmetric roads (no asymmetry to exploit → greedy ≈ shortest-wait) ----
+const c04Mine: MineSpec = {
+  name: 'Two-shovel symmetric pit',
+  shovels: [shovel(1, 'Shovel 1', 120, 120), shovel(2, 'Shovel 2', 120, 320)],
+  dumps: [crusher(10, 'Crusher', 560, 220)],
+  routes: { '1->10': route(2200, 4), '2->10': route(2200, 4) },
+};
+export const C04: CaseSpec = { id: 'C04', name: 'Two shovels, symmetric roads (MF≈1)', mine: c04Mine, fleet: fleet(8, '793F', [1, 2]), shiftSec: SHIFT };
+
 // ---- C12 trivial 1-truck-1-shovel oracle (deterministic; throughput = payload·⌊·⌋ exactly) ----
 const c12Mine: MineSpec = {
   name: 'Oracle 1×1', shovels: [shovel(1, 'Shovel 1', 150, 200, { spotMeanSec: 0 })], dumps: [crusher(10, 'Crusher', 500, 200)],
@@ -47,5 +59,5 @@ const c12Mine: MineSpec = {
 };
 export const C12: CaseSpec = { id: 'C12', name: '1-truck-1-shovel oracle', mine: c12Mine, fleet: fleet(1, '793F', [1]), shiftSec: SHIFT };
 
-export const CASES: CaseSpec[] = [C01, C02, C05, C12];
+export const CASES: CaseSpec[] = [C01, C02, C03, C04, C05, C12];
 export const caseById = (id: string): CaseSpec => CASES.find((c) => c.id === id) ?? C01;
