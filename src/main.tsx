@@ -8,6 +8,7 @@ import './dispatchlab.css';
 import { CITATIONS } from './data/citations';
 import Sim from './pages/Sim';
 import Compare from './pages/Compare';
+import Analytics from './pages/Analytics';
 import Methodology from './pages/Methodology';
 import About from './pages/About';
 
@@ -18,11 +19,12 @@ const config: ShellConfig = {
   routes: [
     { path: '/', en: 'Bench', es: 'Banco' },
     { path: '/compare', en: 'Compare', es: 'Comparar' },
+    { path: '/analytics', en: 'Analytics', es: 'Analítica' },
     { path: '/methodology', en: 'Methodology', es: 'Metodología' },
     { path: '/about', en: 'About', es: 'Acerca' },
   ],
   links: { github: 'https://github.com/fsantibanezleal/CAOS_DispatchLab' },
-  version: '0.02.000',
+  version: '0.03.000',
 };
 
 createRoot(document.getElementById('root')!).render(
@@ -33,6 +35,7 @@ createRoot(document.getElementById('root')!).render(
           <Routes>
             <Route path="/" element={<Sim />} />
             <Route path="/compare" element={<Compare />} />
+            <Route path="/analytics" element={<Analytics />} />
             <Route path="/methodology" element={<Methodology />} />
             <Route path="/about" element={<About />} />
             <Route path="*" element={<Sim />} />
