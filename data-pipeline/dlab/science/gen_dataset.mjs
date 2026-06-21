@@ -7,9 +7,9 @@
 //
 // Run:  node --import tsx tools/dispatch-rl/gen_dataset.mjs
 import { writeFileSync } from 'node:fs';
-import { runSimulation } from '../../src/sim/model.ts';
-import { POLICIES } from '../../src/policies/heuristics.ts';
-import { CASES } from '../../src/sim/cases.ts';
+import { runSimulation } from '../../../frontend/src/sim/model.ts';
+import { POLICIES } from '../../../frontend/src/policies/heuristics.ts';
+import { CASES } from '../../../frontend/src/sim/cases.ts';
 
 // multi-shovel cases only (a single-shovel decision is trivial — nothing to learn)
 const MULTI = CASES.filter((c) => c.mine.shovels.length >= 2);

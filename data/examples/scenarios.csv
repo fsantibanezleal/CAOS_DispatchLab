@@ -1,0 +1,5 @@
+case_id,n_shovels,n_trucks,truck_model,shift_sec
+ex-balanced,1,4,793F,28800
+ex-overtrucked,1,8,793F,28800
+ex-multishovel,3,12,793F,28800
+ex-oracle,1,1,793F,28800
