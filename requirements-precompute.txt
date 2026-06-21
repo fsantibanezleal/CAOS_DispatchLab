@@ -1,0 +1,7 @@
+# PRECOMPUTE lane — the heavy engines, in .venv-pipeline (local-only, never deployed). Run ONLY for
+# `python -m dlab.pipeline all --retrain` (Node DES dataset -> torch train policies -> ONNX). Needs Node 20+ too.
+#   install torch CPU via:  pip install torch==2.12.1 --index-url https://download.pytorch.org/whl/cpu
+numpy==2.4.6
+torch==2.12.1
+onnx==1.22.0
+onnxruntime==1.27.0

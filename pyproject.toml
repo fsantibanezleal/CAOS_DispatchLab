@@ -1,0 +1,32 @@
+# DispatchLab — the offline engine package (instantiated from the CAOS product-repo archetype, ADR-0057).
+# The DEFAULT pipeline is numpy-only (builds the replay layer from committed artifacts); the heavy lane (the Node DES
+# dataset + torch policy training) lives in requirements-precompute.txt and is documented in docs/frameworks/.
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dlab"
+version = "0.5.0"
+description = "DispatchLab — truck-shovel dispatch (deterministic DES + 5 classical policies + 2 learned ONNX policies) as a staged offline pipeline with two data contracts (ADR-0057)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Felipe Santibáñez-Leal" }]
+dependencies = ["numpy>=1.26"]
+
+[tool.setuptools.packages.find]
+where = ["data-pipeline"]
+exclude = ["dlab.science*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+extend-exclude = ["data-pipeline/dlab/science"]
+
+[tool.ruff.lint]
+ignore = ["E741"]

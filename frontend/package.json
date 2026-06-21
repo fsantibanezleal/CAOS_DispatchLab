@@ -1,0 +1,35 @@
+{
+  "name": "caos-dispatchlab",
+  "version": "0.05.000",
+  "private": true,
+  "type": "module",
+  "description": "DispatchLab — a didactic, in-browser bench that compares truck-to-shovel dispatch policies (greedy, shortest-wait, the two classic criteria, fixed, and two learned ONNX policies) on a deterministic discrete-event open-pit simulation. Policy-comparison sandbox, NOT a production dispatch system.",
+  "scripts": {
+    "predev": "node copy-data.mjs",
+    "dev": "vite",
+    "prebuild": "node copy-data.mjs",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "node --import tsx --test test/"
+  },
+  "dependencies": {
+    "@fasl-work/caos-app-shell": "^0.1.1",
+    "katex": "^0.16.11",
+    "lucide-react": "^0.469.0",
+    "onnxruntime-web": "^1.27.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.1.1",
+    "uplot": "^1.6.31",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  }
+}
