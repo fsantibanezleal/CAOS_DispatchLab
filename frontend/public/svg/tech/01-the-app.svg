@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" class="arch-svg" role="img" aria-label="DispatchLab — open-pit truck dispatch to fleet throughput">
+  <style>
+    .arch-svg text { font-family: var(--font-sans, Inter, "Segoe UI", system-ui, sans-serif); }
+    .arch-svg .mono { font-family: var(--font-mono, ui-monospace, Consolas, monospace); }
+    .arch-svg .bx { fill: var(--color-surface-2); stroke: var(--color-border); stroke-width: 1.2; }
+    .arch-svg .bx-hi { stroke: var(--color-accent); }
+    .arch-svg .bx-good { stroke: var(--color-good); }
+    .arch-svg .ttl { fill: var(--color-fg); font-size: 13px; font-weight: 700; }
+    .arch-svg .sub { fill: var(--color-fg-subtle); font-size: 10px; }
+    .arch-svg .it { fill: var(--color-fg); font-size: 11px; font-weight: 600; }
+    .arch-svg .cd { fill: var(--color-accent); font-size: 9.5px; }
+    .arch-svg .mu { fill: var(--color-fg-subtle); font-size: 10px; }
+    .arch-svg .flow { fill: none; stroke: var(--color-fg-faint); stroke-width: 1.6; }
+    .arch-svg .road { fill: none; stroke: var(--color-fg-faint); stroke-width: 1.4; stroke-dasharray: 4 3; }
+    .arch-svg .truck { fill: var(--color-accent); }
+    .arch-svg .shovel { fill: var(--color-good); }
+    .arch-svg .bar { fill: var(--color-good); }
+  </style>
+  <defs>
+    <marker id="ta-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L8,4 L0,8 z" fill="var(--color-fg-faint)"/>
+    </marker>
+  </defs>
+
+  <text class="ttl" x="22" y="30">DispatchLab — which shovel should the next truck go to?</text>
+  <text class="sub" x="22" y="47">an open-pit dispatch product: simulate a haulage fleet under a dispatch policy and watch throughput, the match factor and truck-wait form, live</text>
+
+  <!-- 1. The question -->
+  <rect class="bx bx-hi" x="20" y="74" width="196" height="150" rx="11"/>
+  <text class="it" x="34" y="98">The question</text>
+  <text class="mu" x="34" y="118">N trucks, M shovels,</text>
+  <text class="mu" x="34" y="134">different haul roads.</text>
+  <text class="mu" x="34" y="150">Which assignment</text>
+  <text class="mu" x="34" y="166">maximises tons /</text>
+  <text class="mu" x="34" y="182">minimises queueing?</text>
+  <text class="cd mono" x="34" y="206">8 cases · MF 0.5–2</text>
+
+  <!-- 2. The pit (shovels + trucks) -->
+  <rect class="bx" x="244" y="74" width="196" height="150" rx="11"/>
+  <text class="it" x="258" y="98">The pit</text>
+  <rect class="shovel" x="266" y="120" width="14" height="10" rx="2"/>
+  <rect class="shovel" x="266" y="170" width="14" height="10" rx="2"/>
+  <circle cx="412" cy="150" r="9" fill="none" stroke="var(--color-border)"/>
+  <text class="mu" x="404" y="153" style="font-size:8px">crush</text>
+  <path class="road" d="M282,125 Q350,120 404,148"/>
+  <path class="road" d="M282,175 Q350,180 404,152"/>
+  <rect class="truck" x="330" y="118" width="9" height="6" rx="1"/>
+  <rect class="truck" x="356" y="174" width="9" height="6" rx="1"/>
+  <rect class="truck" x="300" y="146" width="9" height="6" rx="1"/>
+  <text class="mu" x="258" y="200">shovels load · trucks haul</text>
+  <text class="cd mono" x="258" y="216">CaseSpec · fleet · roads</text>
+
+  <!-- 3. The method -->
+  <rect class="bx bx-hi" x="468" y="74" width="196" height="150" rx="11"/>
+  <text class="it" x="482" y="98">The method</text>
+  <text class="mu" x="482" y="118">discrete-event sim +</text>
+  <text class="mu" x="482" y="134">a dispatch policy:</text>
+  <text class="mu" x="482" y="150">• heuristics (greedy…)</text>
+  <text class="mu" x="482" y="166">• learned policy (NN)</text>
+  <text class="cd mono" x="482" y="190">sim/ · policies/ · *.onnx</text>
+  <text class="mu" x="482" y="210">recomputed live</text>
+
+  <!-- 4. The value -->
+  <rect class="bx bx-good" x="692" y="74" width="188" height="150" rx="11"/>
+  <text class="it" x="706" y="98">The value</text>
+  <rect class="bar" x="712" y="150" width="20" height="40"/>
+  <rect class="bar" x="740" y="134" width="20" height="56"/>
+  <rect class="bar" x="768" y="124" width="20" height="66"/>
+  <rect class="bar" x="796" y="142" width="20" height="48"/>
+  <text class="mu" x="706" y="118">tons / shift</text>
+  <text class="cd mono" x="706" y="210">throughput · MF · wait</text>
+
+  <path class="flow" d="M216,149 H242" marker-end="url(#ta-arrow)"/>
+  <path class="flow" d="M440,149 H466" marker-end="url(#ta-arrow)"/>
+  <path class="flow" d="M664,149 H690" marker-end="url(#ta-arrow)"/>
+
+  <!-- bottom band -->
+  <rect class="bx" x="20" y="252" width="860" height="184" rx="11"/>
+  <text class="it" x="36" y="278">It is a real system, not a demo:</text>
+  <text class="mu" x="36" y="302">• a centisecond discrete-event simulation (frontend/src/sim/) re-runs the whole shift live when you change the case / policy / fleet;</text>
+  <text class="mu" x="36" y="324">• truck travel is physical — speed by grade, rolling resistance and load (kinematics.ts); shovels load on a real cycle; queues form at both ends;</text>
+  <text class="mu" x="36" y="346">• policies compete on a Pareto front (throughput vs truck-wait) over many seeds; a learned dispatch NN + a behaviour-clone of the best are ONNX, client-side;</text>
+  <text class="mu" x="36" y="368">• the analytical match factor anchors the simulation; C12 (1-truck-1-shovel) is a closed-form oracle;</text>
+  <text class="mu" x="36" y="390">• Contract 1 accepts your own mine/fleet; six documented pages; every number sourced or labelled synthetic.</text>
+  <text class="cd mono" x="36" y="418">mine + fleet + roads  →  discrete-event sim under a dispatch policy  →  throughput · match factor · truck-wait (Pareto)</text>
+</svg>
