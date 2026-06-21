@@ -25,17 +25,41 @@ decision panel diagnoses fleet balance (over/under-trucked + a fleet-sizing sugg
   LP, blend-MILP) and a reinforcement-learning policy build on this base.
 - **Match factor** as the analytical ground truth, with the heterogeneous-fleet correction.
 
+## Architecture
+
+Instantiated from the CAOS product-repo archetype (ADR-0057): a heavy **offline engine** + a **frontend SPA**, bound
+by two data contracts. See [`STRUCTURE.md`](STRUCTURE.md) and the [`docs/`](docs/README.md) wiki.
+
+```
+OFFLINE  data-pipeline/dlab/ (Node DES + torch)      LIVE  frontend/src/ (browser, TypeScript)
+  science/gen_dataset.mjs  log DES decisions            sim/       the deterministic DES engine
+  science/train_policy.py  learned policies -> ONNX      policies/  5 heuristics + 2 learned (onnxruntime-web)
+  science/bake_cases.mjs   per-case comparison           viz/       PitMap / Pareto / sweep
+        │  --retrain regenerates the artifacts
+        ▼
+  data/derived/  dl-policy.onnx · dl-bcbest.onnx · dl-learned.json · case-results.json  (committed; the DES dataset jsonl stays git-ignored)
+        ▼
+  pipeline (numpy) → data/derived/<case>/trace.json + manifests/  (CONTRACT 2; copy-data overlays into frontend/public)
+```
+
+The default pipeline is **numpy-only** (rebuilds the replay layer from the committed artifacts), so a clone replays
+without torch or Node. Heavy work (the Node DES dataset + torch policy training) is the local-only `--retrain`.
+
 ## Develop
 
 ```bash
-npm install
-npm run dev        # vite dev server
-npm test           # DES determinism + oracle + match-factor tests
-npm run build      # tsc + vite build
+./scripts/setup.sh            # venvs + light deps + editable pkg (numpy+ruff+pytest)   [.ps1 on Windows]
+./scripts/precompute.sh       # python -m dlab.pipeline all  (rebuild the replay layer, numpy-only)
+.venv-pipeline/bin/python -m pytest    # 8 passed     ·     ./scripts/smoke.sh   # CONTRACT 2 OK
+./scripts/dev.sh              # cd frontend && npm install && npm run dev (vite + live DES + ONNX)
+cd frontend && npm run build  # tsc --noEmit && vite build (+ copy-data overlay + SPA 404.html)
+
+# regenerate the policies (local-only, torch + Node 20+):
+./scripts/setup.sh --precompute && ./scripts/precompute.sh all --retrain
 ```
 
-Stack: Vite + React 19 + TypeScript, uPlot, the shared `@fasl-work/caos-app-shell`. Deployed to GitHub
-Pages. Bilingual (EN default + ES), light/dark.
+Stack: Vite + React 19 + TypeScript, uPlot, the shared `@fasl-work/caos-app-shell`. Deployed to GitHub Pages.
+Bilingual (EN default + ES), light/dark.
 
 ## Honesty
 
