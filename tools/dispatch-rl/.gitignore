@@ -1,4 +1,0 @@
-.venv/
-dataset.jsonl
-__pycache__/
-*.onnx
