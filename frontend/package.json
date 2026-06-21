@@ -3,7 +3,7 @@
   "version": "0.05.000",
   "private": true,
   "type": "module",
-  "description": "DispatchLab — a didactic, in-browser bench that compares truck-to-shovel dispatch policies (greedy, shortest-wait, the two classic criteria, fixed, and two learned ONNX policies) on a deterministic discrete-event open-pit simulation. Policy-comparison sandbox, NOT a production dispatch system.",
+  "description": "DispatchLab \u2014 a didactic, in-browser bench that compares truck-to-shovel dispatch policies (greedy, shortest-wait, the two classic criteria, fixed, and two learned ONNX policies) on a deterministic discrete-event open-pit simulation. Policy-comparison sandbox, NOT a production dispatch system.",
   "scripts": {
     "predev": "node copy-data.mjs",
     "dev": "vite",
@@ -13,7 +13,7 @@
     "test": "node --import tsx --test test/"
   },
   "dependencies": {
-    "@fasl-work/caos-app-shell": "^0.1.1",
+    "@fasl-work/caos-app-shell": "^0.1.2",
     "katex": "^0.16.11",
     "lucide-react": "^0.469.0",
     "onnxruntime-web": "^1.27.0",
