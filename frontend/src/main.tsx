@@ -26,7 +26,7 @@ const config: ShellConfig = {
     { path: '/benchmark', en: 'Benchmark', es: 'Benchmark' },
   ],
   links: { github: 'https://github.com/fsantibanezleal/CAOS_DispatchLab' },
-  version: '0.04.000',
+  version: '0.05.000',
 };
 
 createRoot(document.getElementById('root')!).render(

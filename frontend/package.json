@@ -1,11 +1,13 @@
 {
   "name": "caos-dispatchlab",
-  "version": "0.03.000",
+  "version": "0.05.000",
   "private": true,
   "type": "module",
-  "description": "DispatchLab — a didactic, in-browser bench that compares truck-to-shovel dispatch policies (greedy, shortest-wait, the two classic criteria, Hungarian, multi-stage LP, blend-MILP, look-ahead, RL) on a deterministic discrete-event open-pit simulation. Policy-comparison sandbox, NOT a production dispatch system.",
+  "description": "DispatchLab — a didactic, in-browser bench that compares truck-to-shovel dispatch policies (greedy, shortest-wait, the two classic criteria, fixed, and two learned ONNX policies) on a deterministic discrete-event open-pit simulation. Policy-comparison sandbox, NOT a production dispatch system.",
   "scripts": {
+    "predev": "node copy-data.mjs",
     "dev": "vite",
+    "prebuild": "node copy-data.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "node --import tsx --test test/"
