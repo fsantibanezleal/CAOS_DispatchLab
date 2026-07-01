@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.06.000] — 2026-07-01
+
+### Added — the REAL-DATA lane (issues #13-#18, #21; epic #20)
+- **Pit topography + 3D view (#21):** parametric terraced pit (bench rings, spiral ramp) + a `Pit 3D` tab — the
+  fleet moves along real 3D haul paths (bench → ramp → surface) at the playback clock; render-on-demand.
+- **cyclelog/v1 client contract + replay engine (#15):** ingest real cycle logs (reject/flag/derive + provenance);
+  fold a measured shift into the same SimResult every tab consumes; real dispatcher decisions extracted.
+- **Structure-real shift artifacts (#17):** generated with the MIT OpenMines simulator (Huolinhe-desensitized
+  config); 2 shifts shipped with honest provenance; gated through the contract.
+- **First-level SOURCE selector (#14) + BYOD:** Synthetic | Real sample; sample picker; bring-your-own CSV through
+  the same gate; provenance card; SCENARIO knobs lock in real mode (#16); measured cycle-time tab.
+- **Counterfactual dispatch (#18):** re-decide the REAL shift under every policy (heuristics + learned) —
+  per-policy agreement at each real decision point + a live-ONNX inspector on the reconstructed states.
+
+### Fixed
+- Playback now defaults PAUSED and halts on a hidden tab (no-autoplay/compute rules).
+- Empirical match-factor formula (missing /nLoaders); non-monotonic replay crusher feed; node20 .ts test discovery.
+
+
 All notable changes to CAOS DispatchLab are documented here. Versions follow `X.XX.XXX` (major.minor.patch); the
 project stays in `0.x` while the DES is a didactic simulation (pending heavier OR/RL tiers).
 
