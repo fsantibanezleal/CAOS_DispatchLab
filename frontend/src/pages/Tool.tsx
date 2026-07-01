@@ -11,6 +11,12 @@ import { loadLearnedPolicies } from '../policies/learnedRegistry';
 import { shovelFeats } from '../policies/learned';
 import { onnxScore } from '../lib/ort';
 import { PitMap } from '../viz/PitMap';
+import { Pit3D } from '../viz/Pit3D';
+import { listSamples, loadSample, loadUserFile, type SampleMeta } from '../replay/samples';
+import { replayCycleLog } from '../replay/replayEngine';
+import { agreement, reconstructDecisions } from '../replay/counterfactual';
+import { type IngestReport } from '../replay/ingest';
+import { type CaseSpec } from '../sim/types';
 import { ParetoScatter } from '../viz/ParetoScatter';
 import { SweepChart } from '../viz/SweepChart';
 import { UPlotChart } from '../viz/UPlotChart';
@@ -28,17 +34,42 @@ export default function Tool() {
   const [caseId, setCaseId] = useState('C06');
   const [policyId, setPolicyId] = useState('greedy');
   const [seed, setSeed] = useState(7);
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(false); // default PAUSED (no-autoplay rule: an unattended page must not burn CPU)
   const [speed, setSpeed] = useState(600);
   const [playT, setPlayT] = useState(0);
   const [learned, setLearned] = useState<PolicyDef[]>([]);
   useEffect(() => { loadLearnedPolicies().then(setLearned).catch(() => {}); }, []);
   const allPolicies = useMemo(() => [...POLICIES, ...learned], [learned]);
 
+  // ---- SOURCE selector (#14): Synthetic scenario | Real cycle-log sample ----
+  const [source, setSource] = useState<'synthetic' | 'real'>('synthetic');
+  const [samples, setSamples] = useState<SampleMeta[]>([]);
+  const [sampleId, setSampleId] = useState('');
+  const [realReport, setRealReport] = useState<IngestReport | null>(null);
+  const [realErr, setRealErr] = useState('');
+  useEffect(() => { listSamples().then((s) => { setSamples(s); if (s.length && !sampleId) setSampleId(s[0].id); }).catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (source !== 'real' || !sampleId) return;
+    const meta = samples.find((s) => s.id === sampleId); if (!meta) return;
+    setRealErr('');
+    loadSample(meta).then((r) => { setRealReport(r); setPlayT(0); if (!r.ok) setRealErr(r.rejected.map((x) => x.reason).join('; ')); })
+      .catch((e: unknown) => { setRealReport(null); setRealErr(String(e)); });
+  }, [source, sampleId, samples]);
+  const onUserFile = (f: File) => {
+    setRealErr('');
+    loadUserFile(f).then((r) => { setRealReport(r); setPlayT(0); setSampleId(''); if (!r.ok) setRealErr(r.rejected.slice(0, 3).map((x) => x.reason).join('; ')); })
+      .catch((e: unknown) => setRealErr(String(e)));
+  };
+  const realOK = source === 'real' && !!realReport?.ok;
+  const realRun = useMemo(() => (realReport?.ok && realReport.sample ? replayCycleLog(realReport.sample) : null), [realReport]);
+  // counterfactual (#18): reconstruct every real decision point + score policy agreement (heuristics + learned)
+  const cfDecisions = useMemo(() => (realReport?.ok && realReport.sample ? reconstructDecisions(realReport.sample) : []), [realReport]);
+  const cfAgree = useMemo(() => (cfDecisions.length ? agreement(cfDecisions, allPolicies, es) : []), [cfDecisions, allPolicies, es]);
+
   const c = caseById(caseId);
   const pol = useMemo(() => allPolicies.find((p) => p.id === policyId) ?? policyById(policyId), [allPolicies, policyId]);
   const decisions = useRef<Decision[]>([]);
-  const result = useMemo(() => {
+  const synResult = useMemo(() => {
     decisions.current = [];
     let k = 0;
     return runSimulation(c, pol.fn, seed, {
@@ -52,8 +83,21 @@ export default function Tool() {
       },
     });
   }, [c, pol, seed]);
-  const mf = useMemo(() => analyticalMatchFactor(c), [c]);
-  const shiftSec = c.shiftSec;
+  const mfSyn = useMemo(() => analyticalMatchFactor(c), [c]);
+
+  // ---- the unified run every tab reads: branched ONCE on source ----
+  const activeC: CaseSpec = useMemo(() => {
+    if (!realOK || !realReport?.sample) return c;
+    const s = realReport.sample;
+    return {
+      id: s.id, name: s.name, mine: s.mine,
+      fleet: { trucks: s.trucks.map((id) => ({ id, spec: { model: 'measured', payloadT: s.empirical.payloadMeanT, tareT: 0, powerKW: 0, maxSpeedKmh: 0 }, startShovel: s.shovels[0] })) },
+      shiftSec: s.shiftSec,
+    };
+  }, [realOK, realReport, c]);
+  const result = realOK && realRun ? realRun.result : synResult;
+  const mf = realOK && realReport?.sample ? realReport.sample.empirical.matchFactor : mfSyn;
+  const shiftSec = activeC.shiftSec;
 
   // playback clock
   const raf = useRef(0); const last = useRef(0); const ptRef = useRef(0);
@@ -66,7 +110,14 @@ export default function Tool() {
       let nt = ptRef.current + dt * speed; if (nt >= shiftSec) nt = 0;
       ptRef.current = nt; setPlayT(nt); raf.current = requestAnimationFrame(tick);
     };
-    raf.current = requestAnimationFrame(tick); return () => cancelAnimationFrame(raf.current);
+    raf.current = requestAnimationFrame(tick);
+    // halt on a hidden tab (compute-bomb rule); resume the clock cleanly on return
+    const onVis = () => {
+      cancelAnimationFrame(raf.current);
+      if (!document.hidden) { last.current = 0; raf.current = requestAnimationFrame(tick); }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { cancelAnimationFrame(raf.current); document.removeEventListener('visibilitychange', onVis); };
   }, [playing, speed, shiftSec]);
 
   // KPIs + diagnosis
@@ -89,9 +140,21 @@ export default function Tool() {
   const tn = (id: string) => { const p = allPolicies.find((x) => x.id === id)!; return (es ? p.es : p.en).split(' (')[0]; };
 
   const tabs = [
+    { id: 'pit3d', label: es ? 'Rajo 3D' : 'Pit 3D', content: (
+      <Panel t={es ? 'Topografía del rajo — bancos, rampa espiral y flota en 3D (color = estado del camión); política actual' : 'Pit topography — benches, spiral ramp and the fleet in 3D (colour = truck state); current policy'}>
+        <Pit3D c={activeC} result={result} t={playT} lang={lang} />
+        <div className="dl-play" style={{ marginTop: '0.4rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button className="chip on" onClick={() => setPlaying((p) => !p)}>{playing ? `❚❚ ${es ? 'Pausa' : 'Pause'}` : `▶ ${es ? 'Reproducir' : 'Play'}`}</button>
+          <select className="dl-sel" value={speed} onChange={(e) => setSpeed(+e.target.value)} aria-label="speed">{SPEEDS.map((s) => <option key={s} value={s}>{s}×</option>)}</select>
+        </div>
+        <input className="range dl-scrub" type="range" min={0} max={shiftSec} step={60} value={playT} onChange={(e) => { setPlayT(+e.target.value); ptRef.current = +e.target.value; }} style={{ marginTop: '0.4rem' }} />
+        <div className="dl-kpis" style={{ marginTop: '0.5rem' }}>
+          <KPI v={fmt(tonnes)} l={es ? 'Toneladas (t)' : 'Tonnes (t)'} /><KPI v={mf.toFixed(2)} l="Match factor" /><KPI v={`${(meanUtil * 100).toFixed(0)}%`} l={es ? 'Util. pala' : 'Shovel util'} /><KPI v={truckWaitH.toFixed(1)} l={es ? 'Espera (h)' : 'Wait (h)'} />
+        </div>
+      </Panel>) },
     { id: 'map', label: es ? 'Mapa del rajo' : 'Pit map', content: (
       <Panel t={es ? 'Mapa animado — camiones, palas y chancador (color = cola); política actual' : 'Animated pit — trucks, shovels and crusher (colour = queue); current policy'}>
-        <PitMap c={c} result={result} t={playT} lang={lang} />
+        <PitMap c={activeC} result={result} t={playT} lang={lang} />
         {/* playback controls live with the animation (they drive only this tab), not in the global sidebar */}
         <div className="dl-play" style={{ marginTop: '0.4rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <button className="chip on" onClick={() => setPlaying((p) => !p)}>{playing ? `❚❚ ${es ? 'Pausa' : 'Pause'}` : `▶ ${es ? 'Reproducir' : 'Play'}`}</button>
@@ -143,27 +206,101 @@ export default function Tool() {
         <p className="dl-hint small">{es ? 'Una política que reparte desigual sobre-camiona la pala cercana; cambia de política o caso y observa el reparto.' : 'A policy that splits unevenly over-trucks the near shovel; change the policy or case and watch the split.'}</p>
       </Panel>) },
     { id: 'cycle', label: es ? 'Tiempo de ciclo' : 'Cycle time', content: (
-      <Panel t={es ? 'Tiempo de ciclo ideal por pala (carga vs viaje+descarga) — de la cinemática rimpull/pendiente' : 'Ideal cycle time per shovel (load vs haul+dump) — from the rimpull/grade kinematics'}>
-        <div className="dl-bars">{c.mine.shovels.map((s) => { const cy = shovelCycle(c, s.id); const maxC = Math.max(...c.mine.shovels.map((x) => shovelCycle(c, x.id).tCycle)) || 1; return (
+      <Panel t={realOK
+        ? (es ? 'Tiempo de ciclo MEDIDO por pala (mediana de carga vs viaje+descarga observados en el turno)' : 'MEASURED cycle time per shovel (median observed load vs haul+dump this shift)')
+        : (es ? 'Tiempo de ciclo ideal por pala (carga vs viaje+descarga) — de la cinemática rimpull/pendiente' : 'Ideal cycle time per shovel (load vs haul+dump) — from the rimpull/grade kinematics')}>
+        <div className="dl-bars">{activeC.mine.shovels.map((s) => {
+          let tLoad: number, tCycle: number;
+          if (realOK && realReport?.sample) {
+            const emp = realReport.sample.empirical;
+            tLoad = emp.loadMeanSecByShovel[s.id] ?? 0;
+            const hauls = Object.entries(emp.fullTravelMedianSec).filter(([k]) => k.startsWith(`${s.id}->`)).map(([, v]) => v);
+            const rets = Object.entries(emp.emptyTravelMedianSec).filter(([k]) => k.endsWith(`->${s.id}`)).map(([, v]) => v);
+            const haul = hauls.length ? hauls.reduce((a, b) => a + b, 0) / hauls.length : 0;
+            const ret = rets.length ? rets.reduce((a, b) => a + b, 0) / rets.length : 0;
+            tCycle = tLoad + haul + emp.dumpMeanSec + ret;
+          } else {
+            const cy = shovelCycle(c, s.id); tLoad = cy.tLoad; tCycle = cy.tCycle;
+          }
+          const maxC = Math.max(...activeC.mine.shovels.map((x) => {
+            if (realOK && realReport?.sample) {
+              const emp = realReport.sample.empirical;
+              const hauls = Object.entries(emp.fullTravelMedianSec).filter(([k]) => k.startsWith(`${x.id}->`)).map(([, v]) => v);
+              const rets = Object.entries(emp.emptyTravelMedianSec).filter(([k]) => k.endsWith(`->${x.id}`)).map(([, v]) => v);
+              return (emp.loadMeanSecByShovel[x.id] ?? 0) + (hauls.length ? hauls.reduce((a, b) => a + b, 0) / hauls.length : 0) + emp.dumpMeanSec + (rets.length ? rets.reduce((a, b) => a + b, 0) / rets.length : 0);
+            }
+            return shovelCycle(c, x.id).tCycle;
+          })) || 1;
+          return (
           <div key={s.id} className="dl-bar-row"><div className="dl-bar-label">{s.name.split('(')[0].trim()}</div>
-            <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${(cy.tLoad / maxC) * 100}%`, background: '#3fb950' }} /><span className="dl-bar-fill" style={{ left: `${(cy.tLoad / maxC) * 100}%`, width: `${((cy.tCycle - cy.tLoad) / maxC) * 100}%`, background: 'var(--color-accent)', position: 'absolute' }} /></div><span className="dl-bar-num mono">{(cy.tCycle / 60).toFixed(1)} min</span></div>
+            <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${(tLoad / maxC) * 100}%`, background: '#3fb950' }} /><span className="dl-bar-fill" style={{ left: `${(tLoad / maxC) * 100}%`, width: `${((tCycle - tLoad) / maxC) * 100}%`, background: 'var(--color-accent)', position: 'absolute' }} /></div><span className="dl-bar-num mono">{(tCycle / 60).toFixed(1)} min</span></div>
           </div>); })}</div>
         <p className="dl-hint small">{es ? 'Verde = carga · azul = viaje+descarga. Las palas lejanas tienen ciclos más largos → menos viajes posibles por turno.' : 'Green = load · blue = haul+dump. Far shovels have longer cycles → fewer possible trips per shift.'}</p>
       </Panel>) },
   ];
+  // real mode: the measured-shift tabs + the counterfactual dispatcher (#18); the multi-seed synthetic
+  // comparisons + MF sweep stay synthetic-only (their aggregate versions land in Benchmark, #19)
+  const cfTab = {
+    id: 'counterfactual', label: es ? 'Despacho contrafactual' : 'Counterfactual dispatch', content: (
+      <Panel t={es ? 'Re-decidir el turno REAL bajo cada política — acuerdo con el despachador real en cada punto de decisión' : 'Re-deciding the REAL shift under each policy — agreement with the real dispatcher at each decision point'}>
+        {cfDecisions.length === 0 ? (
+          <p className="dl-hint">{es ? 'Esta muestra no tiene puntos de decisión (ningún ciclo return→load completo).' : 'This sample has no decision points (no complete return→load cycle).'}</p>
+        ) : (
+          <>
+            <div className="dl-bars">{cfAgree.map((r) => (
+              <div key={r.id} className="dl-bar-row"><div className="dl-bar-label"><span className="dl-dot" style={{ background: POLICY_COLOR[r.id] ?? 'var(--color-accent)' }} /> {r.label}</div>
+                <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${r.pct}%`, background: POLICY_COLOR[r.id] ?? 'var(--color-accent)' }} /></div><span className="dl-bar-num mono">{r.agree}/{r.n} · {r.pct.toFixed(0)}%</span></div>
+              </div>))}</div>
+            <p className="dl-hint small">{es
+              ? `Estado reconstruido DESDE el log en cada dump-complete real (colas/inbound/cargando; estimación p10 declarada). Acuerdo en la DECISIÓN, no toneladas contrafactuales (eso exige re-simulación calibrada y va en Benchmark). ${cfDecisions.length} puntos de decisión.`
+              : `State reconstructed FROM the log at every real dump-complete (queues/inbound/loading; stated p10 estimate). DECISION agreement, not counterfactual tonnes (that needs a calibrated re-simulation and lands in Benchmark). ${cfDecisions.length} decision points.`}</p>
+            <RealDecisionInspector decisions={cfDecisions} es={es} />
+          </>
+        )}
+      </Panel>) };
+  const visibleTabs = realOK
+    ? [...tabs.filter((t) => ['pit3d', 'map', 'shovel', 'feed', 'queue', 'share', 'cycle'].includes(t.id)), cfTab]
+    : tabs;
 
   return (
     <div className="page-body dl-layout">
       <aside className="dl-controls">
-        <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Caso' : 'Case'}</span>
+        {/* FIRST-LEVEL SOURCE selector (#14): the workbench runs on a synthetic scenario OR a real cycle-log */}
+        <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Fuente' : 'Source'}</span>
+          <div className="dl-chips">
+            <button className={`chip ${source === 'synthetic' ? 'on' : ''}`} onClick={() => { setSource('synthetic'); setPlayT(0); }}>{es ? 'Sintética' : 'Synthetic'}</button>
+            <button className={`chip ${source === 'real' ? 'on' : ''}`} onClick={() => { setSource('real'); setPlayT(0); }}>{es ? 'Muestra real' : 'Real sample'}</button>
+          </div>
+        </div>
+        {source === 'real' && (
+          <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Muestra (turno)' : 'Sample (shift)'}</span>
+            <div className="dl-chips">{samples.map((s) => <button key={s.id} className={`chip ${sampleId === s.id ? 'on' : ''}`} onClick={() => setSampleId(s.id)} title={s.name}>{s.id.replace('huolinhe-northpit-', '')}</button>)}</div>
+            <label className="dl-hint" style={{ display: 'block', marginTop: '0.3rem' }}>
+              {es ? 'o trae tu propio log (CSV cyclelog/v1): ' : 'or bring your own log (cyclelog/v1 CSV): '}
+              <input type="file" accept=".csv" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUserFile(f); }} />
+            </label>
+            {realErr && <span className="dl-hint" style={{ color: '#f85149' }}>{es ? 'RECHAZADO por el contrato: ' : 'REJECTED by the contract: '}{realErr}</span>}
+            {realOK && realReport?.sample && (
+              <div className="dl-diag" style={{ marginTop: '0.4rem' }}>
+                <div className="dl-diag-h">{es ? 'Procedencia' : 'Provenance'} · <b>{realReport.sample.provenance.kind}</b></div>
+                <div className="small">{realReport.sample.provenance.source}</div>
+                <div className="small muted">{realReport.sample.provenance.caveats}</div>
+                <div className="small mono">{realReport.sample.trucks.length} trucks · {realReport.sample.shovels.length} shovels · {(realReport.sample.shiftSec / 3600).toFixed(1)} h</div>
+                {realReport.flags.length > 0 && <div className="small" style={{ color: '#d29922' }}>⚑ {realReport.flags.join(' · ')}</div>}
+              </div>
+            )}
+          </div>
+        )}
+        {/* SCENARIO knobs — author the synthetic case; in real mode they are read FROM the sample (locked, #16) */}
+        <div className="dl-ctl" style={realOK ? { opacity: 0.45, pointerEvents: 'none' } : undefined}><span className="dl-ctl-lbl">{es ? 'Caso' : 'Case'}{realOK ? (es ? ' (bloqueado: leído de la muestra)' : ' (locked: read from the sample)') : ''}</span>
           <div className="dl-chips">{CASES.map((x) => <button key={x.id} className={`chip ${caseId === x.id ? 'on' : ''}`} onClick={() => { setCaseId(x.id); setPlayT(0); }} title={x.name}>{x.id}</button>)}</div>
-          <span className="dl-hint">{c.name}</span>
+          <span className="dl-hint">{realOK ? activeC.name : c.name}</span>
         </div>
-        <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Política' : 'Policy'}</span>
+        <div className="dl-ctl" style={realOK ? { opacity: 0.45, pointerEvents: 'none' } : undefined}><span className="dl-ctl-lbl">{es ? 'Política' : 'Policy'}{realOK ? (es ? ' (la muestra ya trae al despachador real; contrafactual en #18)' : ' (the sample carries the real dispatcher; counterfactual lands with #18)') : ''}</span>
           <div className="dl-chips">{allPolicies.map((p) => <button key={p.id} className={`chip ${policyId === p.id ? 'on' : ''} ${p.tier === 'learned' ? 'dl-learned-chip' : ''}`} onClick={() => setPolicyId(p.id)} title={es ? p.es : p.en}>{(es ? p.es : p.en).replace('Learned — ', '').replace('Aprendida — ', '').split(' (')[0]}</button>)}</div>
-          {pol.tier === 'learned' && <span className="dl-hint" style={{ color: '#f85149' }}>{es ? 'política APRENDIDA (red entrenada offline)' : 'LEARNED policy (net trained offline)'}</span>}
+          {!realOK && pol.tier === 'learned' && <span className="dl-hint" style={{ color: '#f85149' }}>{es ? 'política APRENDIDA (red entrenada offline)' : 'LEARNED policy (net trained offline)'}</span>}
         </div>
-        <label className="dl-ctl">{es ? 'Semilla' : 'Seed'}: {seed}<input className="range" type="range" min={1} max={40} value={seed} onChange={(e) => setSeed(+e.target.value)} /></label>
+        <label className="dl-ctl" style={realOK ? { opacity: 0.45, pointerEvents: 'none' } : undefined}>{es ? 'Semilla' : 'Seed'}: {seed}{realOK ? (es ? ' (n/a en un turno medido)' : ' (n/a on a measured shift)') : ''}<input className="range" type="range" min={1} max={40} value={seed} onChange={(e) => setSeed(+e.target.value)} disabled={realOK} /></label>
         <div className="dl-diag">
           <div className="dl-diag-h">{es ? 'Diagnóstico' : 'Diagnosis'}</div>
           <div className="dl-mfbar"><span className="dl-mfref" style={{ left: `${(1 / MAXMF) * 100}%` }} /><span className="dl-mfmark" style={{ left: `${Math.min(1, mf / MAXMF) * 100}%` }} /></div>
@@ -171,9 +308,11 @@ export default function Tool() {
           <div className="small">{delta !== 0 ? <>{delta > 0 ? (es ? 'agregar' : 'add') : (es ? 'quitar' : 'remove')} <b>{Math.abs(delta)}</b> {es ? 'camiones para MF≈1' : 'trucks for MF≈1'}</> : <>✓ MF≈1</>}</div>
           <div className="small muted">{bottleneck === 'shovelBound' ? (es ? 'limitado por pala' : 'shovel-bound') : bottleneck === 'queueBound' ? (es ? 'limitado por cola' : 'queue-bound') : (es ? 'con holgura' : 'headroom')}</div>
         </div>
-        <p className="tw-note dl-note">{es ? 'Rajo sintético físicamente fundado (validado vs match-factor + oráculo); políticas aprendidas entrenadas offline, inferencia ONNX viva. NO es un sistema de despacho productivo.' : 'Synthetic physics-grounded pit (validated vs match-factor + oracle); learned policies trained offline, live ONNX inference. NOT a production dispatch system.'}</p>
+        <p className="tw-note dl-note">{realOK
+          ? (es ? 'Turno MEDIDO reproducido desde un cycle-log (contrato cyclelog/v1). La geometría del mapa es esquemática (los logs no traen coordenadas). NO es un sistema de despacho productivo.' : 'MEASURED shift replayed from a cycle log (cyclelog/v1 contract). Map geometry is schematic (logs carry no coordinates). NOT a production dispatch system.')
+          : (es ? 'Rajo sintético físicamente fundado (validado vs match-factor + oráculo); políticas aprendidas entrenadas offline, inferencia ONNX viva. NO es un sistema de despacho productivo.' : 'Synthetic physics-grounded pit (validated vs match-factor + oracle); learned policies trained offline, live ONNX inference. NOT a production dispatch system.')}</p>
       </aside>
-      <div className="dl-main"><Tabs tabs={tabs} ariaLabel="methods" /></div>
+      <div className="dl-main"><Tabs tabs={visibleTabs} ariaLabel="methods" /></div>
     </div>
   );
 }
@@ -190,6 +329,32 @@ function LearnedBars({ stats, es, tn }: { stats: ReturnType<typeof comparePolici
         <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${(s.medTonnes / maxT) * 100}%`, background: POLICY_COLOR[s.id] }} /><span className="dl-bar-band" style={{ left: `${(s.loT / maxT) * 100}%`, width: `${((s.hiT - s.loT) / maxT) * 100}%` }} /></div><span className="dl-bar-num mono">{(s.medTonnes / 1000).toFixed(1)}k t</span></div>
       </div>); })}
       <p className="tw-note dl-note">{es ? '★ = política APRENDIDA. Honesto: igualan a las mejores heurísticas (sus maestras) — el valor es una política aprendida única + rápida desde datos, no superarlas.' : '★ = LEARNED policy. Honest: they match the best heuristics (their teachers) — the value is a single fast learned policy from data, not beating them.'}</p>
+    </div>
+  );
+}
+
+function RealDecisionInspector({ decisions, es }: { decisions: ReturnType<typeof reconstructDecisions>; es: boolean }) {
+  const [i, setI] = useState(0);
+  const [scores, setScores] = useState<number[] | null>(null);
+  const d = decisions.length ? decisions[Math.min(i, decisions.length - 1)] : null;
+  const feats = useMemo(() => (d ? d.state.shovels.map((v) => shovelFeats(v, d.state.travelEmptySec(v.id))) : null), [d]);
+  useEffect(() => {
+    let a = true; setScores(null);
+    if (feats) onnxScore('dl-policy.onnx', feats).then((s) => { if (a) setScores(s); }).catch(() => { if (a) setScores(null); });
+    return () => { a = false; };
+  }, [feats]);
+  if (!d) return null;
+  const argmax = scores ? scores.indexOf(Math.max(...scores)) : -1;
+  const maxS = scores ? Math.max(...scores) : 1, minS = scores ? Math.min(...scores) : 0;
+  return (
+    <div style={{ marginTop: '0.8rem' }}>
+      <div className="dl-panel-t">{es ? 'Inspector — la red (RWR, ONNX en vivo) sobre el punto de decisión REAL' : 'Inspector — the net (RWR, live ONNX) on the REAL decision point'}</div>
+      <div className="dl-bars">{d.state.shovels.map((v, k) => { const sc = scores ? scores[k] : 0; const w = scores ? (sc - minS) / (maxS - minS || 1) : 0; return (
+        <div key={v.id} className="dl-bar-row"><div className="dl-bar-label">{v.spec.name}{v.id === d.chosen ? ` · ${es ? 'despachador real eligió' : 'real dispatcher chose'}` : ''}{k === argmax ? ' · ★' : ''}</div>
+          <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${w * 100}%`, background: k === argmax ? '#f85149' : 'var(--color-accent)' }} /></div><span className="dl-bar-num mono">{scores ? sc.toFixed(2) : '…'}</span></div>
+        </div>); })}</div>
+      <input className="range" type="range" min={0} max={decisions.length - 1} value={i} onChange={(e) => setI(+e.target.value)} style={{ width: '100%', marginTop: '0.5rem' }} />
+      <p className="dl-hint small">{es ? 'Decisión' : 'Decision'} {i + 1}/{decisions.length} · t={(d.t / 3600).toFixed(2)} h · truck {d.truck} · ★ = argmax de la red</p>
     </div>
   );
 }

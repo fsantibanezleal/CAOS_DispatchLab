@@ -1,9 +1,9 @@
 {
   "name": "caos-dispatchlab",
-  "version": "0.05.000",
+  "version": "0.06.000",
   "private": true,
   "type": "module",
-  "description": "DispatchLab \u2014 a didactic, in-browser bench that compares truck-to-shovel dispatch policies (greedy, shortest-wait, the two classic criteria, fixed, and two learned ONNX policies) on a deterministic discrete-event open-pit simulation. Policy-comparison sandbox, NOT a production dispatch system.",
+  "description": "DispatchLab — a didactic, in-browser bench that compares truck-to-shovel dispatch policies (greedy, shortest-wait, the two classic criteria, fixed, and two learned ONNX policies) on a deterministic discrete-event open-pit simulation. Policy-comparison sandbox, NOT a production dispatch system.",
   "scripts": {
     "predev": "node copy-data.mjs",
     "dev": "vite",
@@ -11,7 +11,7 @@
     "build": "tsc --noEmit && vite build",
     "postbuild": "node spa-404.mjs",
     "preview": "vite preview",
-    "test": "node --import tsx --test test/"
+    "test": "node --import tsx --test test/sim.test.ts test/topo.test.ts test/replay.test.ts"
   },
   "dependencies": {
     "@fasl-work/caos-app-shell": "^0.1.2",
@@ -21,6 +21,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.1",
+    "three": "^0.185.1",
     "uplot": "^1.6.31",
     "zustand": "^5.0.2"
   },
@@ -28,6 +29,7 @@
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.185.0",
     "@vitejs/plugin-react": "^4.3.4",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",

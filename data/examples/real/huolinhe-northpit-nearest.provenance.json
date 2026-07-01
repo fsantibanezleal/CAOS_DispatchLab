@@ -1,0 +1,14 @@
+{
+  "id": "huolinhe-northpit-nearest",
+  "name": "North-pit shift (NearestDispatcher)",
+  "schema": "dispatchlab.cyclelog/v1",
+  "kind": "structure-real",
+  "source": "Generated with the MIT-licensed OpenMines simulator (github.com/370025263/openmines, arXiv:2404.00622), north_pit_mine.json config desensitized from the Huolinhe open-pit coal mine (Sept 2022).",
+  "generator": {
+    "dispatcher": "NearestDispatcher",
+    "sim_time_min": 240,
+    "openmines": "0.2.0"
+  },
+  "license": "MIT (generator + config); generated rows CC0",
+  "caveats": "Synthetic cycle log (structure-real): no ground-truthed open-pit FMS dispatch log is public (verified 2026-07-01). Coal-mine config; domain-transfer caveat vs Cu open-pit."
+}

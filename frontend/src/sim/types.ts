@@ -25,11 +25,28 @@ export interface DumpSpec {
 /** Loaded-direction route (shovel → dump): distance, grade %, rolling resistance %. Empty return negates grade. */
 export interface Route { distM: number; gradePct: number; rrPct: number; }
 
+/** Parametric 2.5D pit topography: a terraced (benched) elliptical pit with a spiral ramp. Optional —
+ *  cases without one get a derived default (topo.ts). Purely REPRESENTATIONAL for the 3D view: cycle TIMES
+ *  always come from the DES kinematics over the case's route distM/grade; the 3D path only shows WHERE the
+ *  truck is along its leg. */
+export interface PitTopoSpec {
+  center: NodePos;              // pit centre in case world coords (treated as metres)
+  rimRx: number; rimRy: number; // rim (surface) half-axes [m]
+  nBenches: number;             // levels below the rim (floor = bench nBenches)
+  benchHeightM: number;         // vertical bench height (e.g. 15)
+  benchWidthM: number;          // horizontal catch-berm width per bench
+  faceAngleDeg?: number;        // bench face angle from horizontal (default 65)
+  rampWidthM?: number;          // spiral ramp width (default 25)
+  shovelBench: Record<number, number>; // shovelId -> bench index (1..nBenches; deeper = larger)
+  // dumps (crusher/waste) sit at the rim (z=0) at their case position
+}
+
 export interface MineSpec {
   name: string;
   shovels: ShovelSpec[];
   dumps: DumpSpec[];
   routes: Record<string, Route>;  // key `${shovelId}->${dumpId}`
+  topo?: PitTopoSpec;             // optional pit topography (3D view); derived default if absent
 }
 
 export interface TruckUnit { id: number; spec: TruckSpec; startShovel: number; }
