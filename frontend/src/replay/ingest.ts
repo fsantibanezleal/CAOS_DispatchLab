@@ -130,7 +130,8 @@ export function ingestCycleLog(
       return loads.slice(1).map((l, i) => l.t - loads[i].t);
     }),
   );
-  const matchFactor = meanCycle > 0 ? (trucks.length * meanLoad) / (shovels.length * meanCycle) * shovels.length : 0;
+  // classic MF = (nTrucks × loader cycle) / (nLoaders × truck cycle)
+  const matchFactor = meanCycle > 0 && shovels.length > 0 ? (trucks.length * meanLoad) / (shovels.length * meanCycle) : 0;
   if (matchFactor && (matchFactor < MF_RANGE[0] || matchFactor > MF_RANGE[1])) flags.push(`empirical MF ${matchFactor.toFixed(2)} outside [${MF_RANGE[0]},${MF_RANGE[1]}]`);
 
   const empirical: EmpiricalBlock = {
