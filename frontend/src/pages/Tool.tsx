@@ -14,6 +14,7 @@ import { PitMap } from '../viz/PitMap';
 import { Pit3D } from '../viz/Pit3D';
 import { listSamples, loadSample, loadUserFile, type SampleMeta } from '../replay/samples';
 import { replayCycleLog } from '../replay/replayEngine';
+import { agreement, reconstructDecisions } from '../replay/counterfactual';
 import { type IngestReport } from '../replay/ingest';
 import { type CaseSpec } from '../sim/types';
 import { ParetoScatter } from '../viz/ParetoScatter';
@@ -61,6 +62,9 @@ export default function Tool() {
   };
   const realOK = source === 'real' && !!realReport?.ok;
   const realRun = useMemo(() => (realReport?.ok && realReport.sample ? replayCycleLog(realReport.sample) : null), [realReport]);
+  // counterfactual (#18): reconstruct every real decision point + score policy agreement (heuristics + learned)
+  const cfDecisions = useMemo(() => (realReport?.ok && realReport.sample ? reconstructDecisions(realReport.sample) : []), [realReport]);
+  const cfAgree = useMemo(() => (cfDecisions.length ? agreement(cfDecisions, allPolicies, es) : []), [cfDecisions, allPolicies, es]);
 
   const c = caseById(caseId);
   const pol = useMemo(() => allPolicies.find((p) => p.id === policyId) ?? policyById(policyId), [allPolicies, policyId]);
@@ -234,9 +238,29 @@ export default function Tool() {
         <p className="dl-hint small">{es ? 'Verde = carga · azul = viaje+descarga. Las palas lejanas tienen ciclos más largos → menos viajes posibles por turno.' : 'Green = load · blue = haul+dump. Far shovels have longer cycles → fewer possible trips per shift.'}</p>
       </Panel>) },
   ];
-  // real mode shows the tabs that render a MEASURED shift; compare/learned-vs/inspector/MF-sweep return
-  // adapted with the counterfactual (#18) + Benchmark (#19) work
-  const visibleTabs = realOK ? tabs.filter((t) => ['pit3d', 'map', 'shovel', 'feed', 'queue', 'share', 'cycle'].includes(t.id)) : tabs;
+  // real mode: the measured-shift tabs + the counterfactual dispatcher (#18); the multi-seed synthetic
+  // comparisons + MF sweep stay synthetic-only (their aggregate versions land in Benchmark, #19)
+  const cfTab = {
+    id: 'counterfactual', label: es ? 'Despacho contrafactual' : 'Counterfactual dispatch', content: (
+      <Panel t={es ? 'Re-decidir el turno REAL bajo cada política — acuerdo con el despachador real en cada punto de decisión' : 'Re-deciding the REAL shift under each policy — agreement with the real dispatcher at each decision point'}>
+        {cfDecisions.length === 0 ? (
+          <p className="dl-hint">{es ? 'Esta muestra no tiene puntos de decisión (ningún ciclo return→load completo).' : 'This sample has no decision points (no complete return→load cycle).'}</p>
+        ) : (
+          <>
+            <div className="dl-bars">{cfAgree.map((r) => (
+              <div key={r.id} className="dl-bar-row"><div className="dl-bar-label"><span className="dl-dot" style={{ background: POLICY_COLOR[r.id] ?? 'var(--color-accent)' }} /> {r.label}</div>
+                <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${r.pct}%`, background: POLICY_COLOR[r.id] ?? 'var(--color-accent)' }} /></div><span className="dl-bar-num mono">{r.agree}/{r.n} · {r.pct.toFixed(0)}%</span></div>
+              </div>))}</div>
+            <p className="dl-hint small">{es
+              ? `Estado reconstruido DESDE el log en cada dump-complete real (colas/inbound/cargando; estimación p10 declarada). Acuerdo en la DECISIÓN, no toneladas contrafactuales (eso exige re-simulación calibrada y va en Benchmark). ${cfDecisions.length} puntos de decisión.`
+              : `State reconstructed FROM the log at every real dump-complete (queues/inbound/loading; stated p10 estimate). DECISION agreement, not counterfactual tonnes (that needs a calibrated re-simulation and lands in Benchmark). ${cfDecisions.length} decision points.`}</p>
+            <RealDecisionInspector decisions={cfDecisions} es={es} />
+          </>
+        )}
+      </Panel>) };
+  const visibleTabs = realOK
+    ? [...tabs.filter((t) => ['pit3d', 'map', 'shovel', 'feed', 'queue', 'share', 'cycle'].includes(t.id)), cfTab]
+    : tabs;
 
   return (
     <div className="page-body dl-layout">
@@ -305,6 +329,32 @@ function LearnedBars({ stats, es, tn }: { stats: ReturnType<typeof comparePolici
         <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${(s.medTonnes / maxT) * 100}%`, background: POLICY_COLOR[s.id] }} /><span className="dl-bar-band" style={{ left: `${(s.loT / maxT) * 100}%`, width: `${((s.hiT - s.loT) / maxT) * 100}%` }} /></div><span className="dl-bar-num mono">{(s.medTonnes / 1000).toFixed(1)}k t</span></div>
       </div>); })}
       <p className="tw-note dl-note">{es ? '★ = política APRENDIDA. Honesto: igualan a las mejores heurísticas (sus maestras) — el valor es una política aprendida única + rápida desde datos, no superarlas.' : '★ = LEARNED policy. Honest: they match the best heuristics (their teachers) — the value is a single fast learned policy from data, not beating them.'}</p>
+    </div>
+  );
+}
+
+function RealDecisionInspector({ decisions, es }: { decisions: ReturnType<typeof reconstructDecisions>; es: boolean }) {
+  const [i, setI] = useState(0);
+  const [scores, setScores] = useState<number[] | null>(null);
+  const d = decisions.length ? decisions[Math.min(i, decisions.length - 1)] : null;
+  const feats = useMemo(() => (d ? d.state.shovels.map((v) => shovelFeats(v, d.state.travelEmptySec(v.id))) : null), [d]);
+  useEffect(() => {
+    let a = true; setScores(null);
+    if (feats) onnxScore('dl-policy.onnx', feats).then((s) => { if (a) setScores(s); }).catch(() => { if (a) setScores(null); });
+    return () => { a = false; };
+  }, [feats]);
+  if (!d) return null;
+  const argmax = scores ? scores.indexOf(Math.max(...scores)) : -1;
+  const maxS = scores ? Math.max(...scores) : 1, minS = scores ? Math.min(...scores) : 0;
+  return (
+    <div style={{ marginTop: '0.8rem' }}>
+      <div className="dl-panel-t">{es ? 'Inspector — la red (RWR, ONNX en vivo) sobre el punto de decisión REAL' : 'Inspector — the net (RWR, live ONNX) on the REAL decision point'}</div>
+      <div className="dl-bars">{d.state.shovels.map((v, k) => { const sc = scores ? scores[k] : 0; const w = scores ? (sc - minS) / (maxS - minS || 1) : 0; return (
+        <div key={v.id} className="dl-bar-row"><div className="dl-bar-label">{v.spec.name}{v.id === d.chosen ? ` · ${es ? 'despachador real eligió' : 'real dispatcher chose'}` : ''}{k === argmax ? ' · ★' : ''}</div>
+          <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${w * 100}%`, background: k === argmax ? '#f85149' : 'var(--color-accent)' }} /></div><span className="dl-bar-num mono">{scores ? sc.toFixed(2) : '…'}</span></div>
+        </div>); })}</div>
+      <input className="range" type="range" min={0} max={decisions.length - 1} value={i} onChange={(e) => setI(+e.target.value)} style={{ width: '100%', marginTop: '0.5rem' }} />
+      <p className="dl-hint small">{es ? 'Decisión' : 'Decision'} {i + 1}/{decisions.length} · t={(d.t / 3600).toFixed(2)} h · truck {d.truck} · ★ = argmax de la red</p>
     </div>
   );
 }

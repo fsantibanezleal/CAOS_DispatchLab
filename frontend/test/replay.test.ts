@@ -85,3 +85,21 @@ test('replay: deterministic (same sample → identical result)', () => {
   assert.deepEqual(a.result, b.result);
   assert.deepEqual(a.decisions, b.decisions);
 });
+
+test('counterfactual: reconstructs real decision states and scores policy agreement', async () => {
+  const { reconstructDecisions, agreement } = await import('../src/replay/counterfactual');
+  const { POLICIES } = await import('../src/policies/heuristics');
+  const rep = ingestCycleLog(parseCycleCsv(CSV), { id: 'FX1', name: 'fixture', provenance: PROV });
+  const ds = reconstructDecisions(rep.sample!);
+  assert.equal(ds.length, 2);                       // one per return->load in the fixture
+  for (const d of ds) {
+    assert.equal(d.state.shovels.length, 2);
+    assert.ok([1, 2].includes(d.chosen));
+    assert.ok(d.state.travelEmptySec(1) > 0);
+    // features are finite for every shovel (the ONNX/heuristic input)
+    for (const v of d.state.shovels) { assert.ok(Number.isFinite(v.freeInSec)); assert.ok(v.loadMeanSec > 0); }
+  }
+  const rows = agreement(ds, POLICIES, false);
+  assert.equal(rows.length, POLICIES.length);
+  for (const r of rows) { assert.ok(r.pct >= 0 && r.pct <= 100); assert.equal(r.n, 2); }
+});
