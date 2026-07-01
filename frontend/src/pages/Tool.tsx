@@ -11,6 +11,7 @@ import { loadLearnedPolicies } from '../policies/learnedRegistry';
 import { shovelFeats } from '../policies/learned';
 import { onnxScore } from '../lib/ort';
 import { PitMap } from '../viz/PitMap';
+import { Pit3D } from '../viz/Pit3D';
 import { ParetoScatter } from '../viz/ParetoScatter';
 import { SweepChart } from '../viz/SweepChart';
 import { UPlotChart } from '../viz/UPlotChart';
@@ -28,7 +29,7 @@ export default function Tool() {
   const [caseId, setCaseId] = useState('C06');
   const [policyId, setPolicyId] = useState('greedy');
   const [seed, setSeed] = useState(7);
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(false); // default PAUSED (no-autoplay rule: an unattended page must not burn CPU)
   const [speed, setSpeed] = useState(600);
   const [playT, setPlayT] = useState(0);
   const [learned, setLearned] = useState<PolicyDef[]>([]);
@@ -66,7 +67,14 @@ export default function Tool() {
       let nt = ptRef.current + dt * speed; if (nt >= shiftSec) nt = 0;
       ptRef.current = nt; setPlayT(nt); raf.current = requestAnimationFrame(tick);
     };
-    raf.current = requestAnimationFrame(tick); return () => cancelAnimationFrame(raf.current);
+    raf.current = requestAnimationFrame(tick);
+    // halt on a hidden tab (compute-bomb rule); resume the clock cleanly on return
+    const onVis = () => {
+      cancelAnimationFrame(raf.current);
+      if (!document.hidden) { last.current = 0; raf.current = requestAnimationFrame(tick); }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { cancelAnimationFrame(raf.current); document.removeEventListener('visibilitychange', onVis); };
   }, [playing, speed, shiftSec]);
 
   // KPIs + diagnosis
@@ -89,6 +97,18 @@ export default function Tool() {
   const tn = (id: string) => { const p = allPolicies.find((x) => x.id === id)!; return (es ? p.es : p.en).split(' (')[0]; };
 
   const tabs = [
+    { id: 'pit3d', label: es ? 'Rajo 3D' : 'Pit 3D', content: (
+      <Panel t={es ? 'Topografía del rajo — bancos, rampa espiral y flota en 3D (color = estado del camión); política actual' : 'Pit topography — benches, spiral ramp and the fleet in 3D (colour = truck state); current policy'}>
+        <Pit3D c={c} result={result} t={playT} lang={lang} />
+        <div className="dl-play" style={{ marginTop: '0.4rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button className="chip on" onClick={() => setPlaying((p) => !p)}>{playing ? `❚❚ ${es ? 'Pausa' : 'Pause'}` : `▶ ${es ? 'Reproducir' : 'Play'}`}</button>
+          <select className="dl-sel" value={speed} onChange={(e) => setSpeed(+e.target.value)} aria-label="speed">{SPEEDS.map((s) => <option key={s} value={s}>{s}×</option>)}</select>
+        </div>
+        <input className="range dl-scrub" type="range" min={0} max={shiftSec} step={60} value={playT} onChange={(e) => { setPlayT(+e.target.value); ptRef.current = +e.target.value; }} style={{ marginTop: '0.4rem' }} />
+        <div className="dl-kpis" style={{ marginTop: '0.5rem' }}>
+          <KPI v={fmt(tonnes)} l={es ? 'Toneladas (t)' : 'Tonnes (t)'} /><KPI v={mf.toFixed(2)} l="Match factor" /><KPI v={`${(meanUtil * 100).toFixed(0)}%`} l={es ? 'Util. pala' : 'Shovel util'} /><KPI v={truckWaitH.toFixed(1)} l={es ? 'Espera (h)' : 'Wait (h)'} />
+        </div>
+      </Panel>) },
     { id: 'map', label: es ? 'Mapa del rajo' : 'Pit map', content: (
       <Panel t={es ? 'Mapa animado — camiones, palas y chancador (color = cola); política actual' : 'Animated pit — trucks, shovels and crusher (colour = queue); current policy'}>
         <PitMap c={c} result={result} t={playT} lang={lang} />
