@@ -56,3 +56,6 @@ models/*.pth
 .DS_Store
 Thumbs.db
 *.log
+
+# OpenMines simulation outputs (regenerable; only the folded cyclelog CSVs are committed)
+data-pipeline/results/
