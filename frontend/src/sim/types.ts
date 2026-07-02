@@ -57,6 +57,8 @@ export interface CaseSpec {
   mine: MineSpec; fleet: FleetSpec;
   shiftSec: number;
   blendWindow?: { min: number; max: number };  // crusher grade window (binding-blend cases)
+  /** Operational constraints (#22): enforced by the DES BEFORE any policy sees the state. */
+  constraints?: import('./constraints').OperationalConstraints;
 }
 
 // ---- dispatch policy interface ----
@@ -68,12 +70,21 @@ export interface ShovelView {
   freeInSec: number;         // est seconds until the shovel can start the next truck (0 if idle now)
   loadMeanSec: number;
 }
+export interface FleetTruckView {
+  id: number;
+  readyInSec: number;        // est seconds until this truck needs a dispatch decision
+  atDumpId: number;          // where it will decide from
+}
 export interface DispatchState {
   now: number;
   truck: TruckUnit;
   atDumpId: number | null;   // current location (null at shift start)
   shovels: ShovelView[];
   travelEmptySec: (toShovelId: number) => number;  // est empty-haul time from current position
+  // OR tier (#22, ADDITIVE — heuristic policies ignore them): the trucks that will ask for a
+  // dispatch decision within the assignment window, and cross-truck empty-travel estimates.
+  fleet?: FleetTruckView[];
+  etaEmptySecFor?: (truckId: number, toShovelId: number) => number;
 }
 export type Policy = (s: DispatchState) => number;  // → chosen shovel id
 
@@ -91,4 +102,6 @@ export interface SimResult {
   crusherFeed: { t: number; tonnes: number }[];   // cumulative tonnes at the ore crusher
   matchFactor: number;
   trace?: Leg[];                                   // present only when run with { trace: true }
+  /** #22: times a policy returned a constraint-infeasible shovel (re-assigned + counted). */
+  invalidChoices?: number;
 }

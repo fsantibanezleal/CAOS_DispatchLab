@@ -5,12 +5,12 @@ import { useEffect, useState } from 'react';
 import { Refs, Tabs, useShellLang } from '@fasl-work/caos-app-shell';
 import { POLICY_COLOR } from '../sim/compare';
 
-interface BenchPolicy { id: string; en: string; es: string; medTonnes: number; medWaitH: number; loT: number; hiT: number; loW: number; hiW: number; pareto: boolean }
+interface BenchPolicy { id: string; en: string; es: string; medTonnes: number; medWaitH: number; loT: number; hiT: number; loW: number; hiW: number; pareto: boolean; pctOfOracle?: number }
 interface SweepCheck { kneeN: number | null; mf1N: number | null; agree: boolean }
-interface BenchCase { name: string; policies: BenchPolicy[]; tie: { leader: string; tied: string[] }; learnedVsBestClassical: { id: string; deltaPct: number }[]; sweepCheck: SweepCheck | null }
+interface BenchCase { name: string; oracle?: { tonnes: number; bindingSide: string }; policies: BenchPolicy[]; tie: { leader: string; tied: string[] }; learnedVsBestClassical: { id: string; deltaPct: number }[]; sweepCheck: SweepCheck | null }
 interface SyntheticDoc { nSeeds: number; nCases: number; aggregate: { id: string; meanRank: number }[]; learnedMeta: { policyImitAcc: number; bcBestImitAcc: number; bcBestSelfAcc: number; bestPolicy: string; nEval: number }; cases: Record<string, BenchCase> }
 interface RealPolicy { id: string; en: string; es: string; cfTonnes: number; loT: number; hiT: number; deltaPct: number; agreePct: number | null }
-interface RealSampleRow { id: string; name: string; ok: boolean; generator?: string; actualTonnes?: number; realDispatcher?: string; nDecisions?: number; calibrationBiasPct?: number | null; mostSimilarPolicy?: string | null; policies?: RealPolicy[] }
+interface RealSampleRow { id: string; name: string; ok: boolean; generator?: string; actualTonnes?: number; realDispatcher?: string; nDecisions?: number; calibrationBiasPct?: number | null; mostSimilarPolicy?: string | null; oracleTonnes?: number; actualPctOfOracle?: number; policies?: RealPolicy[] }
 interface RealDoc { caveat: string; syntheticRanking: string[]; samples: RealSampleRow[]; cross: { id: string; generator: string; realRank: string[]; tauVsSynthetic: number | null }[] }
 
 const base = import.meta.env.BASE_URL || '/';
@@ -41,8 +41,8 @@ export default function Benchmark() {
       <div className="page-head">
         <h1>Benchmark</h1>
         <p className="lede">{es
-          ? `Comparaciones agregadas OFFLINE — ${syn.nCases} casos sintéticos × 7 políticas × ${syn.nSeeds} seeds, más el counterfactual CALIBRADO sobre los ${real.samples.filter((s) => s.ok).length} turnos reales del corpus. Todo precomputado por el pipeline y commiteado; esta página solo lee los artefactos. Números honestos — los resultados nulos y las discrepancias se muestran.`
-          : `OFFLINE aggregate comparisons — ${syn.nCases} synthetic cases × 7 policies × ${syn.nSeeds} seeds, plus the CALIBRATED counterfactual over the corpus of ${real.samples.filter((s) => s.ok).length} real shifts. Everything precomputed by the pipeline and committed; this page only reads the artifacts. Honest numbers — null results and discrepancies are shown.`}</p>
+          ? `Comparaciones agregadas OFFLINE — ${syn.nCases} casos sintéticos × ${syn.aggregate.length} políticas (5 heurísticas + 2 aprendidas + el tier OR) × ${syn.nSeeds} seeds, más el counterfactual CALIBRADO sobre los ${real.samples.filter((s) => s.ok).length} turnos reales del corpus, todo contra el ORÁCULO de capacidad (cota superior sin colas). Todo precomputado por el pipeline y commiteado; esta página solo lee los artefactos. Números honestos — los resultados nulos y las discrepancias se muestran.`
+          : `OFFLINE aggregate comparisons — ${syn.nCases} synthetic cases × ${syn.aggregate.length} policies (5 heuristics + 2 learned + the OR tier) × ${syn.nSeeds} seeds, plus the CALIBRATED counterfactual over the corpus of ${real.samples.filter((s) => s.ok).length} real shifts, all scored against the capacity ORACLE (queue-free upper bound). Everything precomputed by the pipeline and committed; this page only reads the artifacts. Honest numbers — null results and discrepancies are shown.`}</p>
       </div>
       <Tabs tabs={tabs} />
       <Refs ids={['noriega2024', 'peters2007', 'mnih2015']} label="Refs" />
@@ -78,13 +78,19 @@ function CorpusTab({ syn, es }: { syn: SyntheticDoc; es: boolean }) {
         ? 'greedy (menor tiempo de compleción esperado) lidera el corpus; las políticas aprendidas son competitivas pero NO superan a sus maestras — se dice claramente.'
         : 'greedy (earliest expected completion) leads the corpus; the learned policies are competitive but do NOT beat their teachers — stated plainly.'}</p>
       {Object.entries(syn.cases).map(([cid, c]) => {
-        const maxT = Math.max(...c.policies.map((p) => p.hiT));
+        const maxT = Math.max(...c.policies.map((p) => p.hiT), c.oracle?.tonnes ?? 0);
         const ord = [...c.policies].sort((a, b) => b.medTonnes - a.medTonnes);
+        const best = ord[0];
         return (
           <div key={cid}>
-            <h3 style={{ marginBottom: '0.2rem' }}>{cid} — {c.name}{c.policies.some((p) => p.pareto) ? '' : ''}</h3>
-            <Bars es={es} max={maxT} rows={ord.map((p) => ({ ...p, med: p.medTonnes, lo: p.loT, hi: p.hiT, mark: `${p.pareto ? ' ◆' : ''}${p.id === 'rwr' || p.id === 'bcbest' ? ' ★' : ''}` }))} />
-            <p className="tw-note">{es ? `Empate estadístico (bandas p10–p90 solapadas con el líder): ${c.tie.tied.length ? c.tie.tied.join(', ') : 'ninguno'} · ◆ = frontera de Pareto (toneladas vs espera)` : `Statistical tie (p10–p90 bands overlap the leader): ${c.tie.tied.length ? c.tie.tied.join(', ') : 'none'} · ◆ = Pareto frontier (tonnes vs wait)`}</p>
+            <h3 style={{ marginBottom: '0.2rem' }}>{cid} — {c.name}</h3>
+            {c.oracle && (
+              <p className="tw-note" style={{ marginTop: 0 }}>{es
+                ? `oráculo de capacidad: ${(c.oracle.tonnes / 1000).toFixed(1)}k t (lado limitante: ${c.oracle.bindingSide === 'shovels' ? 'palas' : 'camiones'}) · mejor política: ${best.pctOfOracle?.toFixed(0)}% del oráculo`
+                : `capacity oracle: ${(c.oracle.tonnes / 1000).toFixed(1)}k t (binding: ${c.oracle.bindingSide}) · best policy: ${best.pctOfOracle?.toFixed(0)}% of oracle`}</p>
+            )}
+            <Bars es={es} max={maxT} rows={ord.map((p) => ({ ...p, med: p.medTonnes, lo: p.loT, hi: p.hiT, mark: `${p.pareto ? ' ◆' : ''}${p.id === 'rwr' || p.id === 'bcbest' ? ' ★' : ''}${p.id === 'hungarian' ? ' ⬡' : ''}` }))} />
+            <p className="tw-note">{es ? `Empate estadístico (bandas p10–p90 solapadas con el líder): ${c.tie.tied.length ? c.tie.tied.join(', ') : 'ninguno'} · ◆ = frontera de Pareto · ⬡ = tier OR (asignación conjunta Hungarian)` : `Statistical tie (p10–p90 bands overlap the leader): ${c.tie.tied.length ? c.tie.tied.join(', ') : 'none'} · ◆ = Pareto frontier · ⬡ = OR tier (Hungarian joint assignment)`}</p>
           </div>
         );
       })}
@@ -148,8 +154,8 @@ function CfTab({ real, es }: { real: RealDoc; es: boolean }) {
           <div key={s.id}>
             <h3 style={{ marginBottom: '0.2rem' }}>{s.id}</h3>
             <p className="tw-note" style={{ marginTop: 0 }}>{es
-              ? `real: ${(s.actualTonnes! / 1000).toFixed(1)}k t (${s.realDispatcher}) · ${s.nDecisions} decisiones · sesgo de calibración ${s.calibrationBiasPct != null ? `${s.calibrationBiasPct > 0 ? '+' : ''}${s.calibrationBiasPct.toFixed(1)}% (vía ${s.mostSimilarPolicy})` : 'n/d'}`
-              : `actual: ${(s.actualTonnes! / 1000).toFixed(1)}k t (${s.realDispatcher}) · ${s.nDecisions} decisions · calibration bias ${s.calibrationBiasPct != null ? `${s.calibrationBiasPct > 0 ? '+' : ''}${s.calibrationBiasPct.toFixed(1)}% (via ${s.mostSimilarPolicy})` : 'n/a'}`}</p>
+              ? `real: ${(s.actualTonnes! / 1000).toFixed(1)}k t (${s.realDispatcher}${s.actualPctOfOracle != null ? `, ${s.actualPctOfOracle.toFixed(0)}% del oráculo empírico` : ''}) · ${s.nDecisions} decisiones · sesgo de calibración ${s.calibrationBiasPct != null ? `${s.calibrationBiasPct > 0 ? '+' : ''}${s.calibrationBiasPct.toFixed(1)}% (vía ${s.mostSimilarPolicy})` : 'n/d'}`
+              : `actual: ${(s.actualTonnes! / 1000).toFixed(1)}k t (${s.realDispatcher}${s.actualPctOfOracle != null ? `, ${s.actualPctOfOracle.toFixed(0)}% of the empirical oracle` : ''}) · ${s.nDecisions} decisions · calibration bias ${s.calibrationBiasPct != null ? `${s.calibrationBiasPct > 0 ? '+' : ''}${s.calibrationBiasPct.toFixed(1)}% (via ${s.mostSimilarPolicy})` : 'n/a'}`}</p>
             <Bars es={es} max={maxT} rows={ord.map((p) => ({ ...p, med: p.cfTonnes, lo: p.loT, hi: p.hiT, mark: p.agreePct != null ? ` · ${p.agreePct.toFixed(0)}%↔` : '' }))} />
           </div>
         );
@@ -176,8 +182,8 @@ function CrossTab({ real, es }: { real: RealDoc; es: boolean }) {
           <tr key={c.id}><td>{c.id}</td><td>{c.generator}</td><td className="mono">{c.realRank.slice(0, 3).join(' > ')}</td><td className="mono">{c.tauVsSynthetic?.toFixed(2) ?? '—'}</td></tr>
         ))}</tbody></table>
       <p className="tw-note">{es
-        ? `Mediana τ = ${medTau?.toFixed(2)} — el orden sintético transfiere en general. Discrepancias honestas: ${low.length ? low.map((c) => `${c.id} (τ=${c.tauVsSynthetic?.toFixed(2)})`).join(', ') : 'ninguna'} — turnos generados con despachadores tipo nearest reordenan las políticas queue-aware; hallazgo válido, no se esconde.`
-        : `Median τ = ${medTau?.toFixed(2)} — the synthetic ordering largely transfers. Honest discrepancies: ${low.length ? low.map((c) => `${c.id} (τ=${c.tauVsSynthetic?.toFixed(2)})`).join(', ') : 'none'} — shifts generated by nearest-style dispatchers reorder the queue-aware policies; a valid finding, not hidden.`}</p>
+        ? `Mediana τ = ${medTau?.toFixed(2)} — el orden sintético transfiere en general. Discrepancias honestas: ${low.length ? low.map((c) => `${c.id} (τ=${c.tauVsSynthetic?.toFixed(2)})`).join(', ') : 'ninguna'} — turnos generados con despachadores tipo nearest reordenan las políticas queue-aware; hallazgo válido, no se esconde. El tier OR (hungarian) se EXCLUYE del τ: dentro del counterfactual corre su fallback solo (sin vista de flota), así que compararlo entre fuentes sería comparar dos algoritmos distintos.`
+        : `Median τ = ${medTau?.toFixed(2)} — the synthetic ordering largely transfers. Honest discrepancies: ${low.length ? low.map((c) => `${c.id} (τ=${c.tauVsSynthetic?.toFixed(2)})`).join(', ') : 'none'} — shifts generated by nearest-style dispatchers reorder the queue-aware policies; a valid finding, not hidden. The OR tier (hungarian) is EXCLUDED from τ: inside the counterfactual it runs its solo fallback (no fleet view), so ranking it across sources would compare two different algorithms.`}</p>
     </section>
   );
 }

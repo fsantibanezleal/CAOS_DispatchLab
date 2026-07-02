@@ -25,6 +25,9 @@ import { lineOpts } from '../viz/uplotKit';
 const SPEEDS = [200, 600, 1800];
 const SWEEP_SEEDS = [3, 11, 19, 29, 41];
 const CMP_SEEDS = [3, 7, 11, 17, 23, 29, 37, 42, 59, 71];
+// #22: the demo operational-constraint set (applies to ANY synthetic case; the DES enforces it
+// for EVERY policy — the feasible set is filtered before the policy sees the state)
+const DEMO_CONSTRAINTS = { maxQueuePerShovel: 3, breaks: [{ startSec: 4 * 3600, endSec: 4.5 * 3600 }] } as const;
 const fmt = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 0 });
 
 interface Decision { feats: number[][]; ids: number[]; names: string[]; chosen: number; t: number }
@@ -66,7 +69,11 @@ export default function Tool() {
   const cfDecisions = useMemo(() => (realReport?.ok && realReport.sample ? reconstructDecisions(realReport.sample) : []), [realReport]);
   const cfAgree = useMemo(() => (cfDecisions.length ? agreement(cfDecisions, allPolicies, es) : []), [cfDecisions, allPolicies, es]);
 
-  const c = caseById(caseId);
+  const [consOn, setConsOn] = useState(false);
+  const c = useMemo<CaseSpec>(() => {
+    const base = caseById(caseId);
+    return consOn ? { ...base, constraints: { maxQueuePerShovel: DEMO_CONSTRAINTS.maxQueuePerShovel, breaks: [...DEMO_CONSTRAINTS.breaks] } } : base;
+  }, [caseId, consOn]);
   const pol = useMemo(() => allPolicies.find((p) => p.id === policyId) ?? policyById(policyId), [allPolicies, policyId]);
   const decisions = useRef<Decision[]>([]);
   const synResult = useMemo(() => {
@@ -295,6 +302,17 @@ export default function Tool() {
         <div className="dl-ctl" style={realOK ? { opacity: 0.45, pointerEvents: 'none' } : undefined}><span className="dl-ctl-lbl">{es ? 'Caso' : 'Case'}{realOK ? (es ? ' (bloqueado: leído de la muestra)' : ' (locked: read from the sample)') : ''}</span>
           <div className="dl-chips">{CASES.map((x) => <button key={x.id} className={`chip ${caseId === x.id ? 'on' : ''}`} onClick={() => { setCaseId(x.id); setPlayT(0); }} title={x.name}>{x.id}</button>)}</div>
           <span className="dl-hint">{realOK ? activeC.name : c.name}</span>
+        </div>
+        {/* operational constraints (#22): enforced by the DES for EVERY policy when active */}
+        <div className="dl-ctl" style={realOK ? { opacity: 0.45, pointerEvents: 'none' } : undefined}><span className="dl-ctl-lbl">{es ? 'Restricciones operativas' : 'Operational constraints'}</span>
+          <div className="dl-chips">
+            <button className={`chip ${consOn ? 'on' : ''}`} onClick={() => { setConsOn((v) => !v); setPlayT(0); }}>{consOn ? (es ? 'activas' : 'active') : (es ? 'sin restricciones' : 'unconstrained')}</button>
+            {consOn && <span className="chip" style={{ pointerEvents: 'none' }}>{es ? `cola ≤ ${DEMO_CONSTRAINTS.maxQueuePerShovel}/pala` : `queue ≤ ${DEMO_CONSTRAINTS.maxQueuePerShovel}/shovel`}</span>}
+            {consOn && <span className="chip" style={{ pointerEvents: 'none' }}>{es ? 'pausa 4.0–4.5 h' : 'break 4.0–4.5 h'}</span>}
+          </div>
+          {consOn && <span className="dl-hint">{es
+            ? `El DES filtra el conjunto factible ANTES de cada política — todas la respetan por construcción. Elecciones inválidas: ${synResult.invalidChoices ?? 0}.`
+            : `The DES filters the feasible set BEFORE every policy — all of them comply by construction. Invalid choices: ${synResult.invalidChoices ?? 0}.`}</span>}
         </div>
         <div className="dl-ctl" style={realOK ? { opacity: 0.45, pointerEvents: 'none' } : undefined}><span className="dl-ctl-lbl">{es ? 'Política' : 'Policy'}{realOK ? (es ? ' (la muestra ya trae al despachador real; contrafactual en #18)' : ' (the sample carries the real dispatcher; counterfactual lands with #18)') : ''}</span>
           <div className="dl-chips">{allPolicies.map((p) => <button key={p.id} className={`chip ${policyId === p.id ? 'on' : ''} ${p.tier === 'learned' ? 'dl-learned-chip' : ''}`} onClick={() => setPolicyId(p.id)} title={es ? p.es : p.en}>{(es ? p.es : p.en).replace('Learned — ', '').replace('Aprendida — ', '').split(' (')[0]}</button>)}</div>

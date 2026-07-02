@@ -8,6 +8,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { comparePolicies, paretoFront, tieVerdict } from '../../../frontend/src/sim/compare.ts';
 import { fleetSweep, kneeIndex, nAtMf1 } from '../../../frontend/src/sim/sweep.ts';
+import { capacityOracle } from '../../../frontend/src/sim/oracle.ts';
 import { CASES } from '../../../frontend/src/sim/cases.ts';
 import { POLICIES, policyById } from '../../../frontend/src/policies/heuristics.ts';
 import { makeLearnedPolicy } from '../../../frontend/src/policies/learned.ts';
@@ -56,13 +57,17 @@ for (const c of CASES) {
     sweepCheck = { kneeN: sweep[knee]?.n ?? null, mf1N: mf1, agree: mf1 != null && sweep[knee] != null && Math.abs(sweep[knee].n - mf1) <= 2 };
   }
 
+  // capacity oracle (#22 P2): the queue-free upper bound every policy is scored against
+  const oracle = capacityOracle(c);
   cases[c.id] = {
     name: c.name,
+    oracle: { tonnes: r1(oracle.tonnes), bindingSide: oracle.bindingSide },
     policies: stats.map((s) => ({
       id: s.id, en: s.en, es: s.es,
       medTonnes: r1(s.medTonnes), medWaitH: r2(s.medWaitH),
       loT: r1(s.loT), hiT: r1(s.hiT), loW: r2(s.loW), hiW: r2(s.hiW),
       pareto: pareto.has(s.id),
+      pctOfOracle: r2((s.medTonnes / oracle.tonnes) * 100),
     })),
     tie, learnedVsBestClassical: learnedVs, sweepCheck,
   };
