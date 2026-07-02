@@ -1,0 +1,19 @@
+{
+  "id": "mhs-pit-deep-spiral-minqueue",
+  "name": "pit-deep-spiral shift (minqueue)",
+  "schema": "dispatchlab.cyclelog/v1",
+  "kind": "structure-real",
+  "source": "Generated with minehaulsim 0.10.0 (pypi.org/project/minehaulsim, Apache-2.0): deterministic DES on a constrained road network (rimpull speed-by-grade, direction zones, emergent bunching), seeded parametric mine generator.",
+  "generator": {
+    "package": "minehaulsim",
+    "version": "0.10.0",
+    "scenario_seed": 303,
+    "sim_seed": 7,
+    "dispatcher": "minqueue",
+    "sim_time_min": 480,
+    "mine_kind": "openpit",
+    "scenario": "16 benches x 10.0 m, spiral ramp (1 lane), 6 shovels, 2 dumps, 42 trucks"
+  },
+  "license": "Apache-2.0 (generator); generated rows CC0",
+  "caveats": "Synthetic cycle log (structure-real): the road network, grades, speeds and queueing are simulated physics; the mine itself is generated, not a real operation. Equipment curves are class-representative, not OEM data. No calibration to any specific mine is claimed."
+}

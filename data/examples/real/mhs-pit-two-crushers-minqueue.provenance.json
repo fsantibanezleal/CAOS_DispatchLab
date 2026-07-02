@@ -1,0 +1,19 @@
+{
+  "id": "mhs-pit-two-crushers-minqueue",
+  "name": "pit-two-crushers shift (minqueue)",
+  "schema": "dispatchlab.cyclelog/v1",
+  "kind": "structure-real",
+  "source": "Generated with minehaulsim 0.10.0 (pypi.org/project/minehaulsim, Apache-2.0): deterministic DES on a constrained road network (rimpull speed-by-grade, direction zones, emergent bunching), seeded parametric mine generator.",
+  "generator": {
+    "package": "minehaulsim",
+    "version": "0.10.0",
+    "scenario_seed": 505,
+    "sim_seed": 7,
+    "dispatcher": "minqueue",
+    "sim_time_min": 480,
+    "mine_kind": "openpit",
+    "scenario": "7 benches x 15.0 m, switchback ramp (1 lane), 6 shovels, 4 dumps, 25 trucks"
+  },
+  "license": "Apache-2.0 (generator); generated rows CC0",
+  "caveats": "Synthetic cycle log (structure-real): the road network, grades, speeds and queueing are simulated physics; the mine itself is generated, not a real operation. Equipment curves are class-representative, not OEM data. No calibration to any specific mine is claimed."
+}

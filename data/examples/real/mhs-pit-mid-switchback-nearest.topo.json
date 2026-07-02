@@ -1,0 +1,19 @@
+{
+ "center": {
+  "x": 0.0,
+  "y": 0.0
+ },
+ "rimRx": 464.8,
+ "rimRy": 339.2,
+ "nBenches": 10,
+ "benchHeightM": 10.0,
+ "benchWidthM": 10.8,
+ "faceAngleDeg": 69.0,
+ "rampWidthM": 25.0,
+ "shovelBench": {
+  "1": 4,
+  "2": 2,
+  "3": 5,
+  "4": 7
+ }
+}
