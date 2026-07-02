@@ -7,6 +7,7 @@ import '@fasl-work/caos-app-shell/styles.css';
 import './dispatchlab.css';
 import { CITATIONS } from './data/citations';
 import { architecture } from './architecture';
+import pkg from '../package.json';
 import Tool from './pages/Tool';
 import Introduction from './pages/Introduction';
 import Methodology from './pages/Methodology';
@@ -27,8 +28,19 @@ const config: ShellConfig = {
     { path: '/benchmark', en: 'Benchmark', es: 'Benchmark' },
   ],
   links: { github: 'https://github.com/fsantibanezleal/CAOS_DispatchLab' },
-  version: '0.05.000',
+  version: pkg.version,                       // single source: frontend/package.json
   architecture,
+  // ADR-0016 §2: footer provenance + honest one-liner
+  footer: {
+    provenance: {
+      en: 'Data: synthetic DES cases + structure-real samples from minehaulsim (PyPI, Apache-2.0)',
+      es: 'Datos: casos DES sintéticos + muestras structure-real de minehaulsim (PyPI, Apache-2.0)',
+    },
+    disclaimer: {
+      en: 'Static site — replay of committed artifacts + in-browser compute; no backend.',
+      es: 'Sitio estático — replay de artefactos commiteados + cómputo en el navegador; sin backend.',
+    },
+  },
 };
 
 createRoot(document.getElementById('root')!).render(
