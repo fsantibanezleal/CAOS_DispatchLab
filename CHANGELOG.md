@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.10.000] — 2026-07-02
+
+### Added — the geometry & constraints case matrix + docs (#23)
+- **Four new cases** (category "geometry & constraints", C08–C11): deep pit with long 8% ramps
+  (TRUCK-bound), shallow flat pit (SHOVEL-bound), crusher-limited pit with a BAKED 2.6 kt/h cap,
+  and a mixed 793F+930E fleet. Every expected band is ASSERTED in `test/cases23.test.ts`
+  (oracle binding sides, per-truck productivity gap, cap band + uncapped twin, both payloads
+  landing), not assumed. 12 cases total; registry, docs taxonomy and manifests updated.
+- **Field-found fix (C10 test):** gating the crusher cap on delivered tonnage alone was
+  bang-bang — the trailing window drained and the WHOLE held fleet released at once,
+  overshooting the cap by ~60%. The gate now counts COMMITTED in-flight ore, releasing trucks
+  a few at a time: the ceiling is a ceiling (≤ cap band, never overshoot).
+- **Constraints UI honesty:** the sidebar chips now show the EFFECTIVE constraint set (baked
+  case constraints like C10's cap + the demo toggle, which MERGES instead of overwriting).
+- Contract 1 accepts 930E and mixed fleets declared as "A+B" (every component validated).
+- docs/: Contract 3 (real-sample lane — cyclelog/v1 rules, provenance with the minehaulsim
+  source, topo wiring, registry build) added to the data-contracts page; cases taxonomy at 4
+  categories with asserted bands.
+
 ## [0.09.000] — 2026-07-02
 
 ### Added — the OR tier + operational constraints (#22)

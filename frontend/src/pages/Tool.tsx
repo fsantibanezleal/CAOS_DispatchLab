@@ -72,7 +72,9 @@ export default function Tool() {
   const [consOn, setConsOn] = useState(false);
   const c = useMemo<CaseSpec>(() => {
     const base = caseById(caseId);
-    return consOn ? { ...base, constraints: { maxQueuePerShovel: DEMO_CONSTRAINTS.maxQueuePerShovel, breaks: [...DEMO_CONSTRAINTS.breaks] } } : base;
+    if (!consOn) return base;
+    // the demo set MERGES over any baked case constraints (never overwrites e.g. C10's cap)
+    return { ...base, constraints: { ...base.constraints, maxQueuePerShovel: DEMO_CONSTRAINTS.maxQueuePerShovel, breaks: [...DEMO_CONSTRAINTS.breaks] } };
   }, [caseId, consOn]);
   const pol = useMemo(() => allPolicies.find((p) => p.id === policyId) ?? policyById(policyId), [allPolicies, policyId]);
   const decisions = useRef<Decision[]>([]);
@@ -303,14 +305,17 @@ export default function Tool() {
           <div className="dl-chips">{CASES.map((x) => <button key={x.id} className={`chip ${caseId === x.id ? 'on' : ''}`} onClick={() => { setCaseId(x.id); setPlayT(0); }} title={x.name}>{x.id}</button>)}</div>
           <span className="dl-hint">{realOK ? activeC.name : c.name}</span>
         </div>
-        {/* operational constraints (#22): enforced by the DES for EVERY policy when active */}
+        {/* operational constraints (#22): enforced by the DES for EVERY policy — the chips show
+            the EFFECTIVE set (baked case constraints like C10's crusher cap + the demo toggle) */}
         <div className="dl-ctl" style={realOK ? { opacity: 0.45, pointerEvents: 'none' } : undefined}><span className="dl-ctl-lbl">{es ? 'Restricciones operativas' : 'Operational constraints'}</span>
           <div className="dl-chips">
-            <button className={`chip ${consOn ? 'on' : ''}`} onClick={() => { setConsOn((v) => !v); setPlayT(0); }}>{consOn ? (es ? 'activas' : 'active') : (es ? 'sin restricciones' : 'unconstrained')}</button>
-            {consOn && <span className="chip" style={{ pointerEvents: 'none' }}>{es ? `cola ≤ ${DEMO_CONSTRAINTS.maxQueuePerShovel}/pala` : `queue ≤ ${DEMO_CONSTRAINTS.maxQueuePerShovel}/shovel`}</span>}
-            {consOn && <span className="chip" style={{ pointerEvents: 'none' }}>{es ? 'pausa 4.0–4.5 h' : 'break 4.0–4.5 h'}</span>}
+            <button className={`chip ${consOn ? 'on' : ''}`} onClick={() => { setConsOn((v) => !v); setPlayT(0); }}>{consOn ? (es ? '+ set demo' : '+ demo set') : (es ? 'añadir set demo' : 'add demo set')}</button>
+            {c.constraints?.crusherMaxTph != null && <span className="chip" style={{ pointerEvents: 'none' }}>{es ? `chancador ≤ ${(c.constraints.crusherMaxTph / 1000).toFixed(1)} kt/h` : `crusher ≤ ${(c.constraints.crusherMaxTph / 1000).toFixed(1)} kt/h`}</span>}
+            {c.constraints?.maxQueuePerShovel != null && <span className="chip" style={{ pointerEvents: 'none' }}>{es ? `cola ≤ ${c.constraints.maxQueuePerShovel}/pala` : `queue ≤ ${c.constraints.maxQueuePerShovel}/shovel`}</span>}
+            {(c.constraints?.breaks?.length ?? 0) > 0 && <span className="chip" style={{ pointerEvents: 'none' }}>{es ? 'pausa 4.0–4.5 h' : 'break 4.0–4.5 h'}</span>}
+            {!c.constraints && <span className="chip" style={{ pointerEvents: 'none', opacity: 0.6 }}>{es ? 'sin restricciones' : 'unconstrained'}</span>}
           </div>
-          {consOn && <span className="dl-hint">{es
+          {c.constraints && <span className="dl-hint">{es
             ? `El DES filtra el conjunto factible ANTES de cada política — todas la respetan por construcción. Elecciones inválidas: ${synResult.invalidChoices ?? 0}.`
             : `The DES filters the feasible set BEFORE every policy — all of them comply by construction. Invalid choices: ${synResult.invalidChoices ?? 0}.`}</span>}
         </div>

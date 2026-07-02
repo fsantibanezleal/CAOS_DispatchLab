@@ -156,6 +156,9 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     const now = sim.now();
     const truck = truckById.get(truckId)!;
     tonnes += truck.spec.payloadT;
+    if (c.constraints?.crusherMaxTph != null && dumpId === crusher.id) {
+      oreInFlightT = Math.max(0, oreInFlightT - truck.spec.payloadT);   // commitment delivered
+    }
     if (dumpId === crusher.id) { crusherTonnes += truck.spec.payloadT; crusherFeed.push({ t: now, tonnes: crusherTonnes }); }
     dumpBusy.set(dumpId, false);
     tryStartDump(dumpId);
@@ -164,14 +167,18 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
 
   // ---- the dispatch decision, under the operational constraints (#22 P3) ----
   let invalidChoices = 0;
+  let oreInFlightT = 0;                        // dispatched-but-not-yet-dumped ore commitment
   const trailingTph = (now: number): number => {
-    // crusher feed over the trailing hour, from the cumulative series
+    // crusher feed over the trailing hour PLUS the committed in-flight ore: gating on delivered
+    // tonnage alone is bang-bang (the window drains, then the WHOLE held fleet releases at once
+    // and overshoots the cap — field-found by the C10 case test). Counting commitments releases
+    // trucks a few at a time and keeps the ceiling a ceiling.
     const t0 = now - 3600;
     let base = 0;
     for (let i = crusherFeed.length - 1; i >= 0; i--) {
       if (crusherFeed[i].t <= t0) { base = crusherFeed[i].tonnes; break; }
     }
-    return crusherTonnes - base;
+    return crusherTonnes - base + oreInFlightT;
   };
   const decide = (truckId: number, dumpId: number) => {
     const cons = c.constraints;
@@ -206,6 +213,10 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   const dispatchTo = (truckId: number, dumpId: number, chosen: number, now: number) => {
     pendingDecision.delete(truckId);            // decided: it leaves the pending fleet view
     const truck = truckById.get(truckId)!;
+    if (c.constraints?.crusherMaxTph != null
+        && mine.shovels.find((s) => s.id === chosen)?.faceType === 'ore') {
+      oreInFlightT += truck.spec.payloadT;      // commit against the crusher ceiling
+    }
     const arr = truckArr.get(truckId) ?? now;
     const target = sh.get(chosen) ?? sh.get(mine.shovels[0].id)!;
     target.inbound++;

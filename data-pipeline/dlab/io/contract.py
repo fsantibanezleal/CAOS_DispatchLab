@@ -66,8 +66,9 @@ def validate_records(raw_rows: list[dict[str, Any]]) -> ContractReport:
             bad.append(f"n_trucks={n_trucks} out of {TRUCKS_RANGE}")
         if not (SHIFT_RANGE[0] <= shift <= SHIFT_RANGE[1]):
             bad.append(f"shift_sec={shift} out of {SHIFT_RANGE}")
-        if model not in VALID_MODELS:
-            bad.append(f"truck_model={model!r} not in {sorted(VALID_MODELS)}")
+        # mixed fleets declare "A+B": every component must be a valid model (#23, C11)
+        if any(part not in VALID_MODELS for part in model.split("+")):
+            bad.append(f"truck_model={model!r} not in {sorted(VALID_MODELS)} (or 'A+B' of them)")
         if bad:
             rejected.append({"row": i, "case_id": cid, "reason": "; ".join(bad)})
             continue
