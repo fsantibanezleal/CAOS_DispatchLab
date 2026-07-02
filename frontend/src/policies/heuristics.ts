@@ -5,6 +5,7 @@
 // Gamache 2002) provably conflict — you cannot minimise both. Every tie breaks on lowest shovel id so the
 // run stays deterministic. The exact OR policies (Hungarian, multi-stage LP, blend-MILP) build on this.
 import { type Policy, type DispatchState, type ShovelView } from '../sim/types';
+import { hungarianPolicy } from './or';
 
 /** Trucks committed ahead of this one at a shovel (waiting + inbound + the one loading). */
 const backlog = (v: ShovelView): number => v.queueLen + v.inbound + (v.loading ? 1 : 0);
@@ -43,12 +44,15 @@ export const minTruckWait: Policy = (s) => pick(s, (v, t) => waitAtArrival(v, t)
  * truck's travel). Keeps the expensive shovel fed; the conflicting opposite of #4. */
 export const minShovelWait: Policy = (s) => pick(s, (v) => v.freeInSec + backlog(v) * v.loadMeanSec);
 
-export interface PolicyDef { id: string; en: string; es: string; fn: Policy; tier: 'heuristic' | 'criterion' | 'baseline' | 'learned'; }
+export interface PolicyDef { id: string; en: string; es: string; fn: Policy; tier: 'heuristic' | 'criterion' | 'baseline' | 'learned' | 'or'; }
 export const POLICIES: PolicyDef[] = [
   { id: 'greedy', en: 'Greedy (earliest completion)', es: 'Greedy (fin más temprano)', fn: greedy, tier: 'heuristic' },
   { id: 'shortestWait', en: 'Shortest expected wait', es: 'Espera esperada mínima', fn: shortestWait, tier: 'heuristic' },
   { id: 'minTruckWait', en: 'Min truck wait (max trucks)', es: 'Mín. espera de camión', fn: minTruckWait, tier: 'criterion' },
   { id: 'minShovelWait', en: 'Min shovel wait (max shovels)', es: 'Mín. espera de pala', fn: minShovelWait, tier: 'criterion' },
   { id: 'fixed', en: 'Fixed assignment', es: 'Asignación fija', fn: fixed, tier: 'baseline' },
+  // 6. The OR tier (#22): joint truck→shovel-slot assignment (Hungarian) over the fleet view —
+  //    the DISPATCH-style instantaneous optimum, vs the per-truck rules above.
+  { id: 'hungarian', en: 'OR — optimal assignment (Hungarian)', es: 'OR — asignación óptima (Hungarian)', fn: hungarianPolicy, tier: 'or' },
 ];
 export const policyById = (id: string): PolicyDef => POLICIES.find((p) => p.id === id) ?? POLICIES[0];

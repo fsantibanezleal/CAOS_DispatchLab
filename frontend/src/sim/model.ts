@@ -55,6 +55,9 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   for (const d of mine.dumps) { dumpBusy.set(d.id, false); dumpQ.set(d.id, []); }
 
   const truckArr = new Map<number, number>();    // truck id → time it joined its current shovel queue
+  // OR tier (#22): trucks that will ask for a dispatch decision soon (at/near a dump) — the
+  // fleet view the joint-assignment policy solves over. Insertion order is deterministic.
+  const pendingDecision = new Map<number, { readyEta: number; atDumpId: number }>();
   let tonnes = 0, truckWaitSec = 0;
   const crusher = mine.dumps.find((d) => d.kind === 'crusher') ?? mine.dumps[0];
   const crusherFeed: { t: number; tonnes: number }[] = [{ t: 0, tonnes: 0 }];
@@ -82,7 +85,20 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
       const rt = route(toShovelId, fromDump);
       return travelTimeSec(rt.distM, -rt.gradePct, rt.rrPct, truck.spec, false);
     };
-    return { now, truck, atDumpId, shovels, travelEmptySec };
+    // OR tier (#22): the deciding truck + every truck pending a decision, with cross-truck ETAs
+    const fleet = [
+      { id: truckId, readyInSec: 0, atDumpId: fromDump },
+      ...[...pendingDecision.entries()]
+        .filter(([id]) => id !== truckId)
+        .map(([id, p]) => ({ id, readyInSec: Math.max(0, p.readyEta - now), atDumpId: p.atDumpId })),
+    ];
+    const etaEmptySecFor = (tid: number, toShovelId: number) => {
+      const tr = truckById.get(tid) ?? truck;
+      const from = tid === truckId ? fromDump : (pendingDecision.get(tid)?.atDumpId ?? fromDump);
+      const rt = route(toShovelId, from);
+      return travelTimeSec(rt.distM, -rt.gradePct, rt.rrPct, tr.spec, false);
+    };
+    return { now, truck, atDumpId, shovels, travelEmptySec, fleet, etaEmptySecFor };
   };
 
   // ---- start a shovel service if idle + queue non-empty ----
@@ -118,6 +134,8 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   const arriveDump = (truckId: number, dumpId: number) => {
     const q = dumpQ.get(dumpId)!;
     truckArr.set(truckId, sim.now());
+    const d = mine.dumps.find((x) => x.id === dumpId)!;
+    pendingDecision.set(truckId, { readyEta: sim.now() + (q.length + 1) * d.dumpMeanSec, atDumpId: dumpId });
     q.push(truckId);
     tryStartDump(dumpId);
   };
@@ -142,6 +160,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     dumpBusy.set(dumpId, false);
     tryStartDump(dumpId);
     // DISPATCH decision
+    pendingDecision.delete(truckId);
     const state = buildState(truckId, dumpId, now);
     const chosen = policy(state);
     opts.onDecision?.(state, chosen);   // log (state, action) for the offline-RL / imitation dataset

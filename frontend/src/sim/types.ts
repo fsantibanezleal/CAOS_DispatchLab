@@ -68,12 +68,21 @@ export interface ShovelView {
   freeInSec: number;         // est seconds until the shovel can start the next truck (0 if idle now)
   loadMeanSec: number;
 }
+export interface FleetTruckView {
+  id: number;
+  readyInSec: number;        // est seconds until this truck needs a dispatch decision
+  atDumpId: number;          // where it will decide from
+}
 export interface DispatchState {
   now: number;
   truck: TruckUnit;
   atDumpId: number | null;   // current location (null at shift start)
   shovels: ShovelView[];
   travelEmptySec: (toShovelId: number) => number;  // est empty-haul time from current position
+  // OR tier (#22, ADDITIVE — heuristic policies ignore them): the trucks that will ask for a
+  // dispatch decision within the assignment window, and cross-truck empty-travel estimates.
+  fleet?: FleetTruckView[];
+  etaEmptySecFor?: (truckId: number, toShovelId: number) => number;
 }
 export type Policy = (s: DispatchState) => number;  // → chosen shovel id
 
