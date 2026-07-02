@@ -62,6 +62,27 @@ for (const pf of provFiles) {
       agreePct: a ? r2(a.pct) : null,
     };
   });
+  // empirical capacity oracle (#22 P2): same relaxation, from the sample's OWN components
+  const loadMeans = Object.values(s.empirical.loadMeanSecByShovel);
+  const loadsShovels = loadMeans.reduce((acc, lm) => acc + 1 + s.shiftSec / lm, 0);
+  let loadsTrucks = 0;
+  for (const _t of s.trucks) {
+    let minCycle = Infinity;
+    for (const sid of s.shovels) {
+      for (const d of s.dumps) {
+        const full = s.empirical.fullTravelMedianSec[`${sid}->${d}`];
+        if (full == null) continue;
+        const empties = Object.entries(s.empirical.emptyTravelMedianSec)
+          .filter(([k]) => k.startsWith(`${d}->`)).map(([, v]) => v);
+        const empty = empties.length ? Math.min(...empties) : full;
+        const cyc = (s.empirical.loadMeanSecByShovel[sid] ?? 150) + full + s.empirical.dumpMeanSec + empty;
+        if (cyc < minCycle) minCycle = cyc;
+      }
+    }
+    if (Number.isFinite(minCycle)) loadsTrucks += 1 + s.shiftSec / minCycle;
+  }
+  const oracleTonnes = Math.min(loadsShovels, loadsTrucks) * s.empirical.payloadMeanT;
+
   // calibration bias: how far the model lands from the REAL shift when driven by the policy
   // that most resembles the real dispatcher (highest decision agreement). Shown, never hidden:
   // cf-vs-cf comparisons are the signal; vs-actual deltas carry this model bias.
@@ -73,6 +94,7 @@ for (const pf of provFiles) {
     actualTonnes: r1(actual), realDispatcher: prov.generator?.dispatcher ?? 'unknown',
     nDecisions: decisions.length, nShovels: s.shovels.length, nTrucks: s.trucks.length,
     calibrationBiasPct, mostSimilarPolicy: byAgree.length ? byAgree[0].id : null,
+    oracleTonnes: r1(oracleTonnes), actualPctOfOracle: r2((actual / oracleTonnes) * 100),
     policies,
   });
   console.log(`${s.id}: actual ${r1(actual)} t, ${decisions.length} decisions, best cf ${policies.slice().sort((a, b) => b.cfTonnes - a.cfTonnes)[0].id}`);
@@ -92,9 +114,16 @@ function kendallTau(a, b) {
   const n = (xs.length * (xs.length - 1)) / 2;
   return n ? r2((concordant - discordant) / n) : null;
 }
+// Cross-source compares ONLY the policies whose semantics are IDENTICAL in both sources: the
+// hungarian policy degrades to its solo fallback inside cfsim (no fleet view there), so ranking
+// it across sources would compare two different algorithms — it is excluded from tau and
+// reported separately per sample (honest apples-to-apples).
+const CROSS_IDS = new Set(ALL.filter((p) => p.tier !== 'or').map((p) => p.id));
 const cross = samples.filter((s) => s.ok).map((s) => {
-  const realRank = s.policies.slice().sort((a, b) => b.cfTonnes - a.cfTonnes).map((p) => p.id);
-  return { id: s.id, generator: s.generator, realRank, tauVsSynthetic: kendallTau(synthRank, realRank) };
+  const realRank = s.policies.filter((p) => CROSS_IDS.has(p.id))
+    .slice().sort((a, b) => b.cfTonnes - a.cfTonnes).map((p) => p.id);
+  return { id: s.id, generator: s.generator, realRank,
+           tauVsSynthetic: kendallTau(synthRank.filter((x) => CROSS_IDS.has(x)), realRank) };
 });
 
 const doc = {

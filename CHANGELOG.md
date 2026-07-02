@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.09.000] — 2026-07-02
+
+### Added — the OR tier + operational constraints (#22)
+- **Hungarian joint assignment** as a first-class policy (`OR — optimal assignment`): a pure-TS
+  O(n³) Kuhn–Munkres solver over truck→shovel-SLOT matrices (slot k prices k extra queue loads,
+  completion-time objective) fed by a new additive `DispatchState.fleet` view (the trucks that
+  will ask for dispatch within the window + cross-truck ETAs). Field-found fix: the slot price
+  must include IN-TRANSIT committed trucks — omitting them re-created herding (test-caught).
+  Honest corpus result: hungarian ranks 3rd (mean rank 3.63) behind greedy/shortest-wait —
+  instantaneous assignment does not beat the good myopic heuristics here; stated plainly.
+- **Operational constraints enforced for EVERY policy** (`sim/constraints.ts`): shovel-truck
+  compatibility, per-shovel commitment cap, crusher trailing-hour tph cap, shift breaks. The DES
+  filters the FEASIBLE set before the policy sees the state; infeasible returns are re-assigned
+  and counted (`SimResult.invalidChoices`). App: constraints toggle + active chips + enforcement
+  note (tonnes visibly drop under the demo set).
+- **Capacity oracle** (`sim/oracle.ts`): the transportation-relaxation upper bound (exact under
+  deterministic dynamics, tested strictly; 2% seed-noise margin documented). Benchmark scores
+  every policy as "% of oracle" per case, and each real sample against its EMPIRICAL oracle.
+- Methodology: new "OR tier + constraints" tab (assignment MILP, cost equation, constraint
+  model, oracle derivation — bilingual, with references).
+- Cross-source τ now compares ONLY policies with identical semantics in both sources (hungarian
+  runs a solo fallback inside cfsim, so it is excluded from τ and reported separately).
+- Bench artifacts regenerated: 8 cases × 8 policies × 20 seeds.
+
 ## [0.08.000] — 2026-07-02
 
 ### Added — the OFFLINE Benchmark (#19)

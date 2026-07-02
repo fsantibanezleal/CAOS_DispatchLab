@@ -8,6 +8,7 @@ export default function Methodology() {
   const tabs = [
     { id: 'des', label: es ? 'Núcleo DES' : 'DES core', content: <Des es={es} /> },
     { id: 'pol', label: es ? 'Políticas de despacho' : 'Dispatch policies', content: <Pol es={es} /> },
+    { id: 'or', label: es ? 'Tier OR + restricciones' : 'OR tier + constraints', content: <Or es={es} /> },
     { id: 'mf', label: es ? 'Match factor + colas' : 'Match factor + queueing', content: <Mf es={es} /> },
     { id: 'learned', label: es ? 'Tier aprendido' : 'Learned tier', content: <Learned es={es} /> },
   ];
@@ -52,6 +53,31 @@ function Pol({ es }: { es: boolean }) {
     </svg>
     <p>{es ? 'Se implementan: fija (piso), greedy (fin más temprano, miope), espera-esperada-mínima, los dos criterios en conflicto, y la asignación Hungarian (óptima para el match instantáneo). La página Benchmark mide las toneladas reales de cada una.' : 'Implemented: fixed (floor), greedy (earliest completion, myopic), shortest-expected-wait, the two conflicting criteria, and Hungarian assignment (optimal for the instantaneous match). The Benchmark page measures each one\'s real tonnes.'}</p>
     <Refs ids={['alarie2002', 'white1986', 'kuhn1955', 'moradi2019']} label="Refs" />
+  </>);
+}
+
+function Or({ es }: { es: boolean }) {
+  return (<>
+    <p>{es
+      ? 'El tier OR resuelve, en cada decisión, la asignación CONJUNTA camión→pala sobre la vista de flota (todos los camiones que pedirán despacho en la ventana), al estilo DISPATCH: cada pala aporta k SLOTS (posiciones sucesivas de servicio; el slot k paga k cargas extra de cola) y se minimiza el tiempo de compleción total con el algoritmo Hungarian (Kuhn–Munkres, O(n³)):'
+      : 'The OR tier solves, at each decision, the JOINT truck→shovel assignment over the fleet view (every truck that will ask for dispatch within the window), DISPATCH-style: each shovel contributes k SLOTS (successive service positions; slot k pays k extra queue loads) and total completion time is minimised with the Hungarian algorithm (Kuhn–Munkres, O(n³)):'}</p>
+    <Equation tex={String.raw`\min_{x}\ \sum_{t,\,(s,k)} c_{t,(s,k)}\, x_{t,(s,k)}\quad \text{s.a.}\ \sum_{(s,k)} x_{t,(s,k)} = 1,\ \ \sum_{t} x_{t,(s,k)} \le 1,\ \ x \in \{0,1\}`} />
+    <Equation tex={String.raw`c_{t,(s,k)} = \max\big(\mathrm{ready}_t + \mathrm{eta}_{t,s},\ \mathrm{free}_s\big) + k\, t^{\text{load}}_s + t^{\text{load}}_s`} />
+    <p>{es
+      ? <>donde <InlineMath tex={String.raw`\mathrm{free}_s`} /> incluye el backlog COMPROMETIDO (cola + camiones ya despachados en tránsito) — omitir el en-tránsito re-crea el amontonamiento que la asignación conjunta existe para evitar (hallazgo de test). Resultado honesto del corpus: hungarian queda 3.º (rango medio 3.63) tras greedy y shortest-wait — con flotas homogéneas y ventanas de decisión pequeñas, la asignación instantánea NO supera a las buenas heurísticas miopes, consistente con la literatura.</>
+      : <>where <InlineMath tex={String.raw`\mathrm{free}_s`} /> includes the COMMITTED backlog (queue + already-dispatched in-transit trucks) — omitting in-transit re-creates the herding the joint assignment exists to avoid (a test-caught finding). Honest corpus result: hungarian ranks 3rd (mean rank 3.63) behind greedy and shortest-wait — with homogeneous fleets and small decision windows, instantaneous assignment does NOT beat the good myopic heuristics, consistent with the literature.</>}</p>
+    <h3>{es ? 'Restricciones operativas (la física del despacho)' : 'Operational constraints (the physics of dispatch)'}</h3>
+    <p>{es
+      ? 'Compatibilidad pala-camión, tope de cola por pala (cola + en-tránsito + cargando), tope de recepción del chancador (tph de la hora móvil: pausa las palas de mineral) y pausas de turno (las decisiones ESPERAN al fin de la ventana). El DES filtra el conjunto FACTIBLE antes de que la política vea el estado — TODAS las políticas respetan las restricciones por construcción; una elección infactible se re-asigna a la factible más cercana y se CUENTA (invalidChoices).'
+      : 'Shovel-truck compatibility, per-shovel commitment cap (queue + in-transit + loading), crusher acceptance cap (trailing-hour tph: pauses ore shovels) and shift breaks (decisions HOLD to the window end). The DES filters the FEASIBLE set before any policy sees the state — EVERY policy respects constraints by construction; an infeasible choice is re-assigned to the nearest feasible and COUNTED (invalidChoices).'}</p>
+    <h3>{es ? 'El oráculo de capacidad (cota superior)' : 'The capacity oracle (upper bound)'}</h3>
+    <Equation tex={es
+      ? String.raw`T^{\ast} = \min\Big(\underbrace{\textstyle\sum_s \big(1 + \tfrac{T_{\text{shift}}}{t^{\text{load}}_s}\big)\, p_{\max}}_{\text{palas sin parar}},\ \underbrace{\textstyle\sum_t \big(1 + \tfrac{T_{\text{shift}}}{c^{\min}_t}\big)\, p_t}_{\text{camiones sin colas}}\Big)`
+      : String.raw`T^{\ast} = \min\Big(\underbrace{\textstyle\sum_s \big(1 + \tfrac{T_{\text{shift}}}{t^{\text{load}}_s}\big)\, p_{\max}}_{\text{shovels nonstop}},\ \underbrace{\textstyle\sum_t \big(1 + \tfrac{T_{\text{shift}}}{c^{\min}_t}\big)\, p_t}_{\text{trucks queue-free}}\Big)`} />
+    <p>{es
+      ? 'La relajación de transporte agregada por familia de recursos: ignora colas, interferencia e integralidad, así que ninguna política la supera (exacta en dinámica determinista; el ruido de piernas media-1 puede rozarla — el Benchmark puntúa medianas como «% del oráculo»). La brecha entre la mejor política y el oráculo es el precio de la congestión + la miopía.'
+      : 'The transportation relaxation aggregated per resource family: it ignores queueing, interference and integrality, so no policy exceeds it (exact under deterministic dynamics; mean-1 leg noise can graze it — the Benchmark scores medians as "% of oracle"). The gap between the best policy and the oracle is the price of congestion + myopia.'}</p>
+    <Refs ids={['kuhn1955', 'white1986', 'alarie2002', 'moradi2019']} label="Refs" />
   </>);
 }
 
