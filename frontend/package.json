@@ -11,7 +11,7 @@
     "build": "tsc --noEmit && vite build",
     "postbuild": "node spa-404.mjs",
     "preview": "vite preview",
-    "test": "node --import tsx --test test/sim.test.ts test/topo.test.ts test/replay.test.ts test/hungarian.test.ts test/or.test.ts"
+    "test": "node --import tsx --test test/sim.test.ts test/topo.test.ts test/replay.test.ts test/hungarian.test.ts test/or.test.ts test/constraints.test.ts"
   },
   "dependencies": {
     "@fasl-work/caos-app-shell": "^0.2.0",

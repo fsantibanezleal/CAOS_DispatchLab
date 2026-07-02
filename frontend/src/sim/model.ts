@@ -8,6 +8,7 @@ import { Sim } from './des';
 import { Rng } from '../lib/rng';
 import { travelTimeSec } from './kinematics';
 import { analyticalMatchFactor } from './matchfactor';
+import { feasibleShovels, inBreak, nearestFeasible } from './constraints';
 import { type CaseSpec, type Policy, type SimResult, type ShovelView, type DispatchState, type MineSpec, type Leg } from './types';
 
 interface ShovelRT {
@@ -153,17 +154,59 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
 
   const onDumped = (truckId: number, dumpId: number) => {
     const now = sim.now();
-    const arr = truckArr.get(truckId) ?? now;
     const truck = truckById.get(truckId)!;
     tonnes += truck.spec.payloadT;
     if (dumpId === crusher.id) { crusherTonnes += truck.spec.payloadT; crusherFeed.push({ t: now, tonnes: crusherTonnes }); }
     dumpBusy.set(dumpId, false);
     tryStartDump(dumpId);
-    // DISPATCH decision
-    pendingDecision.delete(truckId);
+    decide(truckId, dumpId);
+  };
+
+  // ---- the dispatch decision, under the operational constraints (#22 P3) ----
+  let invalidChoices = 0;
+  const trailingTph = (now: number): number => {
+    // crusher feed over the trailing hour, from the cumulative series
+    const t0 = now - 3600;
+    let base = 0;
+    for (let i = crusherFeed.length - 1; i >= 0; i--) {
+      if (crusherFeed[i].t <= t0) { base = crusherFeed[i].tonnes; break; }
+    }
+    return crusherTonnes - base;
+  };
+  const decide = (truckId: number, dumpId: number) => {
+    const cons = c.constraints;
+    const now = sim.now();
+    // shift break: the decision (and the truck) HOLDS until the window ends
+    const resumeAt = inBreak(cons, now);
+    if (resumeAt != null) {
+      truckWaitSec += resumeAt - now;
+      sim.schedule(resumeAt - now, () => decide(truckId, dumpId), 2);
+      return;
+    }
     const state = buildState(truckId, dumpId, now);
-    const chosen = policy(state);
-    opts.onDecision?.(state, chosen);   // log (state, action) for the offline-RL / imitation dataset
+    const truck = truckById.get(truckId)!;
+    const feasible = feasibleShovels(state.shovels, cons, { now, truck, crusherTphTrailing: trailingTph(now) });
+    if (feasible.length === 0) {
+      // everything capped/incompatible right now: hold briefly and re-ask (counted as wait)
+      truckWaitSec += 60;
+      sim.schedule(60, () => decide(truckId, dumpId), 2);
+      return;
+    }
+    // policies only SEE the feasible set — every policy respects constraints by construction
+    const constrained: DispatchState = { ...state, shovels: feasible };
+    let chosen = policy(constrained);
+    opts.onDecision?.(constrained, chosen);  // log (state, action) for the offline-RL / imitation dataset
+    if (!feasible.some((v) => v.id === chosen)) {
+      invalidChoices++;
+      chosen = nearestFeasible(constrained, feasible);
+    }
+    dispatchTo(truckId, dumpId, chosen, now);
+  };
+
+  const dispatchTo = (truckId: number, dumpId: number, chosen: number, now: number) => {
+    pendingDecision.delete(truckId);            // decided: it leaves the pending fleet view
+    const truck = truckById.get(truckId)!;
+    const arr = truckArr.get(truckId) ?? now;
     const target = sh.get(chosen) ?? sh.get(mine.shovels[0].id)!;
     target.inbound++;
     const rt = route(target.id, dumpId);
@@ -208,5 +251,6 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     tonnes, truckWaitSec, shovels, meanShovelUtil, crusherFeed,
     matchFactor: analyticalMatchFactor(c),
     trace,
+    invalidChoices,
   };
 }

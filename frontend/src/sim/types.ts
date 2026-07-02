@@ -57,6 +57,8 @@ export interface CaseSpec {
   mine: MineSpec; fleet: FleetSpec;
   shiftSec: number;
   blendWindow?: { min: number; max: number };  // crusher grade window (binding-blend cases)
+  /** Operational constraints (#22): enforced by the DES BEFORE any policy sees the state. */
+  constraints?: import('./constraints').OperationalConstraints;
 }
 
 // ---- dispatch policy interface ----
@@ -100,4 +102,6 @@ export interface SimResult {
   crusherFeed: { t: number; tonnes: number }[];   // cumulative tonnes at the ore crusher
   matchFactor: number;
   trace?: Leg[];                                   // present only when run with { trace: true }
+  /** #22: times a policy returned a constraint-infeasible shovel (re-assigned + counted). */
+  invalidChoices?: number;
 }
