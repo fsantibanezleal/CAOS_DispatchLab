@@ -1,67 +1,183 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Refs, useShellLang } from '@fasl-work/caos-app-shell';
-import { comparePolicies, POLICY_COLOR } from '../sim/compare';
-import { POLICIES, type PolicyDef } from '../policies/heuristics';
-import { loadLearnedPolicies, loadLearnedMeta, type LearnedMeta } from '../policies/learnedRegistry';
-import { caseById } from '../sim/cases';
+// Benchmark (#19): the OFFLINE aggregate comparisons. Everything here is PRECOMPUTED by the
+// pipeline (data-pipeline/dlab/science/bench_synthetic.mjs + bench_real.mjs) and committed —
+// the page only reads /data/bench/*.json. No heavy compute in the browser.
+import { useEffect, useState } from 'react';
+import { Refs, Tabs, useShellLang } from '@fasl-work/caos-app-shell';
+import { POLICY_COLOR } from '../sim/compare';
 
-const SEEDS = [3, 7, 11, 17, 23, 29, 37, 42, 59, 71];
+interface BenchPolicy { id: string; en: string; es: string; medTonnes: number; medWaitH: number; loT: number; hiT: number; loW: number; hiW: number; pareto: boolean }
+interface SweepCheck { kneeN: number | null; mf1N: number | null; agree: boolean }
+interface BenchCase { name: string; policies: BenchPolicy[]; tie: { leader: string; tied: string[] }; learnedVsBestClassical: { id: string; deltaPct: number }[]; sweepCheck: SweepCheck | null }
+interface SyntheticDoc { nSeeds: number; nCases: number; aggregate: { id: string; meanRank: number }[]; learnedMeta: { policyImitAcc: number; bcBestImitAcc: number; bcBestSelfAcc: number; bestPolicy: string; nEval: number }; cases: Record<string, BenchCase> }
+interface RealPolicy { id: string; en: string; es: string; cfTonnes: number; loT: number; hiT: number; deltaPct: number; agreePct: number | null }
+interface RealSampleRow { id: string; name: string; ok: boolean; generator?: string; actualTonnes?: number; realDispatcher?: string; nDecisions?: number; calibrationBiasPct?: number | null; mostSimilarPolicy?: string | null; policies?: RealPolicy[] }
+interface RealDoc { caveat: string; syntheticRanking: string[]; samples: RealSampleRow[]; cross: { id: string; generator: string; realRank: string[]; tauVsSynthetic: number | null }[] }
+
+const base = import.meta.env.BASE_URL || '/';
+const label = (p: { id: string; en: string; es: string }, es: boolean) =>
+  (es ? p.es : p.en).replace('Learned — ', '').replace('Aprendida — ', '').split(' (')[0];
 
 export default function Benchmark() {
   const es = useShellLang() === 'es';
-  const [learned, setLearned] = useState<PolicyDef[]>([]);
-  const [meta, setMeta] = useState<LearnedMeta | null>(null);
-  useEffect(() => { loadLearnedPolicies().then(setLearned).catch(() => {}); loadLearnedMeta().then(setMeta).catch(() => {}); }, []);
-  const all = useMemo(() => [...POLICIES, ...learned], [learned]);
-  const tn = (id: string) => { const p = all.find((x) => x.id === id); return p ? (es ? p.es : p.en).replace('Learned — ', '').replace('Aprendida — ', '').split(' (')[0] : id; };
+  const [syn, setSyn] = useState<SyntheticDoc | null>(null);
+  const [real, setReal] = useState<RealDoc | null>(null);
+  useEffect(() => {
+    fetch(`${base}data/bench/synthetic.json`).then((r) => r.json()).then(setSyn).catch(() => {});
+    fetch(`${base}data/bench/real.json`).then((r) => r.json()).then(setReal).catch(() => {});
+  }, []);
+
+  if (!syn || !real) return <div className="page-body prose"><div className="page-head"><h1>Benchmark</h1><p className="dl-hint">{es ? 'Cargando artefactos precomputados…' : 'Loading precomputed artifacts…'}</p></div></div>;
+
+  const tabs = [
+    { id: 'corpus', label: es ? 'Corpus sintético' : 'Synthetic corpus', content: <CorpusTab syn={syn} es={es} /> },
+    { id: 'learned', label: es ? 'Aprendido vs clásico' : 'Learned vs classical', content: <LearnedTab syn={syn} es={es} /> },
+    { id: 'mf', label: 'Match factor', content: <MfTab syn={syn} es={es} /> },
+    { id: 'cf', label: es ? 'Counterfactual real' : 'Real counterfactual', content: <CfTab real={real} es={es} /> },
+    { id: 'cross', label: 'Cross-source', content: <CrossTab real={real} es={es} /> },
+  ];
 
   return (
     <div className="page-body prose">
       <div className="page-head">
         <h1>Benchmark</h1>
-        <p className="lede">{es ? 'Políticas APRENDIDAS vs heurísticas CLÁSICAS — fidelidad de imitación held-out y, sobre todo, las TONELADAS que cada una mueve en el simulador (la prueba real). Números reales — sin victorias fabricadas.' : 'LEARNED vs CLASSICAL heuristic policies — held-out imitation fidelity and, above all, the TONNES each moves in the simulator (the real test). Real numbers — no fabricated wins.'}</p>
+        <p className="lede">{es
+          ? `Comparaciones agregadas OFFLINE — ${syn.nCases} casos sintéticos × 7 políticas × ${syn.nSeeds} seeds, más el counterfactual CALIBRADO sobre los ${real.samples.filter((s) => s.ok).length} turnos reales del corpus. Todo precomputado por el pipeline y commiteado; esta página solo lee los artefactos. Números honestos — los resultados nulos y las discrepancias se muestran.`
+          : `OFFLINE aggregate comparisons — ${syn.nCases} synthetic cases × 7 policies × ${syn.nSeeds} seeds, plus the CALIBRATED counterfactual over the corpus of ${real.samples.filter((s) => s.ok).length} real shifts. Everything precomputed by the pipeline and committed; this page only reads the artifacts. Honest numbers — null results and discrepancies are shown.`}</p>
       </div>
-      <section>
-        {meta && (
-          <>
-            <h2>{es ? 'Fidelidad de imitación (held-out)' : 'Imitation fidelity (held-out)'}</h2>
-            <div className="tw-stats">
-              <Stat v={`${(meta.policyImitAcc * 100).toFixed(0)}%`} l={es ? 'RWP (todas las refs)' : 'RWR (all refs)'} />
-              <Stat v={`${(meta.bcBestImitAcc * 100).toFixed(0)}%`} l={es ? 'BC-best (todas)' : 'BC-best (all)'} />
-              <Stat v={`${(meta.bcBestSelfAcc * 100).toFixed(0)}%`} l={es ? `BC-best vs ${meta.bestPolicy}` : `BC-best vs ${meta.bestPolicy}`} />
-              <Stat v={`${(meta.nEval / 1000).toFixed(1)}k`} l={es ? 'decisiones eval' : 'eval decisions'} />
-            </div>
-            <p className="tw-note">{es ? `Las redes reproducen las decisiones de referencia no vistas con ~${(meta.policyImitAcc * 100).toFixed(0)}% de fidelidad. Pero la fidelidad NO es el objetivo — lo que importa son las toneladas, abajo.` : `The nets reproduce unseen reference decisions with ~${(meta.policyImitAcc * 100).toFixed(0)}% fidelity. But fidelity is NOT the goal — what matters is the tonnes, below.`}</p>
-          </>
-        )}
-
-        <h2>{es ? 'Toneladas movidas — aprendido vs heurística (la prueba real)' : 'Tonnes moved — learned vs heuristic (the real test)'}</h2>
-        {learned.length === 0 ? <p className="dl-hint">{es ? 'Cargando políticas aprendidas…' : 'Loading learned policies…'}</p> : (
-          <>
-            {(['C06', 'C07', 'C05'] as const).map((cid) => <CaseBars key={cid} cid={cid} all={all} tn={tn} es={es} />)}
-            <p className="tw-note">{es ? 'Honesto: las políticas APRENDIDAS (★) son COMPETITIVAS — dentro de ~1%, igualando a las mejores heurísticas (sus maestras). No las superan, y se dice claramente. El valor es una política aprendida única, rápida, recuperada de datos + la inferencia ONNX en vivo — no una afirmación de que «el RL gana todo».' : 'Honest: the LEARNED policies (★) are COMPETITIVE — within ~1%, matching the best heuristics (their teachers). They do not beat them, and we say so plainly. The value is a single fast learned policy recovered from data + live ONNX inference — not a claim that "RL beats everything".'}</p>
-          </>
-        )}
-        <Refs ids={['noriega2024', 'peters2007', 'mnih2015']} label="Refs" />
-      </section>
+      <Tabs tabs={tabs} />
+      <Refs ids={['noriega2024', 'peters2007', 'mnih2015']} label="Refs" />
     </div>
   );
 }
 
 function Stat({ v, l }: { v: string; l: string }) { return <div className="tw-stat"><div className="tw-stat-v">{v}</div><div className="tw-stat-l">{l}</div></div>; }
 
-function CaseBars({ cid, all, tn, es }: { cid: string; all: PolicyDef[]; tn: (id: string) => string; es: boolean }) {
-  const c = caseById(cid);
-  const stats = useMemo(() => comparePolicies(c, SEEDS, all), [c, all]);
-  const maxT = Math.max(...stats.map((s) => s.hiT));
-  const ord = [...stats].sort((a, b) => b.medTonnes - a.medTonnes);
+function Bars({ rows, max, es }: { rows: { id: string; en: string; es: string; med: number; lo: number; hi: number; mark?: string }[]; max: number; es: boolean }) {
   return (
-    <>
-      <h3 style={{ marginBottom: '0.2rem' }}>{cid} — {c.name} ({c.mine.shovels.length} {es ? 'palas' : 'shovels'})</h3>
-      <div className="dl-bars">{ord.map((s) => { const learned = s.id === 'rwr' || s.id === 'bcbest'; return (
-        <div key={s.id} className="dl-bar-row"><div className="dl-bar-label"><span className="dl-dot" style={{ background: POLICY_COLOR[s.id] }} /> {tn(s.id)}{learned ? ' ★' : ''}</div>
-          <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${(s.medTonnes / maxT) * 100}%`, background: POLICY_COLOR[s.id] }} /><span className="dl-bar-band" style={{ left: `${(s.loT / maxT) * 100}%`, width: `${((s.hiT - s.loT) / maxT) * 100}%` }} /></div><span className="dl-bar-num mono">{(s.medTonnes / 1000).toFixed(1)}k t</span></div>
-        </div>); })}</div>
-    </>
+    <div className="dl-bars">{rows.map((s) => (
+      <div key={s.id} className="dl-bar-row">
+        <div className="dl-bar-label"><span className="dl-dot" style={{ background: POLICY_COLOR[s.id] ?? '#8b949e' }} /> {label(s, es)}{s.mark ?? ''}</div>
+        <div className="dl-bar-pair">
+          <div className="dl-bar">
+            <span className="dl-bar-fill" style={{ width: `${(s.med / max) * 100}%`, background: POLICY_COLOR[s.id] ?? '#8b949e' }} />
+            <span className="dl-bar-band" style={{ left: `${(s.lo / max) * 100}%`, width: `${((s.hi - s.lo) / max) * 100}%` }} />
+          </div>
+          <span className="dl-bar-num mono">{(s.med / 1000).toFixed(1)}k t</span>
+        </div>
+      </div>
+    ))}</div>
+  );
+}
+
+function CorpusTab({ syn, es }: { syn: SyntheticDoc; es: boolean }) {
+  return (
+    <section>
+      <h2>{es ? 'Ranking agregado (rango medio por toneladas medianas, 1 = mejor)' : 'Aggregate ranking (mean rank by median tonnes, 1 = best)'}</h2>
+      <div className="tw-stats">{syn.aggregate.slice(0, 4).map((a) => <Stat key={a.id} v={a.meanRank.toFixed(2)} l={a.id} />)}</div>
+      <p className="tw-note">{es
+        ? 'greedy (menor tiempo de compleción esperado) lidera el corpus; las políticas aprendidas son competitivas pero NO superan a sus maestras — se dice claramente.'
+        : 'greedy (earliest expected completion) leads the corpus; the learned policies are competitive but do NOT beat their teachers — stated plainly.'}</p>
+      {Object.entries(syn.cases).map(([cid, c]) => {
+        const maxT = Math.max(...c.policies.map((p) => p.hiT));
+        const ord = [...c.policies].sort((a, b) => b.medTonnes - a.medTonnes);
+        return (
+          <div key={cid}>
+            <h3 style={{ marginBottom: '0.2rem' }}>{cid} — {c.name}{c.policies.some((p) => p.pareto) ? '' : ''}</h3>
+            <Bars es={es} max={maxT} rows={ord.map((p) => ({ ...p, med: p.medTonnes, lo: p.loT, hi: p.hiT, mark: `${p.pareto ? ' ◆' : ''}${p.id === 'rwr' || p.id === 'bcbest' ? ' ★' : ''}` }))} />
+            <p className="tw-note">{es ? `Empate estadístico (bandas p10–p90 solapadas con el líder): ${c.tie.tied.length ? c.tie.tied.join(', ') : 'ninguno'} · ◆ = frontera de Pareto (toneladas vs espera)` : `Statistical tie (p10–p90 bands overlap the leader): ${c.tie.tied.length ? c.tie.tied.join(', ') : 'none'} · ◆ = Pareto frontier (tonnes vs wait)`}</p>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function LearnedTab({ syn, es }: { syn: SyntheticDoc; es: boolean }) {
+  const m = syn.learnedMeta;
+  const cases = Object.entries(syn.cases);
+  return (
+    <section>
+      <h2>{es ? 'Fidelidad de imitación (held-out)' : 'Imitation fidelity (held-out)'}</h2>
+      <div className="tw-stats">
+        <Stat v={`${(m.policyImitAcc * 100).toFixed(0)}%`} l="RWR" />
+        <Stat v={`${(m.bcBestImitAcc * 100).toFixed(0)}%`} l="BC-best" />
+        <Stat v={`${(m.bcBestSelfAcc * 100).toFixed(0)}%`} l={`BC-best vs ${m.bestPolicy}`} />
+        <Stat v={`${(m.nEval / 1000).toFixed(1)}k`} l={es ? 'decisiones eval' : 'eval decisions'} />
+      </div>
+      <h2>{es ? 'Toneladas vs la mejor clásica, caso a caso' : 'Tonnes vs the best classical, case by case'}</h2>
+      <table><thead><tr><th>{es ? 'Caso' : 'Case'}</th><th>RWR Δ%</th><th>BC-best Δ%</th></tr></thead>
+        <tbody>{cases.map(([cid, c]) => (
+          <tr key={cid}><td>{cid}</td>
+            {c.learnedVsBestClassical.map((l) => <td key={l.id} className="mono">{l.deltaPct > 0 ? '+' : ''}{l.deltaPct.toFixed(2)}%</td>)}
+          </tr>))}</tbody></table>
+      <p className="tw-note">{es
+        ? 'Honesto: las aprendidas (★) quedan típicamente dentro de ~1–3% de la mejor heurística de cada caso — imitan a sus maestras, no las superan. El valor es una política única, rápida, recuperada de datos, con inferencia ONNX en vivo.'
+        : 'Honest: the learned policies (★) land typically within ~1–3% of each case’s best heuristic — they imitate their teachers, they do not beat them. The value is a single fast policy recovered from data, with live ONNX inference.'}</p>
+    </section>
+  );
+}
+
+function MfTab({ syn, es }: { syn: SyntheticDoc; es: boolean }) {
+  const rows = Object.entries(syn.cases).filter(([, c]) => c.sweepCheck);
+  const agreeN = rows.filter(([, c]) => c.sweepCheck!.agree).length;
+  return (
+    <section>
+      <h2>{es ? 'Validación del match factor a escala' : 'Match-factor validation at scale'}</h2>
+      <p>{es
+        ? 'Para cada caso multi-pala, el codo del barrido de flota (rendimiento marginal decreciente) debería caer donde el match factor analítico cruza 1. Comprobado sobre el banco de seeds del sweep:'
+        : 'For every multi-shovel case, the fleet-sweep knee (diminishing marginal return) should land where the analytical match factor crosses 1. Checked over the sweep seed bank:'}</p>
+      <table><thead><tr><th>{es ? 'Caso' : 'Case'}</th><th>{es ? 'Codo (N camiones)' : 'Knee (N trucks)'}</th><th>N @ MF=1</th><th>{es ? 'Concuerda (±2)' : 'Agrees (±2)'}</th></tr></thead>
+        <tbody>{rows.map(([cid, c]) => (
+          <tr key={cid}><td>{cid}</td><td className="mono">{c.sweepCheck!.kneeN ?? '—'}</td><td className="mono">{c.sweepCheck!.mf1N ?? '—'}</td><td>{c.sweepCheck!.agree ? '✓' : '✗'}</td></tr>
+        ))}</tbody></table>
+      <p className="tw-note">{es ? `${agreeN}/${rows.length} casos concuerdan — la teoría (MF) y el DES cuentan la misma historia; las excepciones se muestran, no se esconden.` : `${agreeN}/${rows.length} cases agree — the theory (MF) and the DES tell the same story; exceptions are shown, not hidden.`}</p>
+    </section>
+  );
+}
+
+function CfTab({ real, es }: { real: RealDoc; es: boolean }) {
+  const ok = real.samples.filter((s) => s.ok && s.policies);
+  return (
+    <section>
+      <h2>{es ? 'Counterfactual sobre el corpus real: ¿cuánto habría cambiado el throughput?' : 'Counterfactual over the real corpus: how much would throughput have changed?'}</h2>
+      <p className="tw-note">{real.caveat}</p>
+      {ok.map((s) => {
+        const maxT = Math.max(...s.policies!.map((p) => p.hiT), s.actualTonnes!);
+        const ord = [...s.policies!].sort((a, b) => b.cfTonnes - a.cfTonnes);
+        return (
+          <div key={s.id}>
+            <h3 style={{ marginBottom: '0.2rem' }}>{s.id}</h3>
+            <p className="tw-note" style={{ marginTop: 0 }}>{es
+              ? `real: ${(s.actualTonnes! / 1000).toFixed(1)}k t (${s.realDispatcher}) · ${s.nDecisions} decisiones · sesgo de calibración ${s.calibrationBiasPct != null ? `${s.calibrationBiasPct > 0 ? '+' : ''}${s.calibrationBiasPct.toFixed(1)}% (vía ${s.mostSimilarPolicy})` : 'n/d'}`
+              : `actual: ${(s.actualTonnes! / 1000).toFixed(1)}k t (${s.realDispatcher}) · ${s.nDecisions} decisions · calibration bias ${s.calibrationBiasPct != null ? `${s.calibrationBiasPct > 0 ? '+' : ''}${s.calibrationBiasPct.toFixed(1)}% (via ${s.mostSimilarPolicy})` : 'n/a'}`}</p>
+            <Bars es={es} max={maxT} rows={ord.map((p) => ({ ...p, med: p.cfTonnes, lo: p.loT, hi: p.hiT, mark: p.agreePct != null ? ` · ${p.agreePct.toFixed(0)}%↔` : '' }))} />
+          </div>
+        );
+      })}
+      <p className="tw-note">{es
+        ? '↔ = acuerdo de decisiones con el despachador real. Compara políticas ENTRE SÍ (cf-vs-cf); el delta vs real carga el sesgo de calibración mostrado arriba.'
+        : '↔ = decision agreement with the real dispatcher. Compare policies AGAINST EACH OTHER (cf-vs-cf); the delta vs actual carries the calibration bias shown above.'}</p>
+    </section>
+  );
+}
+
+function CrossTab({ real, es }: { real: RealDoc; es: boolean }) {
+  const taus = real.cross.map((c) => c.tauVsSynthetic).filter((t): t is number => t != null).sort((a, b) => a - b);
+  const medTau = taus.length ? taus[Math.floor(taus.length / 2)] : null;
+  const low = real.cross.filter((c) => (c.tauVsSynthetic ?? 1) < 0.4);
+  return (
+    <section>
+      <h2>{es ? '¿El ranking sintético sobrevive en los turnos reales?' : 'Does the synthetic ranking survive on real shifts?'}</h2>
+      <p>{es
+        ? `Concordancia de rankings (tau de Kendall) entre el agregado sintético [${real.syntheticRanking.slice(0, 3).join(' > ')} > …] y el ranking counterfactual de cada turno real:`
+        : `Ranking concordance (Kendall’s tau) between the synthetic aggregate [${real.syntheticRanking.slice(0, 3).join(' > ')} > …] and each real shift’s counterfactual ranking:`}</p>
+      <table><thead><tr><th>{es ? 'Turno real' : 'Real shift'}</th><th>{es ? 'Generador' : 'Generator'}</th><th>Top-3 (cf)</th><th>τ</th></tr></thead>
+        <tbody>{real.cross.map((c) => (
+          <tr key={c.id}><td>{c.id}</td><td>{c.generator}</td><td className="mono">{c.realRank.slice(0, 3).join(' > ')}</td><td className="mono">{c.tauVsSynthetic?.toFixed(2) ?? '—'}</td></tr>
+        ))}</tbody></table>
+      <p className="tw-note">{es
+        ? `Mediana τ = ${medTau?.toFixed(2)} — el orden sintético transfiere en general. Discrepancias honestas: ${low.length ? low.map((c) => `${c.id} (τ=${c.tauVsSynthetic?.toFixed(2)})`).join(', ') : 'ninguna'} — turnos generados con despachadores tipo nearest reordenan las políticas queue-aware; hallazgo válido, no se esconde.`
+        : `Median τ = ${medTau?.toFixed(2)} — the synthetic ordering largely transfers. Honest discrepancies: ${low.length ? low.map((c) => `${c.id} (τ=${c.tauVsSynthetic?.toFixed(2)})`).join(', ') : 'none'} — shifts generated by nearest-style dispatchers reorder the queue-aware policies; a valid finding, not hidden.`}</p>
+    </section>
   );
 }

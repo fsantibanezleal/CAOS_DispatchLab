@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.08.000] — 2026-07-02
+
+### Added — the OFFLINE Benchmark (#19)
+- **Benchmark page rebuilt on precomputed artifacts** (`/data/bench/*.json`; the page does zero
+  heavy compute): five tabs — Synthetic corpus (8 cases × 7 policies × 20 seeds: p10–p90 bands,
+  Pareto marks, statistical-tie verdicts, aggregate mean-rank) · Learned vs classical (held-out
+  fidelity + per-case Δ% vs the best heuristic — they imitate, they don't beat, stated plainly) ·
+  Match factor (fleet-sweep knee vs MF=1 per multi-shovel case) · Real counterfactual ·
+  Cross-source.
+- **Calibrated counterfactual re-simulation** (`frontend/src/replay/cfsim.ts`): re-runs each
+  REAL shift under every policy with all time components from the sample's own empirical
+  distributions (per-shovel load medians, per-route travel, p10 queue-free empty base, cv-0.15
+  seeded jitter); per-sample CALIBRATION BIAS reported via the highest-agreement policy —
+  cf-vs-cf is the signal, vs-actual carries the stated bias.
+- **Cross-source consistency**: Kendall τ between the synthetic aggregate ranking and each real
+  shift's counterfactual ranking (median τ 0.71; the nearest-generated shifts reorder queue-aware
+  policies — τ 0.05/0.24, reported as the honest finding it is).
+- Pipeline generators `bench_synthetic.mjs` + `bench_real.mjs` (Node + tsx over the SAME TS DES
+  and ingest the browser runs); artifacts committed under `data/derived/bench/`.
+
+### Fixed
+- Footer version now reads `package.json` (was hardcoded, showing a stale 0.05.000).
+- ADR-0016 §2 footer completed: data/engine provenance (minehaulsim) + static-site disclaimer.
+
 ## [0.07.000] — 2026-07-02
 
 ### Added — minehaulsim as the structure-real source (#30)
