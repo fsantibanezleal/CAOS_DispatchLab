@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.07.000] — 2026-07-02
+
+### Added — minehaulsim as the structure-real source (#30)
+- **10 new shipped samples** generated with our published simulator
+  ([minehaulsim 0.10.0](https://pypi.org/project/minehaulsim/), pinned in `.venv-pipeline`):
+  6 structurally varied open pits (small/mid ship minqueue+nearest comparison pairs; deep
+  single-lane spiral, dual-ramp one-way circulation, two-crusher, three-phase eccentric) + 2
+  underground mines (LHD/ore-pass flow, truck-direct). Every sample gated by the ingest-contract
+  validator in the pipeline before shipping.
+- **Real pit topography in the 3D view:** samples carry `<id>.topo.json` (the PitTopoSpec of the
+  ACTUAL generated geometry — least-squares rim fit, bench count/height, shovel benches);
+  `loadSample` attaches it so `Pit 3D` renders the real mine instead of the derived default
+  (verified: 16-bench deep spiral vs 7-bench small pit vs the 5-bench default).
+- New pipeline generator `dlab/science/minehaulsim_gen/generate.py`; sample registry built with
+  minehaulsim entries FIRST (the default sample no longer comes from OpenMines).
+
+### Changed
+- **OpenMines demoted to legacy** (kept for cross-tool comparison): generator + provenance
+  labelled — single fixed mine, scalar-distance roads, no grades/rimpull, statistical congestion.
+- Sample chips: readable labels (`mhs-` stripped, `huolinhe-*` → `openmines-*`).
+
 ## [0.06.000] — 2026-07-01
 
 ### Added — the REAL-DATA lane (issues #13-#18, #21; epic #20)
