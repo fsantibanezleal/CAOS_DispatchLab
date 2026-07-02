@@ -15,7 +15,7 @@ def test_case_deterministic_same_seed():
 
 def test_run_all_writes_index():
     entries = pipeline.run_all(seed=42)
-    assert len(entries) == len(registry.list_cases()) == 8
+    assert len(entries) == len(registry.list_cases()) == 12   # 4 categories (#23)
     idx = json.loads((pipeline.MANIFESTS / "index.json").read_text(encoding="utf-8"))
     assert idx["n_cases"] == len(entries)
     assert idx["schema"].startswith("dispatchlab.index/")
