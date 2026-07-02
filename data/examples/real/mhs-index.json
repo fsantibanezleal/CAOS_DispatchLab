@@ -1,0 +1,74 @@
+{
+ "samples": [
+  {
+   "id": "mhs-pit-small-spiral-minqueue",
+   "name": "pit-small-spiral shift (minqueue)",
+   "kind": "structure-real",
+   "csv": "mhs-pit-small-spiral-minqueue.csv",
+   "topo": "mhs-pit-small-spiral-minqueue.topo.json"
+  },
+  {
+   "id": "mhs-pit-small-spiral-nearest",
+   "name": "pit-small-spiral shift (nearest)",
+   "kind": "structure-real",
+   "csv": "mhs-pit-small-spiral-nearest.csv",
+   "topo": "mhs-pit-small-spiral-nearest.topo.json"
+  },
+  {
+   "id": "mhs-pit-mid-switchback-minqueue",
+   "name": "pit-mid-switchback shift (minqueue)",
+   "kind": "structure-real",
+   "csv": "mhs-pit-mid-switchback-minqueue.csv",
+   "topo": "mhs-pit-mid-switchback-minqueue.topo.json"
+  },
+  {
+   "id": "mhs-pit-mid-switchback-nearest",
+   "name": "pit-mid-switchback shift (nearest)",
+   "kind": "structure-real",
+   "csv": "mhs-pit-mid-switchback-nearest.csv",
+   "topo": "mhs-pit-mid-switchback-nearest.topo.json"
+  },
+  {
+   "id": "mhs-pit-deep-spiral-minqueue",
+   "name": "pit-deep-spiral shift (minqueue)",
+   "kind": "structure-real",
+   "csv": "mhs-pit-deep-spiral-minqueue.csv",
+   "topo": "mhs-pit-deep-spiral-minqueue.topo.json"
+  },
+  {
+   "id": "mhs-pit-dual-ramp-minqueue",
+   "name": "pit-dual-ramp shift (minqueue)",
+   "kind": "structure-real",
+   "csv": "mhs-pit-dual-ramp-minqueue.csv",
+   "topo": "mhs-pit-dual-ramp-minqueue.topo.json"
+  },
+  {
+   "id": "mhs-pit-two-crushers-minqueue",
+   "name": "pit-two-crushers shift (minqueue)",
+   "kind": "structure-real",
+   "csv": "mhs-pit-two-crushers-minqueue.csv",
+   "topo": "mhs-pit-two-crushers-minqueue.topo.json"
+  },
+  {
+   "id": "mhs-pit-three-phase-nearest",
+   "name": "pit-three-phase shift (nearest)",
+   "kind": "structure-real",
+   "csv": "mhs-pit-three-phase-nearest.csv",
+   "topo": "mhs-pit-three-phase-nearest.topo.json"
+  },
+  {
+   "id": "mhs-ug-lhd-orepass-minqueue",
+   "name": "ug-lhd-orepass shift (minqueue)",
+   "kind": "structure-real",
+   "csv": "mhs-ug-lhd-orepass-minqueue.csv",
+   "topo": "mhs-ug-lhd-orepass-minqueue.topo.json"
+  },
+  {
+   "id": "mhs-ug-truck-direct-minqueue",
+   "name": "ug-truck-direct shift (minqueue)",
+   "kind": "structure-real",
+   "csv": "mhs-ug-truck-direct-minqueue.csv",
+   "topo": "mhs-ug-truck-direct-minqueue.topo.json"
+  }
+ ]
+}

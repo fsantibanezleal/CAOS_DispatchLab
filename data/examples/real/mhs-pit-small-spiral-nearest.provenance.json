@@ -1,0 +1,19 @@
+{
+  "id": "mhs-pit-small-spiral-nearest",
+  "name": "pit-small-spiral shift (nearest)",
+  "schema": "dispatchlab.cyclelog/v1",
+  "kind": "structure-real",
+  "source": "Generated with minehaulsim 0.10.0 (pypi.org/project/minehaulsim, Apache-2.0): deterministic DES on a constrained road network (rimpull speed-by-grade, direction zones, emergent bunching), seeded parametric mine generator.",
+  "generator": {
+    "package": "minehaulsim",
+    "version": "0.10.0",
+    "scenario_seed": 101,
+    "sim_seed": 7,
+    "dispatcher": "nearest",
+    "sim_time_min": 480,
+    "mine_kind": "openpit",
+    "scenario": "7 benches x 12.0 m, spiral ramp (1 lane), 2 shovels, 2 dumps, 5 trucks"
+  },
+  "license": "Apache-2.0 (generator); generated rows CC0",
+  "caveats": "Synthetic cycle log (structure-real): the road network, grades, speeds and queueing are simulated physics; the mine itself is generated, not a real operation. Equipment curves are class-representative, not OEM data. No calibration to any specific mine is claimed."
+}
