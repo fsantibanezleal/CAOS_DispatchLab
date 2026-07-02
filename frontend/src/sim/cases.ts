@@ -77,5 +77,48 @@ const c07Mine: MineSpec = {
 };
 export const C07: CaseSpec = { id: 'C07', name: 'Four shovels, asymmetric', mine: c07Mine, fleet: fleet(18, '793F', [1, 2, 3, 4]), shiftSec: SHIFT };
 
-export const CASES: CaseSpec[] = [C01, C02, C03, C04, C05, C06, C07, C12];
+// ---- #23 geometry & constraints category — the physics axes (#22) exercised as CASES ----
+
+// C08 deep pit: long 8% ramps — rimpull binds, the fleet (not the shovels) is the constraint
+const c08Mine: MineSpec = {
+  name: 'Deep pit, long steep ramps',
+  shovels: [shovel(1, 'Shovel 1 (deep)', 120, 140), shovel(2, 'Shovel 2 (deep)', 120, 300)],
+  dumps: [crusher(10, 'Crusher (rim)', 560, 220)],
+  routes: { '1->10': route(4800, 8, 3.5), '2->10': route(5400, 8, 3.5) },
+};
+export const C08: CaseSpec = { id: 'C08', name: 'Deep pit (long 8% ramps)', mine: c08Mine, fleet: fleet(14, '793F', [1, 2]), shiftSec: SHIFT };
+
+// C09 shallow pit: short flat roads — travel is negligible, the SHOVELS are the constraint
+const c09Mine: MineSpec = {
+  name: 'Shallow pit, short flat roads',
+  shovels: [shovel(1, 'Shovel 1', 160, 150), shovel(2, 'Shovel 2', 160, 290)],
+  dumps: [crusher(10, 'Crusher', 480, 220)],
+  routes: { '1->10': route(700, 1, 2), '2->10': route(900, 1, 2) },
+};
+export const C09: CaseSpec = { id: 'C09', name: 'Shallow pit (short flat roads)', mine: c09Mine, fleet: fleet(8, '793F', [1, 2]), shiftSec: SHIFT };
+
+// C10 crusher-limited: the PLANT cap (trailing-hour tph), not the fleet, is the ceiling —
+// baked operational constraints (#22); ore shovels pause when the crusher saturates
+const c10Mine: MineSpec = {
+  name: 'Crusher-limited pit',
+  shovels: [shovel(1, 'Shovel 1', 120, 120), shovel(2, 'Shovel 2', 120, 220), shovel(3, 'Shovel 3', 120, 320)],
+  dumps: [crusher(10, 'Crusher (capped)', 560, 220)],
+  routes: { '1->10': route(1300, 3), '2->10': route(1700, 3), '3->10': route(2100, 4) },
+};
+export const C10: CaseSpec = {
+  id: 'C10', name: 'Crusher-limited (2.6 kt/h cap)', mine: c10Mine,
+  fleet: fleet(14, '793F', [1, 2, 3]), shiftSec: SHIFT,
+  constraints: { crusherMaxTph: 2600 },
+};
+
+// C11 mixed fleet: 793F + 930E share the pit — heterogeneous speeds/payloads (bunching source)
+const mixedFleet: FleetSpec = {
+  trucks: [
+    ...Array.from({ length: 6 }, (_, i) => ({ id: i + 1, spec: TRUCKS['793F'], startShovel: [1, 2, 3][i % 3] })),
+    ...Array.from({ length: 6 }, (_, i) => ({ id: i + 7, spec: TRUCKS['930E'], startShovel: [1, 2, 3][i % 3] })),
+  ],
+};
+export const C11: CaseSpec = { id: 'C11', name: 'Mixed fleet (793F + 930E)', mine: c06Mine, fleet: mixedFleet, shiftSec: SHIFT };
+
+export const CASES: CaseSpec[] = [C01, C02, C03, C04, C05, C06, C07, C08, C09, C10, C11, C12];
 export const caseById = (id: string): CaseSpec => CASES.find((c) => c.id === id) ?? C01;

@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-TRUCK_MODELS = ("793F", "789D", "777G")          # the rimpull-anchored haul-truck classes
+TRUCK_MODELS = ("793F", "789D", "777G", "930E")  # the rimpull-anchored haul-truck classes
+# mixed fleets are declared as "A+B" (each component must be a valid model) — C11 (#23)
 POLICIES = ("greedy", "shortestWait", "minTruckWait", "minShovelWait", "fixed")  # the classical tiers
 LEARNED = ("dl-policy", "dl-bcbest")             # the two learned ONNX policies
 

@@ -10,6 +10,7 @@ SHIFT_SEC = 28800   # 8-hour shift (matches src/sim/cases.ts SHIFT)
 
 SINGLE = "single-shovel match-factor (the MF sweep)"
 MULTI = "multi-shovel dispatch (the policy decision)"
+GEOM = "geometry & constraints (the #22 physics axes)"
 ORACLE = "oracle control (closed-form check)"
 
 
@@ -49,6 +50,21 @@ CASES: list[Case] = [
     Case("C07", "Four shovels, asymmetric", MULTI, 4, 18, "793F",
          "the hardest dispatch: 4-way assignment, the learned policy a single fast recovered dispatcher",
          "4-shovel learned-vs-heuristic"),
+    Case("C08", "Deep pit (long 8% ramps)", GEOM, 2, 14, "793F",
+         "TRUCK-bound (capacity oracle binds on the fleet): rimpull on 8% grades dominates the cycle; "
+         "per-truck productivity well under the shallow twin",
+         "oracle bindingSide = trucks; per-truck tonnes << C09"),
+    Case("C09", "Shallow pit (short flat roads)", GEOM, 2, 8, "793F",
+         "SHOVEL-bound (oracle binds on service): travel negligible, shovels saturate — dispatch matters little",
+         "oracle bindingSide = shovels"),
+    Case("C10", "Crusher-limited (2.6 kt/h cap)", GEOM, 3, 14, "793F",
+         "the PLANT is the ceiling: committed-in-flight gating keeps delivered tonnes at/under cap x shift "
+         "(never overshoot); the uncapped twin proves the fleet could do more",
+         "tonnes <= 1.10 x cap-band; uncapped twin > 1.1 x capped"),
+    Case("C11", "Mixed fleet (793F + 930E)", GEOM, 3, 12, "793F+930E",
+         "heterogeneous speeds/payloads share the pit: both classes complete cycles (218 t and 290 t dumps "
+         "both land); the bunching source the traffic literature describes",
+         "crusher-feed deltas contain BOTH payloads"),
     Case("C12", "1-truck-1-shovel oracle", ORACLE, 1, 1, "793F",
          "throughput = floor(shift / cycle) · payload EXACTLY — the closed-form determinism check",
          "closed-form 1x1 oracle (exact)"),

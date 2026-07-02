@@ -1,6 +1,6 @@
 # Cases — taxonomy & coverage matrix
 
-`data-pipeline/dlab/cases/dispatch_cases.py` defines 8 cases across 3 categories. The App shows one selected case;
+`data-pipeline/dlab/cases/dispatch_cases.py` defines 12 cases across 4 categories. The App shows one selected case;
 Experiments/Benchmark show cross-case summaries by category. Each case mirrors the SPA's `src/sim/cases.ts`. All
 results are deterministic DES-simulation outputs, NOT a real plant.
 
@@ -8,6 +8,7 @@ results are deterministic DES-simulation outputs, NOT a real plant.
 |---|---|---|
 | **single-shovel match-factor (the MF sweep)** | C01 (MF≈1), C02 (over-trucked MF≈2), C03 (under-trucked MF≈0.5) | the match-factor regime: balanced → all policies tie; over → shovel-bound saturation; under → shovel idle |
 | **multi-shovel dispatch (the policy decision)** | C04 (2-shovel symmetric), C05 (2-shovel asymmetric), C06 (3-shovel), C07 (4-shovel) | where dispatch matters: a genuine Pareto trade-off (C05), and the multi-way learned decision (C06/C07) |
+| **geometry & constraints (the #22 physics axes)** | C08 (deep, long 8% ramps), C09 (shallow, short flat), C10 (crusher-limited, baked `crusherMaxTph`), C11 (mixed 793F+930E fleet) | which resource BINDS and why: rimpull-dominated cycles (truck-bound) vs service-dominated (shovel-bound); the plant as the ceiling (committed-in-flight gating, never overshoot); heterogeneous-fleet bunching. Expected bands are ASSERTED in `frontend/test/cases23.test.ts`, not assumed |
 | **oracle control (closed-form check)** | C12 (1×1 oracle) | throughput = floor(shift/cycle)·payload EXACTLY — the determinism check |
 
 ## The controls
