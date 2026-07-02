@@ -28,7 +28,10 @@ for (const f of ['dl-policy.onnx', 'dl-bcbest.onnx', 'dl-learned.json']) {
 mkdirSync(join(PUB, 'data'), { recursive: true });
 cpSync(DERIVED, join(PUB, 'data'), { recursive: true });
 
-// 3) the REAL cycle-log samples (data/examples/real: cyclelog/v1 CSV + provenance) -> public/data/real + an index
+// 3) the REAL cycle-log samples (data/examples/real: cyclelog/v1 CSV + provenance + optional
+//    per-sample topo.json = the PitTopoSpec of the REAL generated geometry) -> public/data/real
+//    + an index. minehaulsim (mhs-*) samples list FIRST so the app's default sample comes from
+//    our own simulator, never the legacy OpenMines generator (#30).
 const REAL = join(ROOT, 'data', 'examples', 'real');
 if (existsSync(REAL)) {
   const dst = join(PUB, 'data', 'real');
@@ -36,8 +39,11 @@ if (existsSync(REAL)) {
   cpSync(REAL, dst, { recursive: true });
   const samples = readdirSync(REAL).filter((f) => f.endsWith('.provenance.json')).map((f) => {
     const p = JSON.parse(readFileSync(join(REAL, f), 'utf-8'));
-    return { id: p.id, name: p.name, kind: p.kind, csv: `${p.id}.csv` };
+    const entry = { id: p.id, name: p.name, kind: p.kind, csv: `${p.id}.csv` };
+    if (existsSync(join(REAL, `${p.id}.topo.json`))) entry.topo = `${p.id}.topo.json`;
+    return entry;
   });
+  samples.sort((a, b) => Number(b.id.startsWith('mhs-')) - Number(a.id.startsWith('mhs-')) || a.id.localeCompare(b.id));
   writeFileSync(join(dst, 'index.json'), JSON.stringify({ samples }, null, 1));
   console.log(`[copy-data] ${samples.length} real cycle-log sample(s) -> public/data/real`);
 }

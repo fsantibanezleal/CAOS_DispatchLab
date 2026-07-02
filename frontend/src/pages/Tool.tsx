@@ -274,7 +274,7 @@ export default function Tool() {
         </div>
         {source === 'real' && (
           <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Muestra (turno)' : 'Sample (shift)'}</span>
-            <div className="dl-chips">{samples.map((s) => <button key={s.id} className={`chip ${sampleId === s.id ? 'on' : ''}`} onClick={() => setSampleId(s.id)} title={s.name}>{s.id.replace('huolinhe-northpit-', '')}</button>)}</div>
+            <div className="dl-chips">{samples.map((s) => <button key={s.id} className={`chip ${sampleId === s.id ? 'on' : ''}`} onClick={() => setSampleId(s.id)} title={s.name}>{s.id.replace('huolinhe-northpit-', 'openmines-').replace(/^mhs-/, '')}</button>)}</div>
             <label className="dl-hint" style={{ display: 'block', marginTop: '0.3rem' }}>
               {es ? 'o trae tu propio log (CSV cyclelog/v1): ' : 'or bring your own log (cyclelog/v1 CSV): '}
               <input type="file" accept=".csv" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUserFile(f); }} />
