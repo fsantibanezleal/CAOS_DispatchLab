@@ -1,8 +1,13 @@
-"""Generate STRUCTURE-REAL cycle-log shift samples with the MIT-licensed OpenMines simulator (issue #17).
+"""LEGACY OPTIONAL GENERATOR (demoted by issue #30 — default structure-real samples now come from
+`minehaulsim_gen`, our published simulator with constrained road networks, grades/rimpull and
+emergent congestion). OpenMines is kept as an optional cross-tool comparison source only:
+single fixed mine layout, scalar-distance roads, no grades/rimpull, statistical congestion.
 
-Why OpenMines and not our own DES: the shipped real-sample must come from an EXTERNAL generator calibrated to a
+Generate STRUCTURE-REAL cycle-log shift samples with the MIT-licensed OpenMines simulator (issue #17).
+
+Historical rationale (superseded): the shipped real-sample had to come from an EXTERNAL generator calibrated to a
 real mine (OpenMines' north_pit_mine.json is desensitized from the Huolinhe open-pit coal mine, Sept 2022 —
-arXiv:2404.00622), so the real-data lane is exercised by data our own engine did not fabricate (non-circular).
+arXiv:2404.00622), so the real-data lane was exercised by data our own engine did not fabricate (non-circular).
 Verified 2026-07-01: no public ground-truthed open-pit FMS dispatch log is redistributable; these samples are
 honestly labelled `structure-real` (see provenance.json written next to each CSV).
 
