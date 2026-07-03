@@ -1,5 +1,10 @@
 # DispatchLab
 
+[![CI](https://img.shields.io/github/actions/workflow/status/fsantibanezleal/CAOS_DispatchLab/ci.yml?branch=main&label=CI)](https://github.com/fsantibanezleal/CAOS_DispatchLab/actions)
+[![License](https://img.shields.io/github/license/fsantibanezleal/CAOS_DispatchLab)](LICENSE)
+[![Version](https://img.shields.io/github/v/tag/fsantibanezleal/CAOS_DispatchLab?label=version&sort=semver)](https://github.com/fsantibanezleal/CAOS_DispatchLab/tags)
+[![Live demo](https://img.shields.io/badge/demo-live-2ea44f)](https://dispatchlab.fasl-work.com)
+
 A didactic, in-browser bench that compares **truck-to-shovel dispatch policies** on a deterministic
 discrete-event simulation of an open pit, validated against closed-form match-factor and queueing theory.
 
