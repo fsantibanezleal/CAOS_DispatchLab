@@ -23,7 +23,7 @@ import { SweepChart } from '../viz/SweepChart';
 import { UPlotChart } from '../viz/UPlotChart';
 import { lineOpts } from '../viz/uplotKit';
 
-const SPEEDS = [200, 600, 1800];
+const SPEEDS = [50, 200, 600, 1800]; // 50x = slow lane for close visual review
 const SWEEP_SEEDS = [3, 11, 19, 29, 41];
 const CMP_SEEDS = [3, 7, 11, 17, 23, 29, 37, 42, 59, 71];
 // #22: the demo operational-constraint set (applies to ANY synthetic case; the DES enforces it
