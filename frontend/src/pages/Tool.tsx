@@ -12,6 +12,7 @@ import { shovelFeats } from '../policies/learned';
 import { onnxScore } from '../lib/ort';
 import { PitMap } from '../viz/PitMap';
 import { Pit3D } from '../viz/Pit3D';
+import { Underground3D } from '../viz/Underground3D';
 import { listSamples, loadSample, loadUserFile, type SampleMeta } from '../replay/samples';
 import { replayCycleLog } from '../replay/replayEngine';
 import { agreement, reconstructDecisions } from '../replay/counterfactual';
@@ -149,9 +150,13 @@ export default function Tool() {
   const tn = (id: string) => { const p = allPolicies.find((x) => x.id === id)!; return (es ? p.es : p.en).split(' (')[0]; };
 
   const tabs = [
-    { id: 'pit3d', label: es ? 'Rajo 3D' : 'Pit 3D', content: (
-      <Panel t={es ? 'Topografía del rajo — bancos, rampa espiral y flota en 3D (color = estado del camión); política actual' : 'Pit topography — benches, spiral ramp and the fleet in 3D (colour = truck state); current policy'}>
-        <Pit3D c={activeC} result={result} t={playT} lang={lang} />
+    { id: 'pit3d', label: es ? (activeC.mine.minetopo ? 'Mina 3D' : 'Rajo 3D') : (activeC.mine.minetopo ? 'Mine 3D' : 'Pit 3D'), content: (
+      <Panel t={activeC.mine.minetopo
+        ? (es ? 'Mina subterránea — rampa, niveles, piques y flota en 3D (color = estado del camión)' : 'Underground mine — decline, levels, ore passes and the fleet in 3D (colour = truck state)')
+        : (es ? 'Topografía del rajo — bancos, rampa espiral y flota en 3D (color = estado del camión); política actual' : 'Pit topography — benches, spiral ramp and the fleet in 3D (colour = truck state); current policy')}>
+        {activeC.mine.minetopo
+          ? <Underground3D c={activeC} result={result} t={playT} lang={lang} />
+          : <Pit3D c={activeC} result={result} t={playT} lang={lang} />}
         <div className="dl-play" style={{ marginTop: '0.4rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <button className="chip on" onClick={() => setPlaying((p) => !p)}>{playing ? `❚❚ ${es ? 'Pausa' : 'Pause'}` : `▶ ${es ? 'Reproducir' : 'Play'}`}</button>
           <select className="dl-sel" value={speed} onChange={(e) => setSpeed(+e.target.value)} aria-label="speed">{SPEEDS.map((s) => <option key={s} value={s}>{s}×</option>)}</select>

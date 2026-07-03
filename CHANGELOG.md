@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.11.000] — 2026-07-02
+
+### Added — the striking 3D pass + the underground view (#21)
+- **Underground 3D** (`viz/Underground3D.tsx`): the REAL generated mine skeleton from
+  `minehaulsim.minetopo/v1` — the decline as a tube along the true polyline, level platforms
+  with depth labels, drawpoints, ore-pass tip→chute drops, the shaft bin — and the truck fleet
+  animated ALONG THE DECLINE on haul legs (queued/serving trucks at their markers;
+  representational mapping stated in the panel). Same on-demand render discipline as Pit3D.
+  `loadSample` attaches minetopo to underground samples; the tab renames to "Mine 3D".
+- **Pit 3D impact pass:** sprite text labels (S1..Sn on their bench, crusher/dump at the rim,
+  theme-aware), depth-cue fog and a subtle rim light.
+- **Field-found robustness fix (via the visual verifier):** a lost WebGL context (GPU reset /
+  headless churn) left the canvas blank after three.js restored it — both views now repaint on
+  `webglcontextrestored`.
+
+### Process
+- Branch protection enabled on develop + main (required checks: test, web, guards) after CI
+  caught a red merge yesterday.
+
 ## [0.10.000] — 2026-07-02
 
 ### Added — the geometry & constraints case matrix + docs (#23)

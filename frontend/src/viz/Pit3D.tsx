@@ -100,8 +100,25 @@ export function Pit3D({ c, result, t, lang }: { c: CaseSpec; result: SimResult; 
     const controls = new OrbitControls(cam, renderer.domElement);
     controls.target.copy(ctr); controls.enableDamping = false; controls.autoRotate = false;
 
+    scene.fog = new THREE.Fog(dark ? 0x0b0f16 : 0xf4f6f9, topo.spec.rimRx * 2.2, topo.spec.rimRx * 8);   // depth cue (#21)
     scene.add(new THREE.HemisphereLight(0xffffff, dark ? 0x1a2030 : 0x8899aa, dark ? 0.85 : 1.0));
     const dl = new THREE.DirectionalLight(0xffffff, 0.9); dl.position.set(1, 2, 1.2); scene.add(dl);
+    const rim = new THREE.DirectionalLight(dark ? 0x88aaff : 0xfff2cc, 0.25); rim.position.set(-1.5, 0.8, -1); scene.add(rim);
+
+    // sprite text labels (#21): shovels on their bench + dumps at the rim, theme-aware
+    const mkLabel = (text: string, v: { x: number; y: number; z: number }, lift: number, scale = 1) => {
+      const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
+      const cx = cv.getContext('2d')!;
+      cx.font = '600 34px system-ui, sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+      cx.shadowColor = dark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.85)'; cx.shadowBlur = 8;
+      cx.fillStyle = dark ? '#e6edf3' : '#1f2328';
+      cx.fillText(text, 128, 32);
+      const tex = new THREE.CanvasTexture(cv);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+      const p3 = toThree(v); sp.position.set(p3.x, p3.y + lift, p3.z);
+      sp.scale.set(90 * scale, 22.5 * scale, 1);
+      scene.add(sp); disposables.push(sp.material, tex);
+    };
 
     const disposables: { dispose(): void }[] = [];
     // pit shell
@@ -128,8 +145,14 @@ export function Pit3D({ c, result, t, lang }: { c: CaseSpec; result: SimResult; 
       const p = toThree(v); mesh.position.set(p.x, p.y + (size * hM) / 2, p.z);
       scene.add(mesh); disposables.push(g, m); return mesh;
     };
-    for (const s of c.mine.shovels) mkBox(topo.shovelPos3[s.id], 22, 0xe3b341, 0.9);
-    for (const d of c.mine.dumps) mkBox(topo.dumpPos3[d.id], 26, d.kind === 'crusher' ? 0xf85149 : 0x8b949e, 1.2);
+    for (const s of c.mine.shovels) {
+      mkBox(topo.shovelPos3[s.id], 22, 0xe3b341, 0.9);
+      mkLabel(`S${s.id}`, topo.shovelPos3[s.id], 42);
+    }
+    for (const d of c.mine.dumps) {
+      mkBox(topo.dumpPos3[d.id], 26, d.kind === 'crusher' ? 0xf85149 : 0x8b949e, 1.2);
+      mkLabel(d.kind === 'crusher' ? (es ? 'chancador' : 'crusher') : (es ? 'botadero' : 'dump'), topo.dumpPos3[d.id], 52, 1.1);
+    }
 
     // trucks: one instanced mesh, positions updated per render from the trace at tRef
     const nT = c.fleet.trucks.length;
@@ -179,12 +202,17 @@ export function Pit3D({ c, result, t, lang }: { c: CaseSpec; result: SimResult; 
     document.addEventListener('visibilitychange', onVis);
     sceneRef.current = { render };
     render();
+    // a lost WebGL context (GPU reset, headless resource churn) leaves the canvas blank after
+    // three.js restores it — repaint on restoration (field-found via the visual verifier)
+    const onRestored = () => requestAnimationFrame(render);
+    renderer.domElement.addEventListener('webglcontextrestored', onRestored);
 
     const ro = new ResizeObserver(() => { const w = el.clientWidth || W; renderer.setSize(w, H); cam.aspect = w / H; cam.updateProjectionMatrix(); render(); });
     ro.observe(el);
     return () => {
       disposed = true; sceneRef.current = null;
       document.removeEventListener('visibilitychange', onVis);
+      renderer.domElement.removeEventListener('webglcontextrestored', onRestored);
       controls.removeEventListener('change', render);
       ro.disconnect(); controls.dispose();
       for (const d of disposables) d.dispose();
