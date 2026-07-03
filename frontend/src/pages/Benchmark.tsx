@@ -1,6 +1,8 @@
 // Benchmark (#19): the OFFLINE aggregate comparisons. Everything here is PRECOMPUTED by the
 // pipeline (data-pipeline/dlab/science/bench_synthetic.mjs + bench_real.mjs) and committed —
 // the page only reads /data/bench/*.json. No heavy compute in the browser.
+// Layout rule (#49): no giant scrolls — per-case and per-shift detail renders ONE selection at a
+// time behind a chip picker, with a compact collapsible overview table for the whole set.
 import { useEffect, useState } from 'react';
 import { Refs, Tabs, useShellLang } from '@fasl-work/caos-app-shell';
 import { POLICY_COLOR } from '../sim/compare';
@@ -70,6 +72,12 @@ function Bars({ rows, max, es }: { rows: { id: string; en: string; es: string; m
 }
 
 function CorpusTab({ syn, es }: { syn: SyntheticDoc; es: boolean }) {
+  const caseIds = Object.keys(syn.cases);
+  const [sel, setSel] = useState(caseIds[0]);
+  const c = syn.cases[sel] ?? syn.cases[caseIds[0]];
+  const maxT = Math.max(...c.policies.map((p) => p.hiT), c.oracle?.tonnes ?? 0);
+  const ord = [...c.policies].sort((a, b) => b.medTonnes - a.medTonnes);
+  const best = ord[0];
   return (
     <section>
       <h2>{es ? 'Ranking agregado (rango medio por toneladas medianas, 1 = mejor)' : 'Aggregate ranking (mean rank by median tonnes, 1 = best)'}</h2>
@@ -77,23 +85,38 @@ function CorpusTab({ syn, es }: { syn: SyntheticDoc; es: boolean }) {
       <p className="tw-note">{es
         ? 'greedy (menor tiempo de compleción esperado) lidera el corpus; las políticas aprendidas son competitivas pero NO superan a sus maestras — se dice claramente.'
         : 'greedy (earliest expected completion) leads the corpus; the learned policies are competitive but do NOT beat their teachers — stated plainly.'}</p>
-      {Object.entries(syn.cases).map(([cid, c]) => {
-        const maxT = Math.max(...c.policies.map((p) => p.hiT), c.oracle?.tonnes ?? 0);
-        const ord = [...c.policies].sort((a, b) => b.medTonnes - a.medTonnes);
-        const best = ord[0];
-        return (
-          <div key={cid}>
-            <h3 style={{ marginBottom: '0.2rem' }}>{cid} — {c.name}</h3>
-            {c.oracle && (
-              <p className="tw-note" style={{ marginTop: 0 }}>{es
-                ? `oráculo de capacidad: ${(c.oracle.tonnes / 1000).toFixed(1)}k t (lado limitante: ${c.oracle.bindingSide === 'shovels' ? 'palas' : 'camiones'}) · mejor política: ${best.pctOfOracle?.toFixed(0)}% del oráculo`
-                : `capacity oracle: ${(c.oracle.tonnes / 1000).toFixed(1)}k t (binding: ${c.oracle.bindingSide}) · best policy: ${best.pctOfOracle?.toFixed(0)}% of oracle`}</p>
-            )}
-            <Bars es={es} max={maxT} rows={ord.map((p) => ({ ...p, med: p.medTonnes, lo: p.loT, hi: p.hiT, mark: `${p.pareto ? ' ◆' : ''}${p.id === 'rwr' || p.id === 'bcbest' ? ' ★' : ''}${p.id === 'hungarian' ? ' ⬡' : ''}` }))} />
-            <p className="tw-note">{es ? `Empate estadístico (bandas p10–p90 solapadas con el líder): ${c.tie.tied.length ? c.tie.tied.join(', ') : 'ninguno'} · ◆ = frontera de Pareto · ⬡ = tier OR (asignación conjunta Hungarian)` : `Statistical tie (p10–p90 bands overlap the leader): ${c.tie.tied.length ? c.tie.tied.join(', ') : 'none'} · ◆ = Pareto frontier · ⬡ = OR tier (Hungarian joint assignment)`}</p>
-          </div>
-        );
-      })}
+
+      <details className="dl-fold">
+        <summary>{es ? `Panorama de los ${caseIds.length} casos (líder · % del oráculo · empates)` : `Overview of all ${caseIds.length} cases (leader · % of oracle · ties)`}</summary>
+        <table><thead><tr><th>{es ? 'Caso' : 'Case'}</th><th>{es ? 'Líder' : 'Leader'}</th><th>% oracle</th><th>{es ? 'Empates' : 'Ties'}</th></tr></thead>
+          <tbody>{caseIds.map((cid) => {
+            const cc = syn.cases[cid];
+            const bb = [...cc.policies].sort((a, b) => b.medTonnes - a.medTonnes)[0];
+            return (
+              <tr key={cid} onClick={() => setSel(cid)} style={{ cursor: 'pointer' }} title={es ? 'click para abrir el detalle' : 'click to open the detail'}>
+                <td className="mono">{cid}</td><td>{bb.id}</td>
+                <td className="mono">{bb.pctOfOracle != null ? `${bb.pctOfOracle.toFixed(0)}%` : '—'}</td>
+                <td>{cc.tie.tied.length || '—'}</td>
+              </tr>
+            );
+          })}</tbody></table>
+      </details>
+
+      <h2 style={{ marginTop: '0.9rem' }}>{es ? 'Detalle por caso' : 'Per-case detail'}</h2>
+      <div className="dl-chips" role="tablist" aria-label={es ? 'caso' : 'case'}>
+        {caseIds.map((cid) => (
+          <button key={cid} role="tab" aria-selected={sel === cid} className={`chip ${sel === cid ? 'on' : ''}`}
+                  title={syn.cases[cid].name} onClick={() => setSel(cid)}>{cid}</button>
+        ))}
+      </div>
+      <h3 style={{ marginBottom: '0.2rem' }}>{sel} — {c.name}</h3>
+      {c.oracle && (
+        <p className="tw-note" style={{ marginTop: 0 }}>{es
+          ? `oráculo de capacidad: ${(c.oracle.tonnes / 1000).toFixed(1)}k t (lado limitante: ${c.oracle.bindingSide === 'shovels' ? 'palas' : 'camiones'}) · mejor política: ${best.pctOfOracle?.toFixed(0)}% del oráculo`
+          : `capacity oracle: ${(c.oracle.tonnes / 1000).toFixed(1)}k t (binding: ${c.oracle.bindingSide}) · best policy: ${best.pctOfOracle?.toFixed(0)}% of oracle`}</p>
+      )}
+      <Bars es={es} max={maxT} rows={ord.map((p) => ({ ...p, med: p.medTonnes, lo: p.loT, hi: p.hiT, mark: `${p.pareto ? ' ◆' : ''}${p.id === 'rwr' || p.id === 'bcbest' ? ' ★' : ''}${p.id === 'hungarian' ? ' ⬡' : ''}` }))} />
+      <p className="tw-note">{es ? `Empate estadístico (bandas p10–p90 solapadas con el líder): ${c.tie.tied.length ? c.tie.tied.join(', ') : 'ninguno'} · ◆ = frontera de Pareto · ⬡ = tier OR (asignación conjunta Hungarian)` : `Statistical tie (p10–p90 bands overlap the leader): ${c.tie.tied.length ? c.tie.tied.join(', ') : 'none'} · ◆ = Pareto frontier · ⬡ = OR tier (Hungarian joint assignment)`}</p>
     </section>
   );
 }
@@ -143,23 +166,44 @@ function MfTab({ syn, es }: { syn: SyntheticDoc; es: boolean }) {
 
 function CfTab({ real, es }: { real: RealDoc; es: boolean }) {
   const ok = real.samples.filter((s) => s.ok && s.policies);
+  const [sel, setSel] = useState(ok[0]?.id ?? '');
+  const s = ok.find((x) => x.id === sel) ?? ok[0];
+  if (!s) return <section><p className="tw-note">{es ? 'sin turnos' : 'no shifts'}</p></section>;
+  const maxT = Math.max(...s.policies!.map((p) => p.hiT), s.actualTonnes!);
+  const ord = [...s.policies!].sort((a, b) => b.cfTonnes - a.cfTonnes);
   return (
     <section>
       <h2>{es ? 'Counterfactual sobre el corpus real: ¿cuánto habría cambiado el throughput?' : 'Counterfactual over the real corpus: how much would throughput have changed?'}</h2>
       <p className="tw-note">{real.caveat}</p>
-      {ok.map((s) => {
-        const maxT = Math.max(...s.policies!.map((p) => p.hiT), s.actualTonnes!);
-        const ord = [...s.policies!].sort((a, b) => b.cfTonnes - a.cfTonnes);
-        return (
-          <div key={s.id}>
-            <h3 style={{ marginBottom: '0.2rem' }}>{s.id}</h3>
-            <p className="tw-note" style={{ marginTop: 0 }}>{es
-              ? `real: ${(s.actualTonnes! / 1000).toFixed(1)}k t (${s.realDispatcher}${s.actualPctOfOracle != null ? `, ${s.actualPctOfOracle.toFixed(0)}% del oráculo empírico` : ''}) · ${s.nDecisions} decisiones · sesgo de calibración ${s.calibrationBiasPct != null ? `${s.calibrationBiasPct > 0 ? '+' : ''}${s.calibrationBiasPct.toFixed(1)}% (vía ${s.mostSimilarPolicy})` : 'n/d'}`
-              : `actual: ${(s.actualTonnes! / 1000).toFixed(1)}k t (${s.realDispatcher}${s.actualPctOfOracle != null ? `, ${s.actualPctOfOracle.toFixed(0)}% of the empirical oracle` : ''}) · ${s.nDecisions} decisions · calibration bias ${s.calibrationBiasPct != null ? `${s.calibrationBiasPct > 0 ? '+' : ''}${s.calibrationBiasPct.toFixed(1)}% (via ${s.mostSimilarPolicy})` : 'n/a'}`}</p>
-            <Bars es={es} max={maxT} rows={ord.map((p) => ({ ...p, med: p.cfTonnes, lo: p.loT, hi: p.hiT, mark: p.agreePct != null ? ` · ${p.agreePct.toFixed(0)}%↔` : '' }))} />
-          </div>
-        );
-      })}
+
+      <details className="dl-fold">
+        <summary>{es ? `Panorama de los ${ok.length} turnos (real · mejor cf · sesgo)` : `Overview of all ${ok.length} shifts (actual · best cf · bias)`}</summary>
+        <table><thead><tr><th>{es ? 'Turno' : 'Shift'}</th><th>{es ? 'real (kt)' : 'actual (kt)'}</th><th>{es ? 'mejor cf' : 'best cf'}</th><th>{es ? 'sesgo' : 'bias'}</th></tr></thead>
+          <tbody>{ok.map((x) => {
+            const bb = [...x.policies!].sort((a, b) => b.cfTonnes - a.cfTonnes)[0];
+            return (
+              <tr key={x.id} onClick={() => setSel(x.id)} style={{ cursor: 'pointer' }} title={es ? 'click para abrir el detalle' : 'click to open the detail'}>
+                <td className="mono">{x.id}</td>
+                <td className="mono">{(x.actualTonnes! / 1000).toFixed(1)}</td>
+                <td>{bb.id}</td>
+                <td className="mono">{x.calibrationBiasPct != null ? `${x.calibrationBiasPct > 0 ? '+' : ''}${x.calibrationBiasPct.toFixed(1)}%` : '—'}</td>
+              </tr>
+            );
+          })}</tbody></table>
+      </details>
+
+      <h2 style={{ marginTop: '0.9rem' }}>{es ? 'Detalle por turno' : 'Per-shift detail'}</h2>
+      <div className="dl-chips" role="tablist" aria-label={es ? 'turno' : 'shift'}>
+        {ok.map((x) => (
+          <button key={x.id} role="tab" aria-selected={sel === x.id} className={`chip ${sel === x.id ? 'on' : ''}`}
+                  title={x.name} onClick={() => setSel(x.id)}>{x.id}</button>
+        ))}
+      </div>
+      <h3 style={{ marginBottom: '0.2rem' }}>{s.id}</h3>
+      <p className="tw-note" style={{ marginTop: 0 }}>{es
+        ? `real: ${(s.actualTonnes! / 1000).toFixed(1)}k t (${s.realDispatcher}${s.actualPctOfOracle != null ? `, ${s.actualPctOfOracle.toFixed(0)}% del oráculo empírico` : ''}) · ${s.nDecisions} decisiones · sesgo de calibración ${s.calibrationBiasPct != null ? `${s.calibrationBiasPct > 0 ? '+' : ''}${s.calibrationBiasPct.toFixed(1)}% (vía ${s.mostSimilarPolicy})` : 'n/d'}`
+        : `actual: ${(s.actualTonnes! / 1000).toFixed(1)}k t (${s.realDispatcher}${s.actualPctOfOracle != null ? `, ${s.actualPctOfOracle.toFixed(0)}% of the empirical oracle` : ''}) · ${s.nDecisions} decisions · calibration bias ${s.calibrationBiasPct != null ? `${s.calibrationBiasPct > 0 ? '+' : ''}${s.calibrationBiasPct.toFixed(1)}% (via ${s.mostSimilarPolicy})` : 'n/a'}`}</p>
+      <Bars es={es} max={maxT} rows={ord.map((p) => ({ ...p, med: p.cfTonnes, lo: p.loT, hi: p.hiT, mark: p.agreePct != null ? ` · ${p.agreePct.toFixed(0)}%↔` : '' }))} />
       <p className="tw-note">{es
         ? '↔ = acuerdo de decisiones con el despachador real. Compara políticas ENTRE SÍ (cf-vs-cf); el delta vs real carga el sesgo de calibración mostrado arriba.'
         : '↔ = decision agreement with the real dispatcher. Compare policies AGAINST EACH OTHER (cf-vs-cf); the delta vs actual carries the calibration bias shown above.'}</p>
