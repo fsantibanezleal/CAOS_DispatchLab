@@ -23,7 +23,7 @@ import { SweepChart } from '../viz/SweepChart';
 import { UPlotChart } from '../viz/UPlotChart';
 import { lineOpts } from '../viz/uplotKit';
 
-const SPEEDS = [200, 600, 1800];
+const SPEEDS = [50, 200, 600, 1800]; // 50x = slow lane for close visual review
 const SWEEP_SEEDS = [3, 11, 19, 29, 41];
 const CMP_SEEDS = [3, 7, 11, 17, 23, 29, 37, 42, 59, 71];
 // #22: the demo operational-constraint set (applies to ANY synthetic case; the DES enforces it
@@ -65,6 +65,20 @@ export default function Tool() {
       .catch((e: unknown) => setRealErr(String(e)));
   };
   const realOK = source === 'real' && !!realReport?.ok;
+  // sample FAMILIES (#47): the flat mhs-*/openmines-* list was unreadable — group behind mini-tabs
+  const famOf = (id: string) => (id.startsWith('mhs-ug') ? 'ug' : id.startsWith('mhs-pit') ? 'pit' : 'legacy');
+  const FAMS = [
+    { key: 'pit', en: 'open-pit', es: 'rajo' },
+    { key: 'ug', en: 'underground', es: 'subterránea' },
+    { key: 'legacy', en: 'openmines', es: 'openmines' },
+  ] as const;
+  const [famTab, setFamTab] = useState<'pit' | 'ug' | 'legacy'>('pit');
+  useEffect(() => { if (sampleId) setFamTab(famOf(sampleId)); }, [sampleId]);
+  const sampleLabel = (id: string) => {
+    const t = id.replace('huolinhe-northpit-', '').replace(/^mhs-(pit|ug)-/, '');
+    const k = t.lastIndexOf('-');
+    return k > 0 ? `${t.slice(0, k)} · ${t.slice(k + 1)}` : t;
+  };
   const realRun = useMemo(() => (realReport?.ok && realReport.sample ? replayCycleLog(realReport.sample) : null), [realReport]);
   // counterfactual (#18): reconstruct every real decision point + score policy agreement (heuristics + learned)
   const cfDecisions = useMemo(() => (realReport?.ok && realReport.sample ? reconstructDecisions(realReport.sample) : []), [realReport]);
@@ -288,31 +302,56 @@ export default function Tool() {
         </div>
         {source === 'real' && (
           <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Muestra (turno)' : 'Sample (shift)'}</span>
-            <div className="dl-chips">{samples.map((s) => <button key={s.id} className={`chip ${sampleId === s.id ? 'on' : ''}`} onClick={() => setSampleId(s.id)} title={s.name}>{s.id.replace('huolinhe-northpit-', 'openmines-').replace(/^mhs-/, '')}</button>)}</div>
+            {/* family mini-tabs (#47): one group visible at a time; • marks the family of the ACTIVE sample */}
+            <div className="dl-chips" role="tablist" aria-label={es ? 'familia de muestra' : 'sample family'} style={{ marginBottom: '0.35rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--color-border)' }}>
+              {FAMS.map((f) => (
+                <button key={f.key} role="tab" aria-selected={famTab === f.key} className={`chip ${famTab === f.key ? 'on' : ''}`}
+                        onClick={() => setFamTab(f.key)}>
+                  {es ? f.es : f.en}{sampleId && famOf(sampleId) === f.key ? ' •' : ''}
+                </button>
+              ))}
+            </div>
+            <div className="dl-chips">{samples.filter((s) => famOf(s.id) === famTab).map((s) => (
+              <button key={s.id} className={`chip ${sampleId === s.id ? 'on' : ''}`} onClick={() => setSampleId(s.id)} title={s.name}>{sampleLabel(s.id)}</button>
+            ))}</div>
             <label className="dl-hint" style={{ display: 'block', marginTop: '0.3rem' }}>
               {es ? 'o trae tu propio log (CSV cyclelog/v1): ' : 'or bring your own log (cyclelog/v1 CSV): '}
               <input type="file" accept=".csv" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUserFile(f); }} />
             </label>
             {realErr && <span className="dl-hint" style={{ color: '#f85149' }}>{es ? 'RECHAZADO por el contrato: ' : 'REJECTED by the contract: '}{realErr}</span>}
             {realOK && realReport?.sample && (
-              <div className="dl-diag" style={{ marginTop: '0.4rem' }}>
-                <div className="dl-diag-h">{es ? 'Procedencia' : 'Provenance'} · <b>{realReport.sample.provenance.kind}</b></div>
-                <div className="small">{realReport.sample.provenance.source}</div>
-                <div className="small muted">{realReport.sample.provenance.caveats}</div>
-                <div className="small mono">{realReport.sample.trucks.length} trucks · {realReport.sample.shovels.length} shovels · {(realReport.sample.shiftSec / 3600).toFixed(1)} h</div>
-                {realReport.flags.length > 0 && <div className="small" style={{ color: '#d29922' }}>⚑ {realReport.flags.join(' · ')}</div>}
-              </div>
+              <>
+                {realReport.flags.length > 0 && <div className="small" style={{ color: '#d29922', marginTop: '0.3rem' }}>⚑ {realReport.flags.join(' · ')}</div>}
+                {/* provenance folds away (#47): the prose was pushing every control below the fold */}
+                <details className="dl-fold" style={{ marginTop: '0.35rem' }}>
+                  <summary>{es ? 'Procedencia' : 'Provenance'} · <b>{realReport.sample.provenance.kind}</b> · <span className="mono">{realReport.sample.trucks.length}t · {realReport.sample.shovels.length}s · {(realReport.sample.shiftSec / 3600).toFixed(1)}h</span></summary>
+                  <div className="small">{realReport.sample.provenance.source}</div>
+                  <div className="small muted">{realReport.sample.provenance.caveats}</div>
+                </details>
+              </>
             )}
           </div>
         )}
-        {/* SCENARIO knobs — author the synthetic case; in real mode they are read FROM the sample (locked, #16) */}
-        <div className="dl-ctl" style={realOK ? { opacity: 0.45, pointerEvents: 'none' } : undefined}><span className="dl-ctl-lbl">{es ? 'Caso' : 'Case'}{realOK ? (es ? ' (bloqueado: leído de la muestra)' : ' (locked: read from the sample)') : ''}</span>
-          <div className="dl-chips">{CASES.map((x) => <button key={x.id} className={`chip ${caseId === x.id ? 'on' : ''}`} onClick={() => { setCaseId(x.id); setPlayT(0); }} title={x.name}>{x.id}</button>)}</div>
-          <span className="dl-hint">{realOK ? activeC.name : c.name}</span>
-        </div>
+        {/* SCENARIO knobs — author the synthetic case; in real mode the case is READ from the sample,
+            so the authoring grid hides entirely instead of rendering locked-but-clickable-looking (#47) */}
+        {source === 'synthetic' ? (
+          <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Caso' : 'Case'}</span>
+            <div className="dl-chips">{CASES.map((x) => <button key={x.id} className={`chip ${caseId === x.id ? 'on' : ''}`} onClick={() => { setCaseId(x.id); setPlayT(0); }} title={x.name}>{x.id}</button>)}</div>
+            <span className="dl-hint">{c.name}</span>
+          </div>
+        ) : (
+          <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Caso' : 'Case'}</span>
+            <span className="dl-hint">{realOK
+              ? (es ? `leído de la muestra: ${activeC.name}` : `read from the sample: ${activeC.name}`)
+              : (es ? 'se lee de la muestra al cargarla' : 'read from the sample once it loads')}</span>
+          </div>
+        )}
         {/* operational constraints (#22): enforced by the DES for EVERY policy — the chips show
-            the EFFECTIVE set (baked case constraints like C10's crusher cap + the demo toggle) */}
-        <div className="dl-ctl" style={realOK ? { opacity: 0.45, pointerEvents: 'none' } : undefined}><span className="dl-ctl-lbl">{es ? 'Restricciones operativas' : 'Operational constraints'}</span>
+            the EFFECTIVE set (baked case constraints like C10's crusher cap + the demo toggle).
+            In real mode they do not apply (the replay reproduces the logged shift), so say that
+            in one line instead of a greyed-out interactive-looking block (#47). */}
+        {source === 'synthetic' ? (
+        <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Restricciones operativas' : 'Operational constraints'}</span>
           <div className="dl-chips">
             <button className={`chip ${consOn ? 'on' : ''}`} onClick={() => { setConsOn((v) => !v); setPlayT(0); }}>{consOn ? (es ? '+ set demo' : '+ demo set') : (es ? 'añadir set demo' : 'add demo set')}</button>
             {c.constraints?.crusherMaxTph != null && <span className="chip" style={{ pointerEvents: 'none' }}>{es ? `chancador ≤ ${(c.constraints.crusherMaxTph / 1000).toFixed(1)} kt/h` : `crusher ≤ ${(c.constraints.crusherMaxTph / 1000).toFixed(1)} kt/h`}</span>}
@@ -324,11 +363,24 @@ export default function Tool() {
             ? `El DES filtra el conjunto factible ANTES de cada política — todas la respetan por construcción. Elecciones inválidas: ${synResult.invalidChoices ?? 0}.`
             : `The DES filters the feasible set BEFORE every policy — all of them comply by construction. Invalid choices: ${synResult.invalidChoices ?? 0}.`}</span>}
         </div>
-        <div className="dl-ctl" style={realOK ? { opacity: 0.45, pointerEvents: 'none' } : undefined}><span className="dl-ctl-lbl">{es ? 'Política' : 'Policy'}{realOK ? (es ? ' (la muestra ya trae al despachador real; contrafactual en #18)' : ' (the sample carries the real dispatcher; counterfactual lands with #18)') : ''}</span>
+        ) : (
+          <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Restricciones operativas' : 'Operational constraints'}</span>
+            <span className="dl-hint">{es ? 'n/a en el replay medido (el turno reproduce lo registrado); la re-decisión con restricciones vive en Benchmark' : 'n/a on the measured replay (the shift reproduces what was logged); constrained re-deciding lives in Benchmark'}</span>
+          </div>
+        )}
+        {source === 'synthetic' ? (
+        <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Política' : 'Policy'}</span>
           <div className="dl-chips">{allPolicies.map((p) => <button key={p.id} className={`chip ${policyId === p.id ? 'on' : ''} ${p.tier === 'learned' ? 'dl-learned-chip' : ''}`} onClick={() => setPolicyId(p.id)} title={es ? p.es : p.en}>{(es ? p.es : p.en).replace('Learned — ', '').replace('Aprendida — ', '').split(' (')[0]}</button>)}</div>
-          {!realOK && pol.tier === 'learned' && <span className="dl-hint" style={{ color: '#f85149' }}>{es ? 'política APRENDIDA (red entrenada offline)' : 'LEARNED policy (net trained offline)'}</span>}
+          {pol.tier === 'learned' && <span className="dl-hint" style={{ color: '#f85149' }}>{es ? 'política APRENDIDA (red entrenada offline)' : 'LEARNED policy (net trained offline)'}</span>}
         </div>
-        <label className="dl-ctl" style={realOK ? { opacity: 0.45, pointerEvents: 'none' } : undefined}>{es ? 'Semilla' : 'Seed'}: {seed}{realOK ? (es ? ' (n/a en un turno medido)' : ' (n/a on a measured shift)') : ''}<input className="range" type="range" min={1} max={40} value={seed} onChange={(e) => setSeed(+e.target.value)} disabled={realOK} /></label>
+        ) : (
+          <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Política' : 'Policy'}</span>
+            <span className="dl-hint">{es ? 'la muestra trae al despachador real; el acuerdo por política vive en el tab Despacho contrafactual' : 'the sample carries the real dispatcher; per-policy agreement lives in the Counterfactual tab'}</span>
+          </div>
+        )}
+        {source === 'synthetic' && (
+        <label className="dl-ctl">{es ? 'Semilla' : 'Seed'}: {seed}<input className="range" type="range" min={1} max={40} value={seed} onChange={(e) => setSeed(+e.target.value)} /></label>
+        )}
         <div className="dl-diag">
           <div className="dl-diag-h">{es ? 'Diagnóstico' : 'Diagnosis'}</div>
           <div className="dl-mfbar"><span className="dl-mfref" style={{ left: `${(1 / MAXMF) * 100}%` }} /><span className="dl-mfmark" style={{ left: `${Math.min(1, mf / MAXMF) * 100}%` }} /></div>
