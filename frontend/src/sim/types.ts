@@ -41,12 +41,23 @@ export interface PitTopoSpec {
   // dumps (crusher/waste) sit at the rim (z=0) at their case position
 }
 
+// minehaulsim.minetopo/v1 — the underground topography contract (#21): levels, decline
+// polyline, shafts and ore passes in world metres. Representational for the 3D view.
+export interface MineTopo {
+  schema: string;                                   // 'minehaulsim.minetopo/v1'
+  levels: { index: number; z: number; drawpoints: number[][] }[];
+  decline: number[][];                              // [x, y, z] polyline, surface → haulage
+  shafts: { bin: number[] }[];
+  ore_passes: { chute: number[]; tips: number[][] }[];
+}
+
 export interface MineSpec {
   name: string;
   shovels: ShovelSpec[];
   dumps: DumpSpec[];
   routes: Record<string, Route>;  // key `${shovelId}->${dumpId}`
   topo?: PitTopoSpec;             // optional pit topography (3D view); derived default if absent
+  minetopo?: MineTopo;            // underground topography (#21); the 3D renders it when present
 }
 
 export interface TruckUnit { id: number; spec: TruckSpec; startShovel: number; }

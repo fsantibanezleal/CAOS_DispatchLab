@@ -3,7 +3,8 @@
 // in real mode flows through ingestCycleLog — shipped and user data alike.
 // minehaulsim samples (#30) additionally ship `<id>.topo.json`: the PitTopoSpec of the REAL generated
 // geometry — attached to the ingested mine so the 3D view renders it instead of the derived default.
-import type { PitTopoSpec } from '../sim/types';
+// Underground samples ship minehaulsim.minetopo/v1 instead (#21): levels + decline + passes.
+import type { MineTopo, PitTopoSpec } from '../sim/types';
 import { ingestCycleLog, parseCycleCsv, type IngestReport, type Provenance } from './ingest';
 
 export interface SampleMeta { id: string; name: string; kind: string; csv: string; topo?: string; }
@@ -37,9 +38,11 @@ export async function loadSample(meta: SampleMeta): Promise<IngestReport> {
   const report = ingestCycleLog(parseCycleCsv(await csvRes.text()), { id: meta.id, name: meta.name, provenance });
   if (report.ok && report.sample && topoRes?.ok) {
     const t: unknown = await topoRes.json().catch(() => null);
-    // open-pit PitTopoSpec only; underground minetopo/v1 (has "schema") waits for its own 3D view
     if (t && typeof (t as PitTopoSpec).rimRx === 'number' && typeof (t as PitTopoSpec).nBenches === 'number') {
-      report.sample.mine.topo = t as PitTopoSpec;
+      report.sample.mine.topo = t as PitTopoSpec;                       // open pit
+    } else if (t && (t as MineTopo).schema === 'minehaulsim.minetopo/v1'
+               && Array.isArray((t as MineTopo).decline) && Array.isArray((t as MineTopo).levels)) {
+      report.sample.mine.minetopo = t as MineTopo;                      // underground (#21)
     }
   }
   return report;
