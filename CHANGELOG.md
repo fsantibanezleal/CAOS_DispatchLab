@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.12.000] — 2026-07-03
+
+### Changed — selection & page UX pass (Felipe's review)
+- **Sample/case selection redesigned** (#47): sample FAMILIES as mini-tabs (open-pit /
+  underground / openmines) with a dot marking the active sample's family; chips read
+  `deep-spiral · minqueue` instead of raw ids; provenance folds into a one-line summary
+  (contract flags stay visible); real mode shows one-line facts instead of locked
+  grey blocks — the Case grid, constraints chips, policy chips and seed slider are
+  synthetic-only.
+- **Benchmark made compact + interactive** (#49): the corpus and counterfactual tabs render
+  ONE selected case/shift behind chip pickers with a collapsible clickable overview table
+  (`.dl-fold`) — no more giant scroll (~1.3k px per tab, was 12 stacked bar blocks each).
+
+### Added
+- **50× replay speed** (#48) — the slow lane for close visual review of queueing, spotting
+  and bunching (SPEEDS = [50, 200, 600, 1800]).
+
+
 ## [0.11.000] — 2026-07-02
 
 ### Added — the striking 3D pass + the underground view (#21)
