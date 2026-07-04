@@ -10,12 +10,14 @@ generator logged, so the live lane is faithful.
   future-event list keyed on a total-order `(time, priority, seq)` tuple.
 * `kinematics.ts` — truck haul times from rimpull/grade physics (793F anchored at 218 t / ~1976 kW / 60 km/h).
 * `matchfactor.ts` — closed-form match-factor theory (the over-trucking knee at MF=1).
-* `model.ts` / `cases.ts` — the pit model + the 8 case specs; `compare.ts` — the multi-policy comparison (Pareto + TIE).
+* `model.ts` / `cases.ts` — the pit model + the 12 case specs; `compare.ts` — the multi-policy comparison (Pareto + TIE).
 
 ## Policies (`frontend/src/policies/`)
 
-* `heuristics.ts` — the 5 classical policies: greedy (earliest completion), shortest-expected-wait, the two classic
+* `heuristics.ts` — the 5 classical heuristics: greedy (earliest completion), shortest-expected-wait, the two classic
   criteria (min-truck-wait / min-shovel-wait), fixed assignment.
+* `or.ts` / `hungarian.ts` — the OR tier: joint truck→shovel-slot assignment (Hungarian, Kuhn–Munkres) over the
+  fleet view.
 * `learned.ts` / `learnedRegistry.ts` — the two learned policies run a synchronous TS forward of the weights in the
   DES; `lib/ort.ts` runs the canonical ONNX (`dl-policy.onnx` / `dl-bcbest.onnx`) via onnxruntime-web in the
   decision-inspector, serialised per model.
