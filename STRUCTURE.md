@@ -12,7 +12,7 @@ CAOS_DispatchLab/
 │     ├─ io/      contract.py (CONTRACT 1: dispatch-scenario schema) · schema.py · formats.py
 │     ├─ core/    rng.py · trace.py (CONTRACT 2 trace) · manifest.py (CONTRACT 2) · gate.py (lane gate)
 │     ├─ stages/  preprocess · feature_extraction · train · infer · evaluate · export — thin wrappers over science/
-│     ├─ cases/   dispatch_cases.py (8 cases: C01-C07 + C12 oracle)
+│     ├─ cases/   dispatch_cases.py (12 cases: C01-C11 + C12 oracle)
 │     └─ science/ gen_dataset.mjs (Node: log DES decisions) · train_policy.py (torch: learned policies -> ONNX) ·
 │                 bake_cases.mjs (per-case multi-policy comparison) — preserved verbatim heavy lane (ruff-excluded)
 ├─ data/
@@ -23,7 +23,7 @@ CAOS_DispatchLab/
 ├─ frontend/                       # the React/Vite SPA
 │  ├─ index.html · package.json · vite.config.ts · tsconfig.json · copy-data.mjs
 │  ├─ public/ (CNAME · favicon; the data overlay is git-ignored)
-│  ├─ test/sim.test.ts (node --test)
+│  ├─ test/ (node --test: sim · cases23 · or · oracle · constraints · hungarian · replay · topo)
 │  └─ src/  pages/ (App/Introduction/Methodology/Implementation/Experiments/Benchmark) · sim/ (the DES) · policies/ ·
 │           viz/ · lib/ort.ts (onnxruntime-web) · lib/contract.types.ts (CONTRACT-2 mirror) · data/
 ├─ app/                            # OPTIONAL FastAPI backend — DORMANT (static-first)

@@ -5,8 +5,8 @@
 // where t_cycle is the ideal loop time EXCLUDING queueing. MF ≈ 1 balanced; > 1 over-trucked (truck queues);
 // < 1 under-trucked (shovel idle). The classic formula assumes a homogeneous fleet (Morgan & Peterson,
 // commonly attributed); the heterogeneous (mixed-class) correction (Burt & Caccetta 2007,
-// doi:10.1080/17480930701388606) is added on the analytics page. Here we compute the homogeneous MF with a
-// representative truck (flagged approximate for mixed fleets).
+// doi:10.1080/17480930701388606) is NOT implemented yet (backlog). Here we compute the homogeneous MF with
+// a representative truck — approximate for mixed fleets (C11).
 import { travelTimeSec } from './kinematics';
 import { type CaseSpec, type MineSpec } from './types';
 
