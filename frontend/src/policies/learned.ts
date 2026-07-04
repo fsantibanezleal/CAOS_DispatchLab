@@ -1,4 +1,4 @@
-// Learned dispatch policies — a synchronous TS forward of the small per-shovel scoring nets trained offline
+// Learned dispatch policies, a synchronous TS forward of the small per-shovel scoring nets trained offline
 // (tools/dispatch-rl). The DES is synchronous, so the policy runs the net in-line at each decision; the
 // canonical artifact is the ONNX export (onnxruntime-web runs it live in the Decision-inspector view, same
 // weights). The per-shovel feature encoding MUST match tools/dispatch-rl/gen_dataset.mjs exactly.

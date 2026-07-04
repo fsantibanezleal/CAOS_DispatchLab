@@ -40,7 +40,7 @@ const c05Mine: MineSpec = {
 };
 export const C05: CaseSpec = { id: 'C05', name: 'Asymmetric roads (near + far shovel)', mine: c05Mine, fleet: fleet(8, '793F', [1, 2]), shiftSec: SHIFT };
 
-// ---- C03 under-trucked (MF<1; shovel sits idle — min-shovel-wait helps least, nothing can feed it) ----
+// ---- C03 under-trucked (MF<1; shovel sits idle, min-shovel-wait helps least, nothing can feed it) ----
 export const C03: CaseSpec = { id: 'C03', name: 'Under-trucked (MF≈0.5)', mine: c01Mine, fleet: fleet(2, '793F', [1]), shiftSec: SHIFT };
 
 // ---- C04 two shovels, symmetric roads (no asymmetry to exploit → greedy ≈ shortest-wait) ----
@@ -59,7 +59,7 @@ const c12Mine: MineSpec = {
 };
 export const C12: CaseSpec = { id: 'C12', name: '1-truck-1-shovel oracle', mine: c12Mine, fleet: fleet(1, '793F', [1]), shiftSec: SHIFT };
 
-// ---- C06 three shovels, mixed distances (a real multi-way dispatch choice — where learning matters) ----
+// ---- C06 three shovels, mixed distances (a real multi-way dispatch choice, where learning matters) ----
 const c06Mine: MineSpec = {
   name: 'Three-shovel pit',
   shovels: [shovel(1, 'Shovel 1 (near)', 120, 110), shovel(2, 'Shovel 2 (mid)', 120, 220), shovel(3, 'Shovel 3 (far)', 120, 330)],
@@ -77,9 +77,9 @@ const c07Mine: MineSpec = {
 };
 export const C07: CaseSpec = { id: 'C07', name: 'Four shovels, asymmetric', mine: c07Mine, fleet: fleet(18, '793F', [1, 2, 3, 4]), shiftSec: SHIFT };
 
-// ---- #23 geometry & constraints category — the physics axes (#22) exercised as CASES ----
+// ---- #23 geometry & constraints category, the physics axes (#22) exercised as CASES ----
 
-// C08 deep pit: long 8% ramps — rimpull binds, the fleet (not the shovels) is the constraint
+// C08 deep pit: long 8% ramps, rimpull binds, the fleet (not the shovels) is the constraint
 const c08Mine: MineSpec = {
   name: 'Deep pit, long steep ramps',
   shovels: [shovel(1, 'Shovel 1 (deep)', 120, 140), shovel(2, 'Shovel 2 (deep)', 120, 300)],
@@ -88,7 +88,7 @@ const c08Mine: MineSpec = {
 };
 export const C08: CaseSpec = { id: 'C08', name: 'Deep pit (long 8% ramps)', mine: c08Mine, fleet: fleet(14, '793F', [1, 2]), shiftSec: SHIFT };
 
-// C09 shallow pit: short flat roads — travel is negligible, the SHOVELS are the constraint
+// C09 shallow pit: short flat roads, travel is negligible, the SHOVELS are the constraint
 const c09Mine: MineSpec = {
   name: 'Shallow pit, short flat roads',
   shovels: [shovel(1, 'Shovel 1', 160, 150), shovel(2, 'Shovel 2', 160, 290)],
@@ -97,7 +97,7 @@ const c09Mine: MineSpec = {
 };
 export const C09: CaseSpec = { id: 'C09', name: 'Shallow pit (short flat roads)', mine: c09Mine, fleet: fleet(8, '793F', [1, 2]), shiftSec: SHIFT };
 
-// C10 crusher-limited: the PLANT cap (trailing-hour tph), not the fleet, is the ceiling —
+// C10 crusher-limited: the PLANT cap (trailing-hour tph), not the fleet, is the ceiling , 
 // baked operational constraints (#22); ore shovels pause when the crusher saturates
 const c10Mine: MineSpec = {
   name: 'Crusher-limited pit',
@@ -111,7 +111,7 @@ export const C10: CaseSpec = {
   constraints: { crusherMaxTph: 2600 },
 };
 
-// C11 mixed fleet: 793F + 930E share the pit — heterogeneous speeds/payloads (bunching source)
+// C11 mixed fleet: 793F + 930E share the pit, heterogeneous speeds/payloads (bunching source)
 const mixedFleet: FleetSpec = {
   trucks: [
     ...Array.from({ length: 6 }, (_, i) => ({ id: i + 1, spec: TRUCKS['793F'], startShovel: [1, 2, 3][i % 3] })),

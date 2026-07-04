@@ -1,15 +1,15 @@
 // The REPLAY engine (#15): folds a validated real cycle log (RealSample) into the exact SimResult shape the
-// whole App already consumes (legs for PitMap/Pit3D, ShovelKpi, crusherFeed, waits, MF) — so every tab renders
+// whole App already consumes (legs for PitMap/Pit3D, ShovelKpi, crusherFeed, waits, MF), so every tab renders
 // a MEASURED shift with zero changes to the DES (des.ts/model.ts untouched; they generate, this reads).
 //
-// Event semantics (cyclelog/v1): each event marks the START of its phase —
+// Event semantics (cyclelog/v1): each event marks the START of its phase , 
 //   load@t  -> loading at the shovel     [load, haul)   = atShovel (serving)
 //   haul@t  -> loaded travel             [haul, dump)   = haulFull shovel->dump
 //   dump@t  -> dumping                   [dump, return) = atDump
 //   return@t-> empty travel + queue      [return, load')= haulEmpty + queue at the next shovel
 // The return->load' gap mixes empty travel with queueing; we split it with a per-route BASE travel = the p10
 // of that route's observed gaps (documented estimate: near-minimum gap ~ uncontested travel). Queue wait is the
-// remainder — an honest, stated approximation for a 4-event log.
+// remainder, an honest, stated approximation for a 4-event log.
 import { type Leg, type ShovelKpi, type SimResult } from '../sim/types';
 import { type CycleRow, type RealSample } from './ingest';
 

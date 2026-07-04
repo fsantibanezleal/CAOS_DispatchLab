@@ -1,4 +1,4 @@
-# 03 — GPU lane (DORMANT)
+# 03, GPU lane (DORMANT)
 
 This solution does not require a GPU at the moment. DispatchLab's policy training is tiny (small nets over a few tens
 of thousands of logged DES decisions, seconds on CPU). `requirements-gpu.txt` is a dormant placeholder.

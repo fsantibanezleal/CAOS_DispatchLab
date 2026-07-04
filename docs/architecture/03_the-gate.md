@@ -1,4 +1,4 @@
-# 03 — The lane gate
+# 03, The lane gate
 
 `core/gate.py::classify_lane` is the **measured** decision of whether a case runs live in the browser or is replayed
 (ADR-0054). For DispatchLab the SIR-template's "Pyodide-safe wheels" become **client-side runtimes**: the live lane is

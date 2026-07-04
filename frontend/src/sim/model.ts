@@ -56,7 +56,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   for (const d of mine.dumps) { dumpBusy.set(d.id, false); dumpQ.set(d.id, []); }
 
   const truckArr = new Map<number, number>();    // truck id → time it joined its current shovel queue
-  // OR tier (#22): trucks that will ask for a dispatch decision soon (at/near a dump) — the
+  // OR tier (#22): trucks that will ask for a dispatch decision soon (at/near a dump), the
   // fleet view the joint-assignment policy solves over. Insertion order is deterministic.
   const pendingDecision = new Map<number, { readyEta: number; atDumpId: number }>();
   let tonnes = 0, truckWaitSec = 0;
@@ -171,7 +171,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   const trailingTph = (now: number): number => {
     // crusher feed over the trailing hour PLUS the committed in-flight ore: gating on delivered
     // tonnage alone is bang-bang (the window drains, then the WHOLE held fleet releases at once
-    // and overshoots the cap — field-found by the C10 case test). Counting commitments releases
+    // and overshoots the cap, field-found by the C10 case test). Counting commitments releases
     // trucks a few at a time and keeps the ceiling a ceiling.
     const t0 = now - 3600;
     let base = 0;
@@ -199,7 +199,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
       sim.schedule(60, () => decide(truckId, dumpId), 2);
       return;
     }
-    // policies only SEE the feasible set — every policy respects constraints by construction
+    // policies only SEE the feasible set, every policy respects constraints by construction
     const constrained: DispatchState = { ...state, shovels: feasible };
     let chosen = policy(constrained);
     opts.onDecision?.(constrained, chosen);  // log (state, action) for the offline-RL / imitation dataset

@@ -21,16 +21,16 @@ Pick a case → pick a dispatch policy → run the simulation live and watch tru
 shovel while the KPIs (tonnes, match factor, shovel utilisation, truck wait, crusher feed) update. The
 decision panel diagnoses fleet balance (over/under-trucked + a fleet-sizing suggestion) and the bottleneck.
 
-- **Deterministic DES core** — next-event-time-advance, an integer-tick clock and a `(time, priority, seq)`
+- **Deterministic DES core**, next-event-time-advance, an integer-tick clock and a `(time, priority, seq)`
   event key (bit-deterministic per engine), seedable `xoshiro128**` named streams (common random numbers
   across policies). Validated by a closed-form 1×1 oracle, a determinism test and the match-factor controls.
 - **Truck kinematics** from rimpull/grade physics (total resistance = grade + rolling resistance), not a
   constant speed.
-- **Dispatch policies** — fixed, greedy (earliest completion), shortest-expected-wait, the two classic
+- **Dispatch policies**, fixed, greedy (earliest completion), shortest-expected-wait, the two classic
   conflicting criteria (min-truck-wait vs min-shovel-wait), Hungarian joint assignment (the OR tier) and
   two learned imitation policies (RWR + BC-best, ONNX in-browser). Multi-stage LP, blend-MILP and RL are
   backlog, not implemented.
-- **Match factor** as the analytical ground truth — the classic homogeneous formula on a representative
+- **Match factor** as the analytical ground truth, the classic homogeneous formula on a representative
   truck (approximate for mixed fleets; the Burt & Caccetta heterogeneous correction is not implemented yet).
 
 ## Architecture
@@ -72,5 +72,5 @@ Bilingual (EN default + ES), light/dark.
 ## Honesty
 
 Synthetic but physics-grounded; every run carries its seed; every approximate quantity is labelled
-approximate. Policy rankings are case- and seed-specific — the bench reports distributions, never a single
+approximate. Policy rankings are case- and seed-specific, the bench reports distributions, never a single
 overconfident winner. MIT licensed.

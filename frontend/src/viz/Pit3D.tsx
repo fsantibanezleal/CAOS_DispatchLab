@@ -7,7 +7,7 @@ import { buildPitTopo, sampleAt, type PitTopo } from '../sim/topo';
 // The 3D pit view: the terraced pit shell (benches at their real elevations), the spiral ramp, shovels on
 // their bench, dumps at the rim, and trucks moving along the REAL 3D haul path (bench → ramp → surface) at
 // the playback time t. Times are the DES's (the 3D path only decides WHERE the truck is drawn at fraction f
-// of its leg). Compute discipline: renders ON DEMAND (playback tick / camera interaction / theme change) —
+// of its leg). Compute discipline: renders ON DEMAND (playback tick / camera interaction / theme change) , 
 // zero rAF work when paused with no interaction, and it halts on a hidden tab.
 const STATE_COLOR: Record<Leg['state'], number> = { haulFull: 0xd29922, haulEmpty: 0x58a6ff, atShovel: 0x8b949e, atDump: 0x8b949e };
 
@@ -203,7 +203,7 @@ export function Pit3D({ c, result, t, lang }: { c: CaseSpec; result: SimResult; 
     sceneRef.current = { render };
     render();
     // a lost WebGL context (GPU reset, headless resource churn) leaves the canvas blank after
-    // three.js restores it — repaint on restoration (field-found via the visual verifier)
+    // three.js restores it, repaint on restoration (field-found via the visual verifier)
     const onRestored = () => requestAnimationFrame(render);
     renderer.domElement.addEventListener('webglcontextrestored', onRestored);
 

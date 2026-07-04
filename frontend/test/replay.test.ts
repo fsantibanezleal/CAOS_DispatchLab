@@ -5,7 +5,7 @@ import { replayCycleLog } from '../src/replay/replayEngine';
 
 const PROV: Provenance = { source: 'hand-written test fixture', license: 'MIT', kind: 'structure-real', caveats: 'test fixture only' };
 
-// two trucks × two shovels × one dump, two full cycles each — a minimal, legal cyclelog/v1 shift
+// two trucks × two shovels × one dump, two full cycles each, a minimal, legal cyclelog/v1 shift
 const CSV = `t,truck_id,shovel_id,event,payload_t
 0,1,1,load,0
 150,1,1,haul,220

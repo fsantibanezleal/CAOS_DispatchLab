@@ -1,5 +1,5 @@
-/* DispatchLab — app styles on top of the shared design-system tokens. The shell does NOT ship `.chip` or
-   `.gauge` — they are defined here, ported from the validated RotorVitals visual language (pill chip with a
+/* DispatchLab, app styles on top of the shared design-system tokens. The shell does NOT ship `.chip` or
+   `.gauge`, they are defined here, ported from the validated RotorVitals visual language (pill chip with a
    filled-accent active state, gauge, control sidebar). Light AND dark via the shell tokens. */
 
 /* validated pill chip */
@@ -62,7 +62,7 @@
 .u-legend .u-series { display: inline-flex; align-items: center; gap: 0.3rem; margin-right: 0.9rem; }
 .u-legend .u-value { font-family: var(--font-mono); color: var(--color-fg); }
 
-/* /compare — Pareto scatter + paired bars + verdict */
+/* /compare, Pareto scatter + paired bars + verdict */
 .dl-scatter-wrap { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px; padding: 0.5rem; }
 .dl-bars { display: flex; flex-direction: column; gap: 0.4rem; }
 .dl-bar-row { display: grid; grid-template-columns: 150px 1fr 1fr; gap: 0.6rem; align-items: center; }
@@ -98,7 +98,7 @@
 .cmp-table thead th { color: var(--color-fg-faint); font-weight: 600; font-size: 0.78rem; }
 .cmp-table td.lo, .cmp-table th.lo { text-align: left; }
 
-/* collapsible overview (#49) — compact fold so per-set tables never lengthen the page by default */
+/* collapsible overview (#49), compact fold so per-set tables never lengthen the page by default */
 .dl-fold { border: 1px solid var(--color-border); border-radius: 10px; padding: 0.45rem 0.7rem; margin: 0.6rem 0; }
 .dl-fold summary { cursor: pointer; font-size: 0.82rem; color: var(--color-fg-subtle); }
 .dl-fold summary:hover { color: var(--color-fg); }

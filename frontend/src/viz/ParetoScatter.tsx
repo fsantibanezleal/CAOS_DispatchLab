@@ -3,7 +3,7 @@ import { type PolicyStats, POLICY_COLOR } from '../sim/compare';
 
 // Pareto scatter: tonnes (↑ better) vs truck wait (← better). One faint dot per policy×seed (the honest
 // spread), a bold marker at each policy's median, and the non-dominated frontier joined. Hover a median for
-// its band. Dispatch is multi-objective — collapsing to one bar would hide the trade-off.
+// its band. Dispatch is multi-objective, collapsing to one bar would hide the trade-off.
 export function ParetoScatter({ stats, front, lang }: { stats: PolicyStats[]; front: Set<string>; lang: 'en' | 'es' }) {
   const es = lang === 'es';
   const [hover, setHover] = useState<{ x: number; y: number; s: PolicyStats } | null>(null);

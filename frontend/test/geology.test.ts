@@ -40,7 +40,7 @@ test('a geology-carrying sample ingests and exposes the faces', () => {
   assert.equal(r.sample.provenance.geology?.faces[0].bench, 4);
 });
 
-test('geology is OPTIONAL — a sample without it still ingests (backward compatible)', () => {
+test('geology is OPTIONAL, a sample without it still ingests (backward compatible)', () => {
   const prov: Provenance = { source: 's', license: 'MIT', kind: 'structure-real', caveats: 'c' };
   const r = ingestCycleLog(parseCycleCsv(CSV), { id: 't', name: 't', provenance: prov });
   assert.ok(r.ok && r.sample);

@@ -1,9 +1,9 @@
-"""CONTRACT 2 — artifact (pipeline -> web). The manifest is the authoritative, versioned record of a baked case: its
+"""CONTRACT 2, artifact (pipeline -> web). The manifest is the authoritative, versioned record of a baked case: its
 category, seed, engine+version, the shared learned-policy ONNX, the compact per-case trace pointer + byte size, the
 lane/gate verdict, the CONTRACT-1 flags, and the case metrics. The web loads ONLY manifests + traces + the shared
 artifacts; frontend/src/lib/contract.types.ts mirrors this schema so a drift fails the build. The committed ONNX +
 dl-learned.json + case-results.json ARE the real outputs of the offline lane; the manifest records that the learned
-policies are HONEST — competitive with (not fabricated wins over) the heuristics that taught them."""
+policies are HONEST, competitive with (not fabricated wins over) the heuristics that taught them."""
 from __future__ import annotations
 
 from typing import Any
@@ -17,8 +17,8 @@ INDEX_SCHEMA = "dispatchlab.index/v1"
 ENGINE_NOTE = ("deterministic discrete-event truck-shovel DES (next-event time-advance, binary-heap FEL, seedable "
                "streams) + rimpull/grade kinematics + 5 classical policies + 2 learned ONNX policies "
                "(reward-weighted imitation + BC-best).")
-HONESTY = ("The DES is a deterministic SIMULATION, NOT a real plant. The two learned policies are COMPETITIVE — "
-           "within ~1%, matching the best heuristic (their teacher) — NOT beating it; no fabricated RL win. The "
+HONESTY = ("The DES is a deterministic SIMULATION, NOT a real plant. The two learned policies are COMPETITIVE, "
+           "within ~1%, matching the best heuristic (their teacher), NOT beating it; no fabricated RL win. The "
            "value is a single fast learned dispatcher recovered from logged DES decisions + live inference.")
 
 

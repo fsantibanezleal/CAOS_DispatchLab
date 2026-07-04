@@ -1,7 +1,7 @@
-// CONTRACT 1 (client-side) for REAL cycle logs — `dispatchlab.cyclelog/v1`. The bring-your-own-shift gate.
+// CONTRACT 1 (client-side) for REAL cycle logs, `dispatchlab.cyclelog/v1`. The bring-your-own-shift gate.
 // Validates event rows (t, truck_id, shovel_id, event, payload_t), REJECTS structural violations with a reason
 // (never silently coerces), FLAGS plausible-but-suspicious rows, and DERIVES the RealSample: rosters, observed
-// shift, a synthesized schematic layout (real logs carry no coordinates — labelled as such) and the empirical
+// shift, a synthesized schematic layout (real logs carry no coordinates, labelled as such) and the empirical
 // block (per-shovel load means, travel medians, payload stats) that replaces the authored scenario knobs.
 // Mirrored offline in data-pipeline/dlab/io (the same artifacts are gated when baked).
 import { type MineSpec, type ShovelSpec, type DumpSpec } from '../sim/types';
@@ -23,7 +23,7 @@ export interface Geology {
 }
 
 export interface Provenance {
-  source: string;                 // e.g. "OpenMines (MIT) — Huolinhe-desensitized config"
+  source: string;                 // e.g. "OpenMines (MIT), Huolinhe-desensitized config"
   license: string;                // e.g. "MIT" | "CC BY 4.0"
   kind: 'real-field-log' | 'structure-real';
   caveats: string;                // the honest label shown in the App
@@ -93,7 +93,7 @@ export function ingestCycleLog(
     rows.push({ t, truck, node, event, payloadT });
   }
 
-  // per-truck monotonic time + legal transitions (REJECT the whole sample on a broken machine — it is not a log)
+  // per-truck monotonic time + legal transitions (REJECT the whole sample on a broken machine, it is not a log)
   const byTruck = new Map<number, CycleRow[]>();
   for (const r of rows) { const a = byTruck.get(r.truck) ?? []; a.push(r); byTruck.set(r.truck, a); }
   for (const [truck, list] of byTruck) {
@@ -117,10 +117,10 @@ export function ingestCycleLog(
   const dumps = [...new Set(rows.filter((r) => r.event === 'dump').map((r) => r.node))].sort((a, b) => a - b);
   const trucks = [...byTruck.keys()].sort((a, b) => a - b);
   if (!shovels.length || !dumps.length) return { ok: false, rejected: [...rejected, { row: -1, reason: 'no load or no dump events' }], flags };
-  if (shovels.some((s) => dumps.includes(s))) flags.push('a node appears as both shovel and dump — check ids');
+  if (shovels.some((s) => dumps.includes(s))) flags.push('a node appears as both shovel and dump, check ids');
   if (shovels.length < 2) flags.push('single-shovel sample: dispatch policies have no choice to make');
 
-  // empirical block — measured, replaces the authored scenario knobs
+  // empirical block, measured, replaces the authored scenario knobs
   const loadDur: Record<number, number[]> = {}; const dumpDur: number[] = [];
   const fullTravel: Record<string, number[]> = {}; const emptyTravel: Record<string, number[]> = {};
   const payloads: number[] = [];

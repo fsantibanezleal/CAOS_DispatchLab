@@ -1,4 +1,4 @@
-// Haul-truck kinematics from first principles — segment travel time comes from the rimpull/grade physics,
+// Haul-truck kinematics from first principles, segment travel time comes from the rimpull/grade physics,
 // not a guessed constant. Total resistance TR% = grade% + rolling-resistance%; the tractive force to
 // overcome it is F = (TR/100)·GMW·g, and the engine-power-limited equilibrium speed is v = η·P/F, capped by
 // the governed top speed. Downhill the truck is retarder-limited (a governed descent cap), not power-limited.

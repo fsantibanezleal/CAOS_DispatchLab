@@ -37,8 +37,8 @@ const config: ShellConfig = {
       es: 'Datos: casos DES sintéticos + muestras structure-real de minehaulsim (PyPI, Apache-2.0)',
     },
     disclaimer: {
-      en: 'Static site — replay of committed artifacts + in-browser compute; no backend.',
-      es: 'Sitio estático — replay de artefactos commiteados + cómputo en el navegador; sin backend.',
+      en: 'Static site, replay of committed artifacts + in-browser compute; no backend.',
+      es: 'Sitio estático, replay de artefactos commiteados + cómputo en el navegador; sin backend.',
     },
   },
 };

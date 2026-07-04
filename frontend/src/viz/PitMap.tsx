@@ -3,7 +3,7 @@ import { type CaseSpec, type SimResult, type Leg } from '../sim/types';
 
 // Animated node-link pit map (Canvas2D): roads, shovels (squares) and dumps (diamonds) coloured by their
 // live queue depth, and truck sprites interpolated along their current leg at the playback time t. This is
-// the only view that fuses topology + live flow + per-node queue — what actually differentiates policies.
+// the only view that fuses topology + live flow + per-node queue, what actually differentiates policies.
 const STATE_COLOR: Record<Leg['state'], string> = { haulFull: '#d29922', haulEmpty: '#58a6ff', atShovel: '#8b949e', atDump: '#8b949e' };
 
 function lerpColor(a: [number, number, number], b: [number, number, number], t: number): string {
@@ -66,7 +66,7 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
       truckDraw.push({ x: sx(active.x0 + (active.x1 - active.x0) * f), y: sy(active.y0 + (active.y1 - active.y0) * f), color: STATE_COLOR[active.state] });
     }
 
-    // shovels (squares) — color by queue
+    // shovels (squares), color by queue
     for (const s of c.mine.shovels) {
       const q = qShovel.get(s.id) ?? 0; const x = sx(s.pos.x), y = sy(s.pos.y);
       g.fillStyle = queueColor(q); g.strokeStyle = fg; g.lineWidth = 1.5;

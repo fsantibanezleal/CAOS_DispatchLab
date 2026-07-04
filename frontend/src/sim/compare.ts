@@ -1,7 +1,7 @@
 // Multi-objective policy comparison. A policy's outcome is a DISTRIBUTION over seeds, not one number, so we
 // run every policy over the same seed set and report medians + p10–p90 bands. Dispatch is genuinely
 // multi-objective (tonnes vs truck wait), so the honest summary is a Pareto frontier, plus a TIE rule: if a
-// rival's tonnes band overlaps the leader's, the difference is "not significant" — no overconfident winner.
+// rival's tonnes band overlaps the leader's, the difference is "not significant", no overconfident winner.
 import { runSimulation } from './model';
 import { POLICIES, type PolicyDef } from '../policies/heuristics';
 import { type CaseSpec } from './types';

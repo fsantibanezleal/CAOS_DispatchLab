@@ -1,14 +1,14 @@
-# DispatchLab — documentation wiki
+# DispatchLab, documentation wiki
 
 The navigable wiki for DispatchLab (ADR-0056), authored as the product is built. DispatchLab is a public, didactic
 **truck-shovel dispatch bench**: a deterministic discrete-event simulation (DES) of an open-pit haul cycle, six
 classical dispatch policies (five heuristics + Hungarian joint assignment) + two **learned** ONNX policies, an
 animated pit map, a multi-objective policy comparison (Pareto + TIE rule), and a match-factor theory-validation
-sweep — all running **live in the browser**.
+sweep, all running **live in the browser**.
 
 ## What it is / what it is NOT
 
-* **Is:** a real, interactive dispatch sandbox — pick one of 12 cases (single-shovel MF sweep, multi-shovel pits,
+* **Is:** a real, interactive dispatch sandbox, pick one of 12 cases (single-shovel MF sweep, multi-shovel pits,
   geometry & constraints, the 1×1 oracle), run any of 8 policies in the DES, compare them on a Pareto frontier with a
   TIE rule, and see the
   learned policies recovered from logged DES decisions run live (onnxruntime-web).
@@ -28,7 +28,7 @@ sweep — all running **live in the browser**.
 
 ## The three lanes (at a glance)
 
-1. **Offline (precompute, heavy, two-language)** — a Node DES dataset generator logs decisions; torch trains the two
+1. **Offline (precompute, heavy, two-language)**, a Node DES dataset generator logs decisions; torch trains the two
    learned policies → ONNX. Local-only (`--retrain`); the dataset jsonl is git-ignored.
-2. **Live (client-side)** — the TS DES + onnxruntime-web (the learned policies in the decision-inspector), in browser.
-3. **Replay (static)** — the committed case-results + dl-learned.json; the default (numpy-only) pipeline rebuilds traces.
+2. **Live (client-side)**, the TS DES + onnxruntime-web (the learned policies in the decision-inspector), in browser.
+3. **Replay (static)**, the committed case-results + dl-learned.json; the default (numpy-only) pipeline rebuilds traces.

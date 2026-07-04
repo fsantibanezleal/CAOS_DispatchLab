@@ -1,6 +1,6 @@
 """DispatchLab cases spanning CATEGORIES (the truck-shovel dispatch problem-type taxonomy). The App shows ONE
 selected case; Experiments/Benchmark show cross-case summaries by category. The 8 cases mirror the SPA's
-src/sim/cases.ts (C01-C07 + the C12 oracle). All results are deterministic DES-SIMULATION outputs, NOT a real plant —
+src/sim/cases.ts (C01-C07 + the C12 oracle). All results are deterministic DES-SIMULATION outputs, NOT a real plant , 
 stated openly. C12 is the closed-form ORACLE control (throughput must equal the exact analytic value)."""
 from __future__ import annotations
 
@@ -33,10 +33,10 @@ CASES: list[Case] = [
          "match factor ~1: all policies TIE (dispatch barely matters on a balanced pit)",
          "match-factor theory (MF=1 optimum)"),
     Case("C02", "Over-trucked (MF≈2)", SINGLE, 1, 8, "793F",
-         "shovel-bound: throughput SATURATES, large truck wait — dispatch can't fix over-trucking",
+         "shovel-bound: throughput SATURATES, large truck wait, dispatch can't fix over-trucking",
          "over-trucking knee (Kneedle @ MF=1)"),
     Case("C03", "Under-trucked (MF≈0.5)", SINGLE, 1, 2, "793F",
-         "shovel idle: throughput scales ~linearly, low truck wait — add trucks, not dispatch",
+         "shovel idle: throughput scales ~linearly, low truck wait, add trucks, not dispatch",
          "under-trucked regime (MF<1)"),
     Case("C04", "Two shovels, symmetric roads (MF≈1)", MULTI, 2, 8, "793F",
          "symmetric: all five policies tie at ~equal tonnes (dispatch barely matters when balanced)",
@@ -45,7 +45,7 @@ CASES: list[Case] = [
          "a genuine Pareto trade-off: greedy maxes tonnes, min-truck-wait minimises wait, fixed is dominated",
          "asymmetric Pareto front + TIE rule"),
     Case("C06", "Three shovels, mixed distances", MULTI, 3, 12, "793F",
-         "a real multi-way learned decision — the learned policies are competitive (within ~1% of the best heuristic)",
+         "a real multi-way learned decision, the learned policies are competitive (within ~1% of the best heuristic)",
          "3-shovel learned-vs-heuristic"),
     Case("C07", "Four shovels, asymmetric", MULTI, 4, 18, "793F",
          "the hardest dispatch: 4-way assignment, the learned policy a single fast recovered dispatcher",
@@ -55,7 +55,7 @@ CASES: list[Case] = [
          "per-truck productivity well under the shallow twin",
          "oracle bindingSide = trucks; per-truck tonnes << C09"),
     Case("C09", "Shallow pit (short flat roads)", GEOM, 2, 8, "793F",
-         "SHOVEL-bound (oracle binds on service): travel negligible, shovels saturate — dispatch matters little",
+         "SHOVEL-bound (oracle binds on service): travel negligible, shovels saturate, dispatch matters little",
          "oracle bindingSide = shovels"),
     Case("C10", "Crusher-limited (2.6 kt/h cap)", GEOM, 3, 14, "793F",
          "the PLANT is the ceiling: committed-in-flight gating keeps delivered tonnes at/under cap x shift "
@@ -66,6 +66,6 @@ CASES: list[Case] = [
          "both land); the bunching source the traffic literature describes",
          "crusher-feed deltas contain BOTH payloads"),
     Case("C12", "1-truck-1-shovel oracle", ORACLE, 1, 1, "793F",
-         "throughput = floor(shift / cycle) · payload EXACTLY — the closed-form determinism check",
+         "throughput = floor(shift / cycle) · payload EXACTLY, the closed-form determinism check",
          "closed-form 1x1 oracle (exact)"),
 ]

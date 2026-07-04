@@ -1,5 +1,5 @@
 // #22 P2: the capacity oracle bounds DETERMINISTIC runs strictly; stochastic runs stay within a
-// 2% noise margin (mean-1 leg/service noise — the trivial 1×1 case sits AT the bound by design).
+// 2% noise margin (mean-1 leg/service noise, the trivial 1×1 case sits AT the bound by design).
 import { strict as assert } from 'node:assert';
 import test from 'node:test';
 import { capacityOracle } from '../src/sim/oracle';

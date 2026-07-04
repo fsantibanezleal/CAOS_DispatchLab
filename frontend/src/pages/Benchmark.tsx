@@ -1,7 +1,7 @@
 // Benchmark (#19): the OFFLINE aggregate comparisons. Everything here is PRECOMPUTED by the
-// pipeline (data-pipeline/dlab/science/bench_synthetic.mjs + bench_real.mjs) and committed —
+// pipeline (data-pipeline/dlab/science/bench_synthetic.mjs + bench_real.mjs) and committed , 
 // the page only reads /data/bench/*.json. No heavy compute in the browser.
-// Layout rule (#49): no giant scrolls — per-case and per-shift detail renders ONE selection at a
+// Layout rule (#49): no giant scrolls, per-case and per-shift detail renders ONE selection at a
 // time behind a chip picker, with a compact collapsible overview table for the whole set.
 import { useEffect, useState } from 'react';
 import { Refs, Tabs, useShellLang } from '@fasl-work/caos-app-shell';
@@ -17,7 +17,7 @@ interface RealDoc { caveat: string; syntheticRanking: string[]; samples: RealSam
 
 const base = import.meta.env.BASE_URL || '/';
 const label = (p: { id: string; en: string; es: string }, es: boolean) =>
-  (es ? p.es : p.en).replace('Learned — ', '').replace('Aprendida — ', '').split(' (')[0];
+  (es ? p.es : p.en).replace('Learned, ', '').replace('Aprendida, ', '').split(' (')[0];
 
 export default function Benchmark() {
   const es = useShellLang() === 'es';
@@ -43,8 +43,8 @@ export default function Benchmark() {
       <div className="page-head">
         <h1>Benchmark</h1>
         <p className="lede">{es
-          ? `Comparaciones agregadas OFFLINE — ${syn.nCases} casos sintéticos × ${syn.aggregate.length} políticas (5 heurísticas + 2 aprendidas + el tier OR) × ${syn.nSeeds} seeds, más el counterfactual CALIBRADO sobre los ${real.samples.filter((s) => s.ok).length} turnos reales del corpus, todo contra el ORÁCULO de capacidad (cota superior sin colas). Todo precomputado por el pipeline y commiteado; esta página solo lee los artefactos. Números honestos — los resultados nulos y las discrepancias se muestran.`
-          : `OFFLINE aggregate comparisons — ${syn.nCases} synthetic cases × ${syn.aggregate.length} policies (5 heuristics + 2 learned + the OR tier) × ${syn.nSeeds} seeds, plus the CALIBRATED counterfactual over the corpus of ${real.samples.filter((s) => s.ok).length} real shifts, all scored against the capacity ORACLE (queue-free upper bound). Everything precomputed by the pipeline and committed; this page only reads the artifacts. Honest numbers — null results and discrepancies are shown.`}</p>
+          ? `Comparaciones agregadas OFFLINE, ${syn.nCases} casos sintéticos × ${syn.aggregate.length} políticas (5 heurísticas + 2 aprendidas + el tier OR) × ${syn.nSeeds} seeds, más el counterfactual CALIBRADO sobre los ${real.samples.filter((s) => s.ok).length} turnos reales del corpus, todo contra el ORÁCULO de capacidad (cota superior sin colas). Todo precomputado por el pipeline y commiteado; esta página solo lee los artefactos. Números honestos, los resultados nulos y las discrepancias se muestran.`
+          : `OFFLINE aggregate comparisons, ${syn.nCases} synthetic cases × ${syn.aggregate.length} policies (5 heuristics + 2 learned + the OR tier) × ${syn.nSeeds} seeds, plus the CALIBRATED counterfactual over the corpus of ${real.samples.filter((s) => s.ok).length} real shifts, all scored against the capacity ORACLE (queue-free upper bound). Everything precomputed by the pipeline and committed; this page only reads the artifacts. Honest numbers, null results and discrepancies are shown.`}</p>
       </div>
       <Tabs tabs={tabs} />
       <Refs ids={['noriega2024', 'peters2007', 'mnih2015']} label="Refs" />
@@ -83,8 +83,8 @@ function CorpusTab({ syn, es }: { syn: SyntheticDoc; es: boolean }) {
       <h2>{es ? 'Ranking agregado (rango medio por toneladas medianas, 1 = mejor)' : 'Aggregate ranking (mean rank by median tonnes, 1 = best)'}</h2>
       <div className="tw-stats">{syn.aggregate.slice(0, 4).map((a) => <Stat key={a.id} v={a.meanRank.toFixed(2)} l={a.id} />)}</div>
       <p className="tw-note">{es
-        ? 'greedy (menor tiempo de compleción esperado) lidera el corpus; las políticas aprendidas son competitivas pero NO superan a sus maestras — se dice claramente.'
-        : 'greedy (earliest expected completion) leads the corpus; the learned policies are competitive but do NOT beat their teachers — stated plainly.'}</p>
+        ? 'greedy (menor tiempo de compleción esperado) lidera el corpus; las políticas aprendidas son competitivas pero NO superan a sus maestras, se dice claramente.'
+        : 'greedy (earliest expected completion) leads the corpus; the learned policies are competitive but do NOT beat their teachers, stated plainly.'}</p>
 
       <details className="dl-fold">
         <summary>{es ? `Panorama de los ${caseIds.length} casos (líder · % del oráculo · empates)` : `Overview of all ${caseIds.length} cases (leader · % of oracle · ties)`}</summary>
@@ -95,8 +95,8 @@ function CorpusTab({ syn, es }: { syn: SyntheticDoc; es: boolean }) {
             return (
               <tr key={cid} onClick={() => setSel(cid)} style={{ cursor: 'pointer' }} title={es ? 'click para abrir el detalle' : 'click to open the detail'}>
                 <td className="mono">{cid}</td><td>{bb.id}</td>
-                <td className="mono">{bb.pctOfOracle != null ? `${bb.pctOfOracle.toFixed(0)}%` : '—'}</td>
-                <td>{cc.tie.tied.length || '—'}</td>
+                <td className="mono">{bb.pctOfOracle != null ? `${bb.pctOfOracle.toFixed(0)}%` : ', '}</td>
+                <td>{cc.tie.tied.length || ', '}</td>
               </tr>
             );
           })}</tbody></table>
@@ -109,7 +109,7 @@ function CorpusTab({ syn, es }: { syn: SyntheticDoc; es: boolean }) {
                   title={syn.cases[cid].name} onClick={() => setSel(cid)}>{cid}</button>
         ))}
       </div>
-      <h3 style={{ marginBottom: '0.2rem' }}>{sel} — {c.name}</h3>
+      <h3 style={{ marginBottom: '0.2rem' }}>{sel}, {c.name}</h3>
       {c.oracle && (
         <p className="tw-note" style={{ marginTop: 0 }}>{es
           ? `oráculo de capacidad: ${(c.oracle.tonnes / 1000).toFixed(1)}k t (lado limitante: ${c.oracle.bindingSide === 'shovels' ? 'palas' : 'camiones'}) · mejor política: ${best.pctOfOracle?.toFixed(0)}% del oráculo`
@@ -140,8 +140,8 @@ function LearnedTab({ syn, es }: { syn: SyntheticDoc; es: boolean }) {
             {c.learnedVsBestClassical.map((l) => <td key={l.id} className="mono">{l.deltaPct > 0 ? '+' : ''}{l.deltaPct.toFixed(2)}%</td>)}
           </tr>))}</tbody></table>
       <p className="tw-note">{es
-        ? 'Honesto: las aprendidas (★) quedan típicamente dentro de ~1–3% de la mejor heurística de cada caso — imitan a sus maestras, no las superan. El valor es una política única, rápida, recuperada de datos, con inferencia ONNX en vivo.'
-        : 'Honest: the learned policies (★) land typically within ~1–3% of each case’s best heuristic — they imitate their teachers, they do not beat them. The value is a single fast policy recovered from data, with live ONNX inference.'}</p>
+        ? 'Honesto: las aprendidas (★) quedan típicamente dentro de ~1–3% de la mejor heurística de cada caso, imitan a sus maestras, no las superan. El valor es una política única, rápida, recuperada de datos, con inferencia ONNX en vivo.'
+        : 'Honest: the learned policies (★) land typically within ~1–3% of each case’s best heuristic, they imitate their teachers, they do not beat them. The value is a single fast policy recovered from data, with live ONNX inference.'}</p>
     </section>
   );
 }
@@ -157,9 +157,9 @@ function MfTab({ syn, es }: { syn: SyntheticDoc; es: boolean }) {
         : 'For every multi-shovel case, the fleet-sweep knee (diminishing marginal return) should land where the analytical match factor crosses 1. Checked over the sweep seed bank:'}</p>
       <table><thead><tr><th>{es ? 'Caso' : 'Case'}</th><th>{es ? 'Codo (N camiones)' : 'Knee (N trucks)'}</th><th>N @ MF=1</th><th>{es ? 'Concuerda (±2)' : 'Agrees (±2)'}</th></tr></thead>
         <tbody>{rows.map(([cid, c]) => (
-          <tr key={cid}><td>{cid}</td><td className="mono">{c.sweepCheck!.kneeN ?? '—'}</td><td className="mono">{c.sweepCheck!.mf1N ?? '—'}</td><td>{c.sweepCheck!.agree ? '✓' : '✗'}</td></tr>
+          <tr key={cid}><td>{cid}</td><td className="mono">{c.sweepCheck!.kneeN ?? ', '}</td><td className="mono">{c.sweepCheck!.mf1N ?? ', '}</td><td>{c.sweepCheck!.agree ? '✓' : '✗'}</td></tr>
         ))}</tbody></table>
-      <p className="tw-note">{es ? `${agreeN}/${rows.length} casos concuerdan — la teoría (MF) y el DES cuentan la misma historia; las excepciones se muestran, no se esconden.` : `${agreeN}/${rows.length} cases agree — the theory (MF) and the DES tell the same story; exceptions are shown, not hidden.`}</p>
+      <p className="tw-note">{es ? `${agreeN}/${rows.length} casos concuerdan, la teoría (MF) y el DES cuentan la misma historia; las excepciones se muestran, no se esconden.` : `${agreeN}/${rows.length} cases agree, the theory (MF) and the DES tell the same story; exceptions are shown, not hidden.`}</p>
     </section>
   );
 }
@@ -186,7 +186,7 @@ function CfTab({ real, es }: { real: RealDoc; es: boolean }) {
                 <td className="mono">{x.id}</td>
                 <td className="mono">{(x.actualTonnes! / 1000).toFixed(1)}</td>
                 <td>{bb.id}</td>
-                <td className="mono">{x.calibrationBiasPct != null ? `${x.calibrationBiasPct > 0 ? '+' : ''}${x.calibrationBiasPct.toFixed(1)}%` : '—'}</td>
+                <td className="mono">{x.calibrationBiasPct != null ? `${x.calibrationBiasPct > 0 ? '+' : ''}${x.calibrationBiasPct.toFixed(1)}%` : ', '}</td>
               </tr>
             );
           })}</tbody></table>
@@ -223,11 +223,11 @@ function CrossTab({ real, es }: { real: RealDoc; es: boolean }) {
         : `Ranking concordance (Kendall’s tau) between the synthetic aggregate [${real.syntheticRanking.slice(0, 3).join(' > ')} > …] and each real shift’s counterfactual ranking:`}</p>
       <table><thead><tr><th>{es ? 'Turno real' : 'Real shift'}</th><th>{es ? 'Generador' : 'Generator'}</th><th>Top-3 (cf)</th><th>τ</th></tr></thead>
         <tbody>{real.cross.map((c) => (
-          <tr key={c.id}><td>{c.id}</td><td>{c.generator}</td><td className="mono">{c.realRank.slice(0, 3).join(' > ')}</td><td className="mono">{c.tauVsSynthetic?.toFixed(2) ?? '—'}</td></tr>
+          <tr key={c.id}><td>{c.id}</td><td>{c.generator}</td><td className="mono">{c.realRank.slice(0, 3).join(' > ')}</td><td className="mono">{c.tauVsSynthetic?.toFixed(2) ?? ', '}</td></tr>
         ))}</tbody></table>
       <p className="tw-note">{es
-        ? `Mediana τ = ${medTau?.toFixed(2)} — el orden sintético transfiere en general. Discrepancias honestas: ${low.length ? low.map((c) => `${c.id} (τ=${c.tauVsSynthetic?.toFixed(2)})`).join(', ') : 'ninguna'} — turnos generados con despachadores tipo nearest reordenan las políticas queue-aware; hallazgo válido, no se esconde. El tier OR (hungarian) se EXCLUYE del τ: dentro del counterfactual corre su fallback solo (sin vista de flota), así que compararlo entre fuentes sería comparar dos algoritmos distintos.`
-        : `Median τ = ${medTau?.toFixed(2)} — the synthetic ordering largely transfers. Honest discrepancies: ${low.length ? low.map((c) => `${c.id} (τ=${c.tauVsSynthetic?.toFixed(2)})`).join(', ') : 'none'} — shifts generated by nearest-style dispatchers reorder the queue-aware policies; a valid finding, not hidden. The OR tier (hungarian) is EXCLUDED from τ: inside the counterfactual it runs its solo fallback (no fleet view), so ranking it across sources would compare two different algorithms.`}</p>
+        ? `Mediana τ = ${medTau?.toFixed(2)}, el orden sintético transfiere en general. Discrepancias honestas: ${low.length ? low.map((c) => `${c.id} (τ=${c.tauVsSynthetic?.toFixed(2)})`).join(', ') : 'ninguna'}, turnos generados con despachadores tipo nearest reordenan las políticas queue-aware; hallazgo válido, no se esconde. El tier OR (hungarian) se EXCLUYE del τ: dentro del counterfactual corre su fallback solo (sin vista de flota), así que compararlo entre fuentes sería comparar dos algoritmos distintos.`
+        : `Median τ = ${medTau?.toFixed(2)}, the synthetic ordering largely transfers. Honest discrepancies: ${low.length ? low.map((c) => `${c.id} (τ=${c.tauVsSynthetic?.toFixed(2)})`).join(', ') : 'none'}, shifts generated by nearest-style dispatchers reorder the queue-aware policies; a valid finding, not hidden. The OR tier (hungarian) is EXCLUDED from τ: inside the counterfactual it runs its solo fallback (no fleet view), so ranking it across sources would compare two different algorithms.`}</p>
     </section>
   );
 }

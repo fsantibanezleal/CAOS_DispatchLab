@@ -2,16 +2,16 @@
 in-browser inference (onnxruntime-web). Two distinct learned models, both pointer-style (a shared per-shovel
 scoring net so ONE model handles any number of shovels):
 
-  • POLICY (reward-weighted imitation / RWR, Peters & Schaal 2007) — scores each candidate shovel; trained to
+  • POLICY (reward-weighted imitation / RWR, Peters & Schaal 2007), scores each candidate shovel; trained to
     reproduce the reference decisions weighted by the episode's tonnes, so it learns the patterns of the
     GOOD episodes. Act = argmax score.
-  • VALUE (offline value regression) — predicts a shovel's expected episode tonnes from its features; act =
+  • VALUE (offline value regression), predicts a shovel's expected episode tonnes from its features; act =
     argmax predicted value. A different learned policy from the same data.
 
 The state encoding matches tools/dispatch-rl/gen_dataset.mjs exactly (the single source of truth). The app
 rebuilds the same per-shovel features and runs these ONNX models at each dispatch decision. Honest: the
 true learned-vs-heuristic comparison is the tonnes the policies actually move, measured live in the DES on
-the Compare/Benchmark pages — not a fabricated number.
+the Compare/Benchmark pages, not a fabricated number.
 
 Run:  python train_policy.py
 """

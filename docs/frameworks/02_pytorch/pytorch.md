@@ -2,7 +2,7 @@
 
 **What:** trains the two learned dispatch policies on the logged DES decisions and exports them to ONNX.
 **Why binding:** the learned tier (a single fast dispatcher recovered from data) is the SOTA complement to the
-classical criteria. Training is tiny (small nets over a few tens of thousands of logged decisions, seconds on CPU) —
+classical criteria. Training is tiny (small nets over a few tens of thousands of logged decisions, seconds on CPU) , 
 no GPU.
 
 **Lane:** offline only (`dlab/science/train_policy.py`). Never shipped to the browser.
@@ -25,5 +25,5 @@ writing `dl-policy.onnx` + `dl-bcbest.onnx` + `dl-learned.json`.
 
 ## Applying to other data
 
-Re-run `--retrain` after extending the cases (more shovels/trucks) — the generator logs a richer decision set and the
+Re-run `--retrain` after extending the cases (more shovels/trucks), the generator logs a richer decision set and the
 policies re-fit. The state encoding (`featOrder` in dl-learned.json) is the contract.
