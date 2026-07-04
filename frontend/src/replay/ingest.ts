@@ -9,11 +9,25 @@ import { type MineSpec, type ShovelSpec, type DumpSpec } from '../sim/types';
 export type CycleEvent = 'load' | 'haul' | 'dump' | 'return';
 export interface CycleRow { t: number; truck: number; node: number; event: CycleEvent; payloadT: number; }
 
+export interface GeologyFace {
+  shovelId: number; bench: number; grade: number; oreFraction: number; levelTonnes: number;
+}
+export interface Geology {
+  engine: string;                 // "oreblocks"
+  archetype: string;              // porphyry | vein | layered | core_halo
+  cutoffGrade: number;            // economic cutoff (mass fraction)
+  stampedPitValue: number;        // the EXACT ultimate-pit value the deposit was solved to
+  gradeUnit: string;
+  faces: GeologyFace[];           // per-shovel face stamp (grade/bench/ore-fraction at its bench)
+  note: string;
+}
+
 export interface Provenance {
   source: string;                 // e.g. "OpenMines (MIT) — Huolinhe-desensitized config"
   license: string;                // e.g. "MIT" | "CC BY 4.0"
   kind: 'real-field-log' | 'structure-real';
   caveats: string;                // the honest label shown in the App
+  geology?: Geology;              // #50: oreblocks grade grounding (open-pit samples only)
 }
 
 export interface EmpiricalBlock {

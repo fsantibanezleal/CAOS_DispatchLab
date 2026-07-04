@@ -24,15 +24,27 @@ from pathlib import Path
 from minehaulsim.des.dispatch import MinQueuePolicy, NearestPolicy
 from minehaulsim.io import validate_cyclelog, write_cyclelog
 from minehaulsim.scenarios import (MineSpec, OpenPitParams, UndergroundParams,
-                                   generate_open_pit, generate_underground)
+                                   attach_geology, generate_open_pit, generate_underground)
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[3]
 OUT = REPO / "data" / "examples" / "real"
 
-MINEHAULSIM_VERSION = "0.10.0"
+MINEHAULSIM_VERSION = "0.11.0"
 SHIFT_MIN = 480.0
 SIM_SEED = 7
+
+# per open-pit family: which oreblocks deposit archetype grounds its geology. Underground samples
+# are left ungeologised (the geology contract is open-pit v1). Grade grounding lets the App show
+# the real bench + face grade + ore fraction behind each shovel, from the EXACT ultimate pit.
+GEOLOGY_ARCHETYPE = {
+    "pit-small-spiral": "porphyry",
+    "pit-mid-switchback": "vein",
+    "pit-deep-spiral": "porphyry",
+    "pit-dual-ramp": "core_halo",
+    "pit-two-crushers": "porphyry",
+    "pit-three-phase": "layered",
+}
 
 # (sample tag, scenario factory, policies to run)
 SCENARIOS: list[tuple[str, object, list[str]]] = [
@@ -115,6 +127,29 @@ def export_sample(spec: MineSpec, policy_name: str) -> dict:
                     "operation. Equipment curves are class-representative, not OEM data. "
                     "No calibration to any specific mine is claimed."),
     }
+    # geology grounding (issue #50): when the scenario was geologised (attach_geology), carry the
+    # per-shovel face stamps + the exact-pit provenance in the provenance JSON (scenario metadata,
+    # NOT the cyclelog rows — cyclelog/v1 stays byte-identical, so every existing consumer is
+    # unaffected). The App joins face grade to the per-shovel view by shovel node_id.
+    geo = spec.materials.get("geology")
+    if geo is not None:
+        prov["geology"] = {
+            "engine": geo.get("engine", "oreblocks"),
+            "archetype": geo["archetype"],
+            "cutoffGrade": geo["cutoff_grade"],
+            "stampedPitValue": geo["stamped_pit_value"],
+            "gradeUnit": "mass fraction",
+            "faces": [
+                {"shovelId": int(x["node_id"]), "bench": int(x["face_bench"]),
+                 "grade": round(float(x["face_grade"]), 6),
+                 "oreFraction": round(float(x["face_ore_fraction"]), 4),
+                 "levelTonnes": round(float(x["face_level_tonnes"]), 1)}
+                for x in spec.loaders if "face_grade" in x
+            ],
+            "note": ("SYNTHETIC bench-aligned deposit (oreblocks): per-bench statistics of the "
+                     "EXACT ultimate pit. Vertical axis matches the pit benches; the horizontal "
+                     "footprint is generic, not the haulage superellipse."),
+        }
     (OUT / f"{sample_id}.provenance.json").write_text(json.dumps(prov, indent=2) + "\n",
                                                       encoding="utf-8")
     if spec.topo:
@@ -132,6 +167,9 @@ def main() -> None:
     entries: list[dict] = []
     for tag, factory, policies in SCENARIOS:
         spec = factory()
+        archetype = GEOLOGY_ARCHETYPE.get(spec.name)
+        if archetype is not None and spec.kind == "openpit":
+            spec = attach_geology(spec, archetype=archetype)  # deterministic in (spec, archetype, seed)
         (OUT / f"mhs-{spec.name}.minespec.json").write_text(spec.to_json(), encoding="utf-8")
         for policy_name in policies:
             entries.append(export_sample(spec, policy_name))
