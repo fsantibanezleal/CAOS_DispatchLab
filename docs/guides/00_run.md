@@ -1,10 +1,10 @@
-# 00 — Run DispatchLab
+# 00, Run DispatchLab
 
-A clone replays with **no torch and no Node DES gen** — the trained ONNX + dl-learned.json + the engine
+A clone replays with **no torch and no Node DES gen**, the trained ONNX + dl-learned.json + the engine
 `case-results.json` are committed under `data/derived/`.
 
 ```bash
-# 1) venvs + light deps + editable package (instant — numpy + ruff + pytest)
+# 1) venvs + light deps + editable package (instant, numpy + ruff + pytest)
 ./scripts/setup.sh            #  (PowerShell:  ./scripts/setup.ps1)
 
 # 2) rebuild the per-case replay traces + manifests from the committed artifacts (numpy-only)

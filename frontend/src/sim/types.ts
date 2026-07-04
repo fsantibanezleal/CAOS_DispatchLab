@@ -25,7 +25,7 @@ export interface DumpSpec {
 /** Loaded-direction route (shovel → dump): distance, grade %, rolling resistance %. Empty return negates grade. */
 export interface Route { distM: number; gradePct: number; rrPct: number; }
 
-/** Parametric 2.5D pit topography: a terraced (benched) elliptical pit with a spiral ramp. Optional —
+/** Parametric 2.5D pit topography: a terraced (benched) elliptical pit with a spiral ramp. Optional , 
  *  cases without one get a derived default (topo.ts). Purely REPRESENTATIONAL for the 3D view: cycle TIMES
  *  always come from the DES kinematics over the case's route distM/grade; the 3D path only shows WHERE the
  *  truck is along its leg. */
@@ -41,7 +41,7 @@ export interface PitTopoSpec {
   // dumps (crusher/waste) sit at the rim (z=0) at their case position
 }
 
-// minehaulsim.minetopo/v1 — the underground topography contract (#21): levels, decline
+// minehaulsim.minetopo/v1, the underground topography contract (#21): levels, decline
 // polyline, shafts and ore passes in world metres. Representational for the 3D view.
 export interface MineTopo {
   schema: string;                                   // 'minehaulsim.minetopo/v1'
@@ -92,14 +92,14 @@ export interface DispatchState {
   atDumpId: number | null;   // current location (null at shift start)
   shovels: ShovelView[];
   travelEmptySec: (toShovelId: number) => number;  // est empty-haul time from current position
-  // OR tier (#22, ADDITIVE — heuristic policies ignore them): the trucks that will ask for a
+  // OR tier (#22, ADDITIVE, heuristic policies ignore them): the trucks that will ask for a
   // dispatch decision within the assignment window, and cross-truck empty-travel estimates.
   fleet?: FleetTruckView[];
   etaEmptySecFor?: (truckId: number, toShovelId: number) => number;
 }
 export type Policy = (s: DispatchState) => number;  // → chosen shovel id
 
-// ---- animation trace (optional) — straight-line legs the pit map interpolates over the playback clock ----
+// ---- animation trace (optional), straight-line legs the pit map interpolates over the playback clock ----
 export type LegState = 'haulFull' | 'haulEmpty' | 'atShovel' | 'atDump';
 export interface Leg { truck: number; x0: number; y0: number; x1: number; y1: number; t0: number; t1: number; state: LegState; node: number; }
 

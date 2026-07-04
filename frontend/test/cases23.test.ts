@@ -1,4 +1,4 @@
-// #23: the geometry & constraints cases behave per their DOCUMENTED expected bands — the
+// #23: the geometry & constraints cases behave per their DOCUMENTED expected bands, the
 // archetype is asserted, not assumed.
 import { strict as assert } from 'node:assert';
 import test from 'node:test';

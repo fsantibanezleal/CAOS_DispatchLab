@@ -1,17 +1,17 @@
-"""Typed objects passed between pipeline stages — the inter-stage contract. Plain dataclasses (no heavy deps)."""
+"""Typed objects passed between pipeline stages, the inter-stage contract. Plain dataclasses (no heavy deps)."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
 TRUCK_MODELS = ("793F", "789D", "777G", "930E")  # the rimpull-anchored haul-truck classes
-# mixed fleets are declared as "A+B" (each component must be a valid model) — C11 (#23)
+# mixed fleets are declared as "A+B" (each component must be a valid model), C11 (#23)
 POLICIES = ("greedy", "shortestWait", "minTruckWait", "minShovelWait", "fixed")  # the classical tiers
 LEARNED = ("dl-policy", "dl-bcbest")             # the two learned ONNX policies
 
 
 @dataclass(frozen=True)
 class DispatchScenario:
-    """One validated truck-shovel dispatch scenario (CONTRACT 1 output) — the mine layout + the fleet."""
+    """One validated truck-shovel dispatch scenario (CONTRACT 1 output), the mine layout + the fleet."""
     case_id: str
     n_shovels: int
     n_trucks: int

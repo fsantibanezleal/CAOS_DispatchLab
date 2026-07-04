@@ -1,8 +1,8 @@
 // Real-sample loading (#14): list the shipped cycle-log samples (public/data/real/index.json), load one through
 // CONTRACT 1 (ingest), and accept a bring-your-own-data CSV file through the SAME gate. Everything the App uses
-// in real mode flows through ingestCycleLog — shipped and user data alike.
+// in real mode flows through ingestCycleLog, shipped and user data alike.
 // minehaulsim samples (#30) additionally ship `<id>.topo.json`: the PitTopoSpec of the REAL generated
-// geometry — attached to the ingested mine so the 3D view renders it instead of the derived default.
+// geometry, attached to the ingested mine so the 3D view renders it instead of the derived default.
 // Underground samples ship minehaulsim.minetopo/v1 instead (#21): levels + decline + passes.
 import type { MineTopo, PitTopoSpec } from '../sim/types';
 import { ingestCycleLog, parseCycleCsv, type IngestReport, type Provenance } from './ingest';

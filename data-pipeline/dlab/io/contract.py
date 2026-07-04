@@ -1,8 +1,8 @@
-"""CONTRACT 1 — ingestion (raw dispatch scenario -> pipeline). The *bring-your-own-mine* gate.
+"""CONTRACT 1, ingestion (raw dispatch scenario -> pipeline). The *bring-your-own-mine* gate.
 
 Declares the required schema (columns, units, ranges) of a truck-shovel dispatch scenario and an EXPLICIT outlier
 policy: a scenario is ACCEPTED iff it passes; ill-formed scenarios are REJECTED with a reason (never silently
-coerced); plausible-but-extreme scenarios are FLAGGED (accepted; the flag travels into the manifest — e.g. a wildly
+coerced); plausible-but-extreme scenarios are FLAGGED (accepted; the flag travels into the manifest, e.g. a wildly
 over- or under-trucked fleet whose match factor is far from 1). This is what lets DispatchLab evaluate a NEW pit
 instead of only replaying baked cases. Documented in data/README.md.
 """
@@ -77,7 +77,7 @@ def validate_records(raw_rows: list[dict[str, Any]]) -> ContractReport:
         rec_flags: list[str] = []
         if not (MF_FLAG_LO <= mf <= MF_FLAG_HI):
             regime = "under-trucked" if mf < MF_FLAG_LO else "over-trucked"
-            rec_flags.append(f"match factor ~{mf:.2f} ({regime}) outside [{MF_FLAG_LO},{MF_FLAG_HI}] — dispatch barely matters / queues dominate")
+            rec_flags.append(f"match factor ~{mf:.2f} ({regime}) outside [{MF_FLAG_LO},{MF_FLAG_HI}], dispatch barely matters / queues dominate")
 
         if rec_flags:
             flagged.append({"case_id": cid, "flags": rec_flags})

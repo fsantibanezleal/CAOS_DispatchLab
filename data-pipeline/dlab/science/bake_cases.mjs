@@ -1,5 +1,5 @@
 // Bake the per-case multi-policy comparison through the SAME live TypeScript DES the browser runs, and write
-// data/derived/case-results.json — the committed, deterministic per-case outputs the LIGHT Python pipeline reshapes
+// data/derived/case-results.json, the committed, deterministic per-case outputs the LIGHT Python pipeline reshapes
 // into per-case replay traces + manifests (CONTRACT 2). Run after the SPA lives under frontend/:
 //   node --import tsx data-pipeline/dlab/science/bake_cases.mjs
 import { mkdirSync, writeFileSync } from 'node:fs';

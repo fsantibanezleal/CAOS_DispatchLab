@@ -1,12 +1,12 @@
-// Underground 3D (#21): renders the REAL generated mine skeleton from minehaulsim.minetopo/v1 —
+// Underground 3D (#21): renders the REAL generated mine skeleton from minehaulsim.minetopo/v1 , 
 // the decline as a tube, level platforms, drawpoints, ore-pass tips→chute drops and the shaft
-// bin — and animates the truck fleet along the DECLINE for haul legs (queued/serving trucks sit
+// bin, and animates the truck fleet along the DECLINE for haul legs (queued/serving trucks sit
 // at their marker). Same compute discipline as Pit3D: render ON DEMAND only (playback tick,
 // camera interaction, theme change); no free-running rAF; halts on a hidden tab.
 //
 // Honesty (stated in the panel note): cycle TIMES come from the replayed log; the 3D decides
 // only WHERE a truck is drawn along its leg. Shovel markers map to chutes (or level drawpoints)
-// in id order — representational when the sample carries more loading points than the topo.
+// in id order, representational when the sample carries more loading points than the topo.
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -230,7 +230,7 @@ export function Underground3D({ c, result, t, lang }: { c: CaseSpec; result: Sim
     document.addEventListener('visibilitychange', onVis);
     sceneRef.current = { render };
     render();
-    // repaint after a restored WebGL context (GPU reset / headless churn) — see Pit3D
+    // repaint after a restored WebGL context (GPU reset / headless churn), see Pit3D
     const onRestored = () => requestAnimationFrame(render);
     renderer.domElement.addEventListener('webglcontextrestored', onRestored);
 

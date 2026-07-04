@@ -1,14 +1,14 @@
 // COUNTERFACTUAL dispatch analysis (#18): at every REAL dump-complete in a measured shift, reconstruct the
-// dispatch state the real dispatcher faced (from the log itself) and re-decide it under each policy — "would
+// dispatch state the real dispatcher faced (from the log itself) and re-decide it under each policy, "would
 // this policy have sent the truck where the real dispatcher did?" The App reports per-policy AGREEMENT on the
-// real decision points (honest: decision-point agreement, NOT tonnes — counterfactual tonnes need a calibrated
+// real decision points (honest: decision-point agreement, NOT tonnes, counterfactual tonnes need a calibrated
 // re-simulation and live in Benchmark, #19).
 //
 // State reconstruction (all from the log, same estimates as the replay engine, stated in the UI):
-//   loading   — a truck has load@tL <= t < haul@tH at the shovel (freeInSec = tH - t, the measured remainder)
-//   queueLen  — trucks arrived (return + p10 base travel) but not yet loading there
-//   inbound   — trucks in empty travel toward the shovel (return <= t < arrival estimate)
-//   loadMeanSec — the shovel's measured median; travelEmptySec — the measured route median (p10 fallback)
+//   loading  , a truck has load@tL <= t < haul@tH at the shovel (freeInSec = tH - t, the measured remainder)
+//   queueLen , trucks arrived (return + p10 base travel) but not yet loading there
+//   inbound  , trucks in empty travel toward the shovel (return <= t < arrival estimate)
+//   loadMeanSec, the shovel's measured median; travelEmptySec, the measured route median (p10 fallback)
 import { type DispatchState, type ShovelView } from '../sim/types';
 import { type PolicyDef } from '../policies/heuristics';
 import { type CycleRow, type RealSample } from './ingest';

@@ -1,6 +1,6 @@
-# 02 — Bring your own pit scenario
+# 02, Bring your own pit scenario
 
-DispatchLab is not limited to the 8 baked cases — Contract 1 is the gate that lets it evaluate a NEW pit.
+DispatchLab is not limited to the 8 baked cases, Contract 1 is the gate that lets it evaluate a NEW pit.
 
 ## 1. Describe the scenario (Contract 1)
 
@@ -21,4 +21,4 @@ fleet (match factor far from 1) is **flagged** (dispatch barely matters / queues
 
 Live: the browser's TS DES runs any of the 8 policies over the scenario (pit map + KPIs + the Pareto comparison).
 Offline: add the scenario to `src/sim/cases.ts` and re-run `--retrain` (or `bake_cases.mjs`) to bake its comparison.
-The honesty caveat stands — the DES is a deterministic simulation, not a real fleet (see `docs/cases/README.md`).
+The honesty caveat stands, the DES is a deterministic simulation, not a real fleet (see `docs/cases/README.md`).

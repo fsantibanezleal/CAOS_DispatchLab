@@ -11,7 +11,7 @@ const base = () => (import.meta.env.BASE_URL || '/');
 const get = (name: string) => (sessions[name] ??= ort.InferenceSession.create(`${base()}${name}`, { executionProviders: ['wasm'] }));
 
 // onnxruntime-web forbids concurrent run() on one session ("Session already started"), which StrictMode's
-// double-fired effects + the playback re-renders can trigger — so serialise the calls per model.
+// double-fired effects + the playback re-renders can trigger, so serialise the calls per model.
 const locks: Record<string, Promise<unknown>> = {};
 
 /** Score each candidate shovel (per-shovel 6-feature rows) with a learned policy's ONNX model. */

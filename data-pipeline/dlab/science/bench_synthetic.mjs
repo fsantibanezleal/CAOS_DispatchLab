@@ -1,6 +1,6 @@
-// #19 P1 — the OFFLINE synthetic-corpus benchmark: every policy (5 heuristics + 2 learned via the
+// #19 P1, the OFFLINE synthetic-corpus benchmark: every policy (5 heuristics + 2 learned via the
 // synchronous TS forward) x every case x a 20-seed bank, through the SAME live TS DES the browser
-// runs. Writes data/derived/bench/synthetic.json — the Benchmark page only READS it (no heavy
+// runs. Writes data/derived/bench/synthetic.json, the Benchmark page only READS it (no heavy
 // compute in the browser). Deterministic: fixed seed banks, byte-stable re-runs.
 //   node --import tsx data-pipeline/dlab/science/bench_synthetic.mjs
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -21,8 +21,8 @@ mkdirSync(OUT, { recursive: true });
 // the two learned policies from the committed weights (same forward the live DES uses)
 const learnedDoc = JSON.parse(readFileSync(resolve(DERIVED, 'dl-learned.json'), 'utf-8'));
 const LEARNED = [
-  { id: 'rwr', en: 'Learned — RWR policy', es: 'Aprendida — política RWR', fn: makeLearnedPolicy(learnedDoc.weights.policy), tier: 'learned' },
-  { id: 'bcbest', en: 'Learned — BC-best', es: 'Aprendida — BC-best', fn: makeLearnedPolicy(learnedDoc.weights.bcbest), tier: 'learned' },
+  { id: 'rwr', en: 'Learned, RWR policy', es: 'Aprendida, política RWR', fn: makeLearnedPolicy(learnedDoc.weights.policy), tier: 'learned' },
+  { id: 'bcbest', en: 'Learned, BC-best', es: 'Aprendida, BC-best', fn: makeLearnedPolicy(learnedDoc.weights.bcbest), tier: 'learned' },
 ];
 const ALL = [...POLICIES, ...LEARNED];
 

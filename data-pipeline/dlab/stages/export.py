@@ -1,5 +1,5 @@
-"""Stage 6 — export (CONTRACT 2): build the compact per-case trace from the committed DES outputs (case-results.json)
-+ the learned-policy metrics (dl-learned.json), run the lane gate, and write the manifest. No torch/node — so the
+"""Stage 6, export (CONTRACT 2): build the compact per-case trace from the committed DES outputs (case-results.json)
++ the learned-policy metrics (dl-learned.json), run the lane gate, and write the manifest. No torch/node, so the
 contract + replay regenerate deterministically anywhere, and CI stays fast. The HEAVY export (writing the ONNX
 policies + dl-learned.json + case-results.json) is done by the preserved science (science/train_policy.py +
 science/bake_cases.mjs), invoked by pipeline.retrain."""
@@ -13,7 +13,7 @@ from ..core.manifest import build_case_manifest
 from ..core.trace import build_trace
 from ..io.formats import write_json
 
-_RUN_MS = 50.0   # a shift DES over a few seeds — milliseconds-to-seconds; deterministic gate budget
+_RUN_MS = 50.0   # a shift DES over a few seeds, milliseconds-to-seconds; deterministic gate budget
 _RUNTIMES = {"ts-des", "onnxruntime-web"}
 
 

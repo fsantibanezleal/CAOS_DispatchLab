@@ -1,4 +1,4 @@
-// Operational dispatch constraints (#22 P3) — the physics real dispatch runs under. They are
+// Operational dispatch constraints (#22 P3), the physics real dispatch runs under. They are
 // DATA on the case (additive, optional); the DES enforces them BEFORE the policy sees the state:
 // infeasible shovels are filtered out of the ShovelView set, so EVERY policy respects them by
 // construction. A policy that still returns an infeasible id gets re-assigned to the nearest

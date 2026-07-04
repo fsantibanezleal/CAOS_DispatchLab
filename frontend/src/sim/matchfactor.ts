@@ -1,4 +1,4 @@
-// Match factor — the analytical fleet-balance ground truth the simulator is validated against. ONE pinned
+// Match factor, the analytical fleet-balance ground truth the simulator is validated against. ONE pinned
 // definition is used everywhere (avoiding the text-to-text drift): the truck "demand" rate divided by the
 // shovel "service" capacity,
 //     MF = (N_trucks · t_load) / (N_shovels · t_cycle),     t_cycle = load + haul-full + dump + haul-empty
@@ -6,7 +6,7 @@
 // < 1 under-trucked (shovel idle). The classic formula assumes a homogeneous fleet (Morgan & Peterson,
 // commonly attributed); the heterogeneous (mixed-class) correction (Burt & Caccetta 2007,
 // doi:10.1080/17480930701388606) is NOT implemented yet (backlog). Here we compute the homogeneous MF with
-// a representative truck — approximate for mixed fleets (C11).
+// a representative truck, approximate for mixed fleets (C11).
 import { travelTimeSec } from './kinematics';
 import { type CaseSpec, type MineSpec } from './types';
 

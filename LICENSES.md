@@ -2,7 +2,7 @@
 
 DispatchLab depends on the following open-source components. Each retains its own license.
 
-## Offline lane (Python — `requirements*.txt`)
+## Offline lane (Python, `requirements*.txt`)
 
 | Package | License |
 |---|---|
@@ -15,7 +15,7 @@ DispatchLab depends on the following open-source components. Each retains its ow
 
 The offline DES dataset generator + the case bake run on **Node.js** (the SAME TypeScript DES the browser uses, via `tsx`).
 
-## Frontend (npm — `frontend/package.json`)
+## Frontend (npm, `frontend/package.json`)
 
 | Package | License |
 |---|---|

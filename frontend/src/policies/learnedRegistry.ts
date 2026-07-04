@@ -14,8 +14,8 @@ export function loadLearnedPolicies(): Promise<PolicyDef[]> {
     const data = await fetch(`${base}dl-learned.json`).then((r) => r.json());
     const w: LearnedWeights = data.weights;
     return [
-      { id: 'rwr', en: 'Learned — RWR policy', es: 'Aprendida — política RWR', fn: makeLearnedPolicy(w.policy), tier: 'learned' },
-      { id: 'bcbest', en: 'Learned — BC-best', es: 'Aprendida — BC-best', fn: makeLearnedPolicy(w.bcbest), tier: 'learned' },
+      { id: 'rwr', en: 'Learned, RWR policy', es: 'Aprendida, política RWR', fn: makeLearnedPolicy(w.policy), tier: 'learned' },
+      { id: 'bcbest', en: 'Learned, BC-best', es: 'Aprendida, BC-best', fn: makeLearnedPolicy(w.bcbest), tier: 'learned' },
     ] as PolicyDef[];
   })();
   return cache;
