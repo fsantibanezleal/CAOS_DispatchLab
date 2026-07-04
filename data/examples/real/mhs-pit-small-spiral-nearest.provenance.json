@@ -3,10 +3,10 @@
   "name": "pit-small-spiral shift (nearest)",
   "schema": "dispatchlab.cyclelog/v1",
   "kind": "structure-real",
-  "source": "Generated with minehaulsim 0.10.0 (pypi.org/project/minehaulsim, Apache-2.0): deterministic DES on a constrained road network (rimpull speed-by-grade, direction zones, emergent bunching), seeded parametric mine generator.",
+  "source": "Generated with minehaulsim 0.11.0 (pypi.org/project/minehaulsim, Apache-2.0): deterministic DES on a constrained road network (rimpull speed-by-grade, direction zones, emergent bunching), seeded parametric mine generator.",
   "generator": {
     "package": "minehaulsim",
-    "version": "0.10.0",
+    "version": "0.11.0",
     "scenario_seed": 101,
     "sim_seed": 7,
     "dispatcher": "nearest",
@@ -15,5 +15,29 @@
     "scenario": "7 benches x 12.0 m, spiral ramp (1 lane), 2 shovels, 2 dumps, 5 trucks"
   },
   "license": "Apache-2.0 (generator); generated rows CC0",
-  "caveats": "Synthetic cycle log (structure-real): the road network, grades, speeds and queueing are simulated physics; the mine itself is generated, not a real operation. Equipment curves are class-representative, not OEM data. No calibration to any specific mine is claimed."
+  "caveats": "Synthetic cycle log (structure-real): the road network, grades, speeds and queueing are simulated physics; the mine itself is generated, not a real operation. Equipment curves are class-representative, not OEM data. No calibration to any specific mine is claimed.",
+  "geology": {
+    "engine": "oreblocks",
+    "archetype": "porphyry",
+    "cutoffGrade": 0.00113636,
+    "stampedPitValue": 1239871035.725,
+    "gradeUnit": "mass fraction",
+    "faces": [
+      {
+        "shovelId": 1,
+        "bench": 4,
+        "grade": 0.010731,
+        "oreFraction": 1.0,
+        "levelTonnes": 5145120.0
+      },
+      {
+        "shovelId": 2,
+        "bench": 2,
+        "grade": 0.004588,
+        "oreFraction": 0.6511,
+        "levelTonnes": 6946560.0
+      }
+    ],
+    "note": "SYNTHETIC bench-aligned deposit (oreblocks): per-bench statistics of the EXACT ultimate pit. Vertical axis matches the pit benches; the horizontal footprint is generic, not the haulage superellipse."
+  }
 }

@@ -34,6 +34,7 @@ export async function loadSample(meta: SampleMeta): Promise<IngestReport> {
     license: prov.license ?? 'unknown',
     kind: (prov.kind as Provenance['kind']) ?? 'structure-real',
     caveats: prov.caveats ?? '',
+    ...(prov.geology ? { geology: prov.geology as Provenance['geology'] } : {}),
   };
   const report = ingestCycleLog(parseCycleCsv(await csvRes.text()), { id: meta.id, name: meta.name, provenance });
   if (report.ok && report.sample && topoRes?.ok) {

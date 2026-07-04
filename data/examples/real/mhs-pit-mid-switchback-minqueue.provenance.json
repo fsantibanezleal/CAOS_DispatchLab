@@ -3,10 +3,10 @@
   "name": "pit-mid-switchback shift (minqueue)",
   "schema": "dispatchlab.cyclelog/v1",
   "kind": "structure-real",
-  "source": "Generated with minehaulsim 0.10.0 (pypi.org/project/minehaulsim, Apache-2.0): deterministic DES on a constrained road network (rimpull speed-by-grade, direction zones, emergent bunching), seeded parametric mine generator.",
+  "source": "Generated with minehaulsim 0.11.0 (pypi.org/project/minehaulsim, Apache-2.0): deterministic DES on a constrained road network (rimpull speed-by-grade, direction zones, emergent bunching), seeded parametric mine generator.",
   "generator": {
     "package": "minehaulsim",
-    "version": "0.10.0",
+    "version": "0.11.0",
     "scenario_seed": 202,
     "sim_seed": 7,
     "dispatcher": "minqueue",
@@ -15,5 +15,43 @@
     "scenario": "10 benches x 10.0 m, switchback ramp (2 lane), 4 shovels, 3 dumps, 28 trucks"
   },
   "license": "Apache-2.0 (generator); generated rows CC0",
-  "caveats": "Synthetic cycle log (structure-real): the road network, grades, speeds and queueing are simulated physics; the mine itself is generated, not a real operation. Equipment curves are class-representative, not OEM data. No calibration to any specific mine is claimed."
+  "caveats": "Synthetic cycle log (structure-real): the road network, grades, speeds and queueing are simulated physics; the mine itself is generated, not a real operation. Equipment curves are class-representative, not OEM data. No calibration to any specific mine is claimed.",
+  "geology": {
+    "engine": "oreblocks",
+    "archetype": "vein",
+    "cutoffGrade": 0.00113636,
+    "stampedPitValue": 1228495563.155,
+    "gradeUnit": "mass fraction",
+    "faces": [
+      {
+        "shovelId": 1,
+        "bench": 4,
+        "grade": 0.004661,
+        "oreFraction": 0.4815,
+        "levelTonnes": 4665600.0
+      },
+      {
+        "shovelId": 2,
+        "bench": 2,
+        "grade": 0.004012,
+        "oreFraction": 0.4091,
+        "levelTonnes": 5702400.0
+      },
+      {
+        "shovelId": 3,
+        "bench": 5,
+        "grade": 0.005085,
+        "oreFraction": 0.4818,
+        "levelTonnes": 4147200.0
+      },
+      {
+        "shovelId": 4,
+        "bench": 7,
+        "grade": 0.006261,
+        "oreFraction": 0.5671,
+        "levelTonnes": 3218400.0
+      }
+    ],
+    "note": "SYNTHETIC bench-aligned deposit (oreblocks): per-bench statistics of the EXACT ultimate pit. Vertical axis matches the pit benches; the horizontal footprint is generic, not the haulage superellipse."
+  }
 }
