@@ -47,8 +47,8 @@ function Pol({ es }: { es: boolean }) {
       <text x="525" y="125" textAnchor="end" fill="var(--color-fg-subtle)">{es ? 'espera de camión →' : 'truck wait →'}</text>
       <text x="44" y="14" textAnchor="end" fill="var(--color-fg-subtle)">{es ? 'espera de pala' : 'shovel wait'}</text>
       <path d="M 70 30 Q 180 40 250 70 T 480 100" fill="none" stroke="var(--color-accent)" strokeWidth="1.6" strokeDasharray="4 3" />
-      <circle cx="90" cy="34" r="4" fill="#d29922" /><text x="98" y="30" fill="var(--color-fg)">min-pala</text>
-      <circle cx="470" cy="98" r="4" fill="#58a6ff" /><text x="430" y="92" fill="var(--color-fg)">min-camión</text>
+      <circle cx="90" cy="34" r="4" fill="#d29922" /><text x="98" y="30" fill="var(--color-fg)">{es ? 'min-pala' : 'min-shovel'}</text>
+      <circle cx="470" cy="98" r="4" fill="#58a6ff" /><text x="430" y="92" fill="var(--color-fg)">{es ? 'min-camión' : 'min-truck'}</text>
       <text x="230" y="55" fill="var(--color-fg-subtle)">{es ? 'frontera: no se pueden minimizar ambas' : 'frontier: cannot minimise both'}</text>
     </svg>
     <p>{es ? 'Se implementan: fija (piso), greedy (fin más temprano, miope), espera-esperada-mínima, los dos criterios en conflicto, y la asignación Hungarian (óptima para el match instantáneo). La página Benchmark mide las toneladas reales de cada una.' : 'Implemented: fixed (floor), greedy (earliest completion, myopic), shortest-expected-wait, the two conflicting criteria, and Hungarian assignment (optimal for the instantaneous match). The Benchmark page measures each one\'s real tonnes.'}</p>
