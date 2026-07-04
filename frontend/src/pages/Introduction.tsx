@@ -49,7 +49,7 @@ function ArchSVG({ es }: { es: boolean }) {
       {box(250, 20, 200, es ? 'Políticas clásicas' : 'Classical policies', es ? 'greedy · criterios · Hungarian' : 'greedy · criteria · Hungarian', 'color-mix(in oklab, var(--color-accent) 12%, var(--color-surface))')}
       {box(250, 140, 200, es ? 'Políticas aprendidas' : 'Learned policies', 'RWR · BC (ONNX)', 'color-mix(in oklab, #f85149 16%, var(--color-surface))')}
       {arr(170, 92, 250, 50)} {arr(170, 110, 250, 162)}
-      {box(520, 80, 160, es ? 'Workbench web' : 'Web workbench', es ? '10 vistas + benchmark' : '10 views + benchmark', 'var(--color-surface)')}
+      {box(520, 80, 160, es ? 'Workbench web' : 'Web workbench', es ? '11 vistas + benchmark' : '11 views + benchmark', 'var(--color-surface)')}
       {arr(450, 42, 520, 95)} {arr(450, 162, 520, 120)}
       <text x="600" y="140" textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="10.5">{es ? 'inferencia ONNX viva' : 'live ONNX inference'}</text>
     </svg>

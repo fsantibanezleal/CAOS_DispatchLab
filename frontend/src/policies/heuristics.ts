@@ -3,7 +3,8 @@
 // the empty-haul time to reach it) but optimise DIFFERENT objectives, which is the whole point: on an
 // asymmetric pit they diverge, and the two classic criteria (min-truck-wait vs min-shovel-wait, Alarie &
 // Gamache 2002) provably conflict — you cannot minimise both. Every tie breaks on lowest shovel id so the
-// run stays deterministic. The exact OR policies (Hungarian, multi-stage LP, blend-MILP) build on this.
+// run stays deterministic. The OR tier's joint assignment (Hungarian, `or.ts`) builds on this same cost
+// basis; multi-stage LP and blend-MILP remain backlog, not implemented.
 import { type Policy, type DispatchState, type ShovelView } from '../sim/types';
 import { hungarianPolicy } from './or';
 

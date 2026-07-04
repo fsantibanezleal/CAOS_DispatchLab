@@ -6,7 +6,8 @@
 [![Live demo](https://img.shields.io/badge/demo-live-2ea44f)](https://dispatchlab.fasl-work.com)
 
 A didactic, in-browser bench that compares **truck-to-shovel dispatch policies** on a deterministic
-discrete-event simulation of an open pit, validated against closed-form match-factor and queueing theory.
+discrete-event simulation of an open pit, validated against closed-form match-factor theory and a 1×1
+capacity oracle.
 
 **Live:** https://dispatchlab.fasl-work.com · part of the [Faena](https://faena.fasl-work.com) mining-analytics hub.
 
@@ -25,10 +26,12 @@ decision panel diagnoses fleet balance (over/under-trucked + a fleet-sizing sugg
   across policies). Validated by a closed-form 1×1 oracle, a determinism test and the match-factor controls.
 - **Truck kinematics** from rimpull/grade physics (total resistance = grade + rolling resistance), not a
   constant speed.
-- **Dispatch policies** — fixed, greedy (earliest completion), shortest-expected-wait, and the two classic
-  conflicting criteria (min-truck-wait vs min-shovel-wait). The exact OR policies (Hungarian, multi-stage
-  LP, blend-MILP) and a reinforcement-learning policy build on this base.
-- **Match factor** as the analytical ground truth, with the heterogeneous-fleet correction.
+- **Dispatch policies** — fixed, greedy (earliest completion), shortest-expected-wait, the two classic
+  conflicting criteria (min-truck-wait vs min-shovel-wait), Hungarian joint assignment (the OR tier) and
+  two learned imitation policies (RWR + BC-best, ONNX in-browser). Multi-stage LP, blend-MILP and RL are
+  backlog, not implemented.
+- **Match factor** as the analytical ground truth — the classic homogeneous formula on a representative
+  truck (approximate for mixed fleets; the Burt & Caccetta heterogeneous correction is not implemented yet).
 
 ## Architecture
 
@@ -38,7 +41,7 @@ by two data contracts. See [`STRUCTURE.md`](STRUCTURE.md) and the [`docs/`](docs
 ```
 OFFLINE  data-pipeline/dlab/ (Node DES + torch)      LIVE  frontend/src/ (browser, TypeScript)
   science/gen_dataset.mjs  log DES decisions            sim/       the deterministic DES engine
-  science/train_policy.py  learned policies -> ONNX      policies/  5 heuristics + 2 learned (onnxruntime-web)
+  science/train_policy.py  learned policies -> ONNX      policies/  5 heuristics + Hungarian + 2 learned (onnxruntime-web)
   science/bake_cases.mjs   per-case comparison           viz/       PitMap / Pareto / sweep
         │  --retrain regenerates the artifacts
         ▼
