@@ -195,10 +195,22 @@ export default function Tool() {
       </Panel>) },
     { id: 'shovel', label: es ? 'Por pala' : 'Per-shovel', content: (
       <Panel t={es ? 'Cargas y utilización por pala' : 'Per-shovel loads & utilisation'}>
-        <div className="dl-bars">{result.shovels.map((s) => (
-          <div key={s.id} className="dl-bar-row"><div className="dl-bar-label">{s.name.split('(')[0].trim()}</div>
-            <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${s.util * 100}%`, background: 'var(--color-accent)' }} /></div><span className="dl-bar-num mono">{s.served} · {(s.util * 100).toFixed(0)}%</span></div>
-          </div>))}</div>
+        {(() => {
+          // #50: when the sample carries oreblocks geology, show each shovel's FACE grade + bench +
+          // ore fraction (from the exact ultimate pit), joined by shovel node id.
+          const faces = realOK ? realReport?.sample?.provenance.geology?.faces : undefined;
+          const faceOf = faces ? Object.fromEntries(faces.map((f) => [f.shovelId, f])) : null;
+          return (<>
+            <div className="dl-bars">{result.shovels.map((s) => {
+              const f = faceOf?.[s.id];
+              return (
+                <div key={s.id} className="dl-bar-row"><div className="dl-bar-label">{s.name.split('(')[0].trim()}{f ? <span className="chip" style={{ marginLeft: 6, pointerEvents: 'none', fontSize: '0.7rem' }}>{es ? 'banco' : 'bench'} {f.bench} · {(f.grade * 100).toFixed(2)}% · {(f.oreFraction * 100).toFixed(0)}% {es ? 'min.' : 'ore'}</span> : null}</div>
+                  <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${s.util * 100}%`, background: 'var(--color-accent)' }} /></div><span className="dl-bar-num mono">{s.served} · {(s.util * 100).toFixed(0)}%</span></div>
+                </div>);
+            })}</div>
+            {faceOf && <p className="dl-hint small">{es ? 'Chip = geología del banco de cada pala en el pit exacto (oreblocks): banco · ley · fracción de mineral al corte económico.' : 'Chip = each shovel bench geology in the exact pit (oreblocks): bench · grade · ore fraction at the economic cutoff.'}</p>}
+          </>);
+        })()}
       </Panel>) },
     { id: 'feed', label: es ? 'Aliment. chancador' : 'Crusher feed', content: <Panel t={es ? 'Alimentación al chancador — toneladas acumuladas vs hora' : 'Crusher feed — cumulative tonnes vs shift hour'}><UPlotChart data={feed} build={buildFeed} height={200} /></Panel> },
     { id: 'compare', label: es ? 'Comparar políticas' : 'Compare policies', content: (
@@ -327,6 +339,12 @@ export default function Tool() {
                   <summary>{es ? 'Procedencia' : 'Provenance'} · <b>{realReport.sample.provenance.kind}</b> · <span className="mono">{realReport.sample.trucks.length}t · {realReport.sample.shovels.length}s · {(realReport.sample.shiftSec / 3600).toFixed(1)}h</span></summary>
                   <div className="small">{realReport.sample.provenance.source}</div>
                   <div className="small muted">{realReport.sample.provenance.caveats}</div>
+                  {realReport.sample.provenance.geology && (
+                    <div className="small" style={{ marginTop: '0.3rem' }}>
+                      {es ? 'Geología' : 'Geology'} (oreblocks): <b>{realReport.sample.provenance.geology.archetype}</b> · {es ? 'ley de corte' : 'cutoff'} {(realReport.sample.provenance.geology.cutoffGrade * 100).toFixed(3)}% · {es ? 'pit exacto' : 'exact pit'} ${(realReport.sample.provenance.geology.stampedPitValue / 1e6).toFixed(0)}M
+                      <div className="muted">{realReport.sample.provenance.geology.note}</div>
+                    </div>
+                  )}
                 </details>
               </>
             )}

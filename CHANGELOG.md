@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.13.000] — 2026-07-04
+
+### Added — geology grounding of the structure-real samples (#50, via minehaulsim 0.11 + oreblocks)
+- The open-pit mhs-* samples are now geology-grounded: the generator calls `attach_geology`
+  (minehaulsim[geology] 0.11.0, backed by the oreblocks package) with a per-family archetype
+  (porphyry / vein / layered / core_halo). Each shovel is stamped with the geology of ITS OWN bench
+  from the EXACT ultimate pit: bench, grade, ore fraction at the economic cutoff, exposed tonnage.
+- Design: geology rides in the sample provenance JSON (scenario metadata), NOT the cyclelog rows,
+  so **cyclelog/v1 stays byte-identical** and every existing consumer is unaffected (verified). The
+  App joins the face stamp to the per-shovel view by shovel node id.
+- App surfaces: the provenance fold shows archetype + economic cutoff + the exact-pit value; the
+  Per-shovel tab shows a face chip per shovel (bench · grade · ore fraction). Underground samples
+  are left ungeologised (the geology contract is open-pit v1).
+- +4 guard tests (geology ingests + is exposed; it is optional/backward-compatible; the committed
+  pit samples carry it and ug samples do not; the cyclelog/v1 header is unchanged). Tests + build green.
+
 ## [0.12.000] — 2026-07-03
 
 ### Changed — selection & page UX pass (Felipe's review)

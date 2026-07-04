@@ -12,4 +12,4 @@ re-port) logs decisions; Python (`science/train_policy.py`) fits the ONNX polici
 numpy-only and rebuilds the replay from the committed artifacts.
 """
 
-__version__ = "0.12.000"  # display X.XX.XXX; PEP 440 form in pyproject.toml (0.12.0)
+__version__ = "0.13.000"  # display X.XX.XXX; PEP 440 form in pyproject.toml (0.13.0)
