@@ -1,4 +1,4 @@
-# 01 — Overview
+# 01, Overview
 
 DispatchLab is split into a heavy **offline engine** (`data-pipeline/dlab/`) and a **frontend SPA** (`frontend/`),
 bound by two data contracts. The committed compact artifacts under `data/derived/` are the offline engine's real
@@ -18,18 +18,18 @@ frontend (copy-data.mjs overlays data/derived) ──► the TS DES + onnxruntim
 
 ## Packages
 
-* **`data-pipeline/dlab/`** — the offline engine: `io/` (contracts, formats), `core/` (rng, trace, manifest, gate),
+* **`data-pipeline/dlab/`**, the offline engine: `io/` (contracts, formats), `core/` (rng, trace, manifest, gate),
   `stages/` (the named pipeline, thin wrappers over the science), `cases/` + `registry.py` (the 12 cases by category),
-  `science/` (the preserved verbatim Node DES dataset gen + torch policy training + the case bake — the heavy lane),
+  `science/` (the preserved verbatim Node DES dataset gen + torch policy training + the case bake, the heavy lane),
   `pipeline.py` (orchestrator + CLI), `live.py` (dormant Pyodide).
-* **`frontend/`** — the React/Vite SPA: `src/sim/` (the TS DES engine), `src/policies/` (the 5 heuristics + the
+* **`frontend/`**, the React/Vite SPA: `src/sim/` (the TS DES engine), `src/policies/` (the 5 heuristics + the
   Hungarian OR tier + the learned policies), `src/lib/ort.ts` (onnxruntime-web), `src/viz/` (PitMap / Pareto / sweep),
   `src/pages/` (the 6 standard pages), `src/lib/contract.types.ts` (the Contract-2 mirror).
-* **`app/`** — a dormant FastAPI backend (DispatchLab is static-first).
+* **`app/`**, a dormant FastAPI backend (DispatchLab is static-first).
 
 ## The two lanes
 
 * **Default (numpy-only):** `python -m dlab.pipeline all` rebuilds every per-case replay trace + manifest from the
-  committed `case-results.json` + `dl-learned.json` — no torch, no Node. A clone replays immediately.
+  committed `case-results.json` + `dl-learned.json`, no torch, no Node. A clone replays immediately.
 * **Heavy (`--retrain`, two-language):** Node generates the DES decision dataset (the SAME TS DES the browser runs)
   → torch trains the two learned policies → exports ONNX + dl-learned.json → re-bakes `case-results.json`. Local-only.

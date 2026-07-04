@@ -2,7 +2,7 @@
 // tick counter (centiseconds) so time arithmetic is bit-exact across JS engines; durations are sampled in
 // continuous seconds then rounded to ticks AT schedule() time, which absorbs the last-ULP differences of
 // transcendental sampling (exp/log) that would otherwise diverge a trace across browsers. Event order is a
-// strict total order (timeTick, priority, seq) — seq, a monotonic counter, is the determinism keystone:
+// strict total order (timeTick, priority, seq), seq, a monotonic counter, is the determinism keystone:
 // without it, simultaneous events would resolve by heap-internal accident.
 import { MinHeap } from './heap';
 

@@ -1,4 +1,4 @@
-// #19 P2+P3 — counterfactual benchmark over the REAL sample corpus + cross-source consistency.
+// #19 P2+P3, counterfactual benchmark over the REAL sample corpus + cross-source consistency.
 // For every shipped cyclelog sample: ingest with the SAME TS rules the app applies, replay the
 // measured shift (actual tonnes), rebuild the MEASURED case (empirical distributions), then
 // re-run it under every policy x a seed bank -> counterfactual tonnes vs realized (delta % with
@@ -26,8 +26,8 @@ mkdirSync(OUT, { recursive: true });
 const learnedDoc = JSON.parse(readFileSync(resolve(DERIVED, 'dl-learned.json'), 'utf-8'));
 const ALL = [
   ...POLICIES,
-  { id: 'rwr', en: 'Learned — RWR policy', es: 'Aprendida — política RWR', fn: makeLearnedPolicy(learnedDoc.weights.policy), tier: 'learned' },
-  { id: 'bcbest', en: 'Learned — BC-best', es: 'Aprendida — BC-best', fn: makeLearnedPolicy(learnedDoc.weights.bcbest), tier: 'learned' },
+  { id: 'rwr', en: 'Learned, RWR policy', es: 'Aprendida, política RWR', fn: makeLearnedPolicy(learnedDoc.weights.policy), tier: 'learned' },
+  { id: 'bcbest', en: 'Learned, BC-best', es: 'Aprendida, BC-best', fn: makeLearnedPolicy(learnedDoc.weights.bcbest), tier: 'learned' },
 ];
 const SEEDS = Array.from({ length: 10 }, (_, i) => 101 + i * 13);
 const r1 = (x) => Math.round(x * 10) / 10;
@@ -100,7 +100,7 @@ for (const pf of provFiles) {
   console.log(`${s.id}: actual ${r1(actual)} t, ${decisions.length} decisions, best cf ${policies.slice().sort((a, b) => b.cfTonnes - a.cfTonnes)[0].id}`);
 }
 
-// P3 — cross-source consistency: rankings on real samples vs the synthetic aggregate
+// P3, cross-source consistency: rankings on real samples vs the synthetic aggregate
 const synth = JSON.parse(readFileSync(resolve(OUT, 'synthetic.json'), 'utf-8'));
 const synthRank = synth.aggregate.map((a) => a.id);                 // best..worst by mean rank
 function kendallTau(a, b) {
@@ -116,7 +116,7 @@ function kendallTau(a, b) {
 }
 // Cross-source compares ONLY the policies whose semantics are IDENTICAL in both sources: the
 // hungarian policy degrades to its solo fallback inside cfsim (no fleet view there), so ranking
-// it across sources would compare two different algorithms — it is excluded from tau and
+// it across sources would compare two different algorithms, it is excluded from tau and
 // reported separately per sample (honest apples-to-apples).
 const CROSS_IDS = new Set(ALL.filter((p) => p.tier !== 'or').map((p) => p.id));
 const cross = samples.filter((s) => s.ok).map((s) => {

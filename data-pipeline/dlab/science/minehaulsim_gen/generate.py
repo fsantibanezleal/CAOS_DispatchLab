@@ -1,16 +1,16 @@
-"""Generate STRUCTURE-REAL cycle-log samples with minehaulsim (issue #30 — replaces OpenMines
+"""Generate STRUCTURE-REAL cycle-log samples with minehaulsim (issue #30, replaces OpenMines
 as the default structure-real source).
 
 Why minehaulsim: a deterministic DES on a CONSTRAINED road network (one-way ramps, rimpull
 speed-by-grade, single-lane direction zones, junctions, emergent bunching) with seeded
-parametric generators — every sample comes from a STRUCTURALLY different validated mine, and
+parametric generators, every sample comes from a STRUCTURALLY different validated mine, and
 each ships the topography of the REAL generated geometry so the 3D view renders it faithfully.
 OpenMines remains an optional legacy generator (single fixed mine, scalar distances, no grades).
 
 Set (blueprint): 6 varied open pits (small/mid spiral+switchback get BOTH minqueue and nearest
 for policy comparison; deep single-lane spiral, dual-ramp one-way circulation, 2-crusher, and a
 3-phase eccentric pit get one each) + 2 underground mines (lhd_orepass_truck, truck_direct).
-Every sample: cyclelog CSV (validated with the SAME rules the app's ingest applies — the
+Every sample: cyclelog CSV (validated with the SAME rules the app's ingest applies, the
 minehaulsim port is faithful) + provenance JSON + topo JSON.
 
 Run (inside .venv-pipeline, which has minehaulsim==0.10.0 pinned):
@@ -129,7 +129,7 @@ def export_sample(spec: MineSpec, policy_name: str) -> dict:
     }
     # geology grounding (issue #50): when the scenario was geologised (attach_geology), carry the
     # per-shovel face stamps + the exact-pit provenance in the provenance JSON (scenario metadata,
-    # NOT the cyclelog rows — cyclelog/v1 stays byte-identical, so every existing consumer is
+    # NOT the cyclelog rows, cyclelog/v1 stays byte-identical, so every existing consumer is
     # unaffected). The App joins face grade to the per-shovel view by shovel node_id.
     geo = spec.materials.get("geology")
     if geo is not None:

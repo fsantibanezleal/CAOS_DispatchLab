@@ -1,7 +1,7 @@
-// Hungarian (Kuhn–Munkres) assignment solver — the OR tier's core (#22). Pure TS, O(n^3),
+// Hungarian (Kuhn–Munkres) assignment solver, the OR tier's core (#22). Pure TS, O(n^3),
 // no dependencies. Solves min-cost assignment of workers (trucks) to tasks (shovel SLOTS);
 // rectangular matrices are padded to square with a large-but-finite cost so extra workers get
-// dummy tasks (never Infinity — it breaks the potentials).
+// dummy tasks (never Infinity, it breaks the potentials).
 //
 // References (documented in docs/methodology): Kuhn 1955; Munkres 1957; the DISPATCH-style
 // instantaneous optimal assignment baseline: White & Olson 1986; Alarie & Gamache 2002 (survey).

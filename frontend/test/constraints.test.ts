@@ -1,4 +1,4 @@
-// #22 P3: operational constraints are enforced by the DES for EVERY policy — feasibility
+// #22 P3: operational constraints are enforced by the DES for EVERY policy, feasibility
 // filtering, queue caps, compatibility, shift breaks, and invalid-choice accounting.
 import { strict as assert } from 'node:assert';
 import test from 'node:test';
@@ -18,7 +18,7 @@ test('maxQueuePerShovel caps commitment even under a herding policy', () => {
       for (const v of state.shovels) maxCommitted = Math.max(maxCommitted, v.queueLen + v.inbound + (v.loading ? 1 : 0));
     },
   });
-  // the FEASIBLE set never shows a shovel at/over the cap — policies cannot over-commit one
+  // the FEASIBLE set never shows a shovel at/over the cap, policies cannot over-commit one
   assert.ok(maxCommitted <= 2, `saw committed=${maxCommitted} in the feasible set`);
 });
 

@@ -2,7 +2,7 @@
 // At each decision the policy solves the joint truck→shovel-slot assignment (Hungarian) over the
 // fleet view (every truck that will ask for dispatch within the window) and returns THIS truck's
 // assigned shovel. Where the fleet view is unavailable (replay/counterfactual contexts build a
-// single-truck state), it falls back to solo earliest-completion — stated in the docs: agreement
+// single-truck state), it falls back to solo earliest-completion, stated in the docs: agreement
 // numbers for `hungarian` reflect that fallback, tonnes comparisons use the full joint solve.
 import { type DispatchState } from '../sim/types';
 import { assignFleet } from './hungarian';
@@ -22,7 +22,7 @@ export function hungarianPolicy(s: DispatchState): number {
   const shovels = s.shovels.map((v) => ({
     id: v.id,
     // COMMITTED backlog priced into the first slot: queued + already-dispatched inbound trucks
-    // (they are not in the pending fleet, but they WILL be served first — omitting inbound
+    // (they are not in the pending fleet, but they WILL be served first, omitting inbound
     // re-creates the herding the joint assignment exists to avoid)
     freeInSec: v.freeInSec + (v.queueLen + v.inbound) * v.loadMeanSec,
     loadMeanSec: v.loadMeanSec,

@@ -1,8 +1,8 @@
-// Fleet-size sweep — the validation of the simulator against match-factor theory. For a fixed mine we run
+// Fleet-size sweep, the validation of the simulator against match-factor theory. For a fixed mine we run
 // the sim across truck counts and watch throughput rise ~linearly while the match factor is below 1, then
 // SATURATE as it crosses 1 and the shovels hit 100% utilisation. The empirical over-trucking knee should
 // fall at MF≈1, which is exactly what the closed-form predicts. The knee is detected by the Kneedle method
-// (max distance from the chord joining the first and last point), with its detection named — not eyeballed.
+// (max distance from the chord joining the first and last point), with its detection named, not eyeballed.
 import { runSimulation } from './model';
 import { analyticalMatchFactor } from './matchfactor';
 import { type CaseSpec, type Policy } from './types';

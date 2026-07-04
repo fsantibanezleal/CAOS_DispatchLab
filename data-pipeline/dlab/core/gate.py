@@ -1,6 +1,6 @@
 """The measured live-vs-precompute GATE (ADR-0054), adapted for DispatchLab's client-side lane.
 
-DispatchLab runs its discrete-event dispatch simulation ENTIRELY in the browser — a pure-TypeScript DES + the learned
+DispatchLab runs its discrete-event dispatch simulation ENTIRELY in the browser, a pure-TypeScript DES + the learned
 policies (a synchronous TS forward of the weights in the DES, and onnxruntime-web for the canonical ONNX in the
 decision-inspector). A case runs LIVE iff it is client-side AND its runtimes are a subset of the deployed set AND a
 shift simulation + its replay trace are within budget; otherwise it is PRECOMPUTE. A shift DES over a few seeds is

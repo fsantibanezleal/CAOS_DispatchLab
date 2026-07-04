@@ -1,12 +1,12 @@
-// Deterministic, seedable PRNG for the DES — the determinism contract requires NO Math.random and a
+// Deterministic, seedable PRNG for the DES, the determinism contract requires NO Math.random and a
 // reproducible stream. xoshiro128** over Uint32 (NOT splitmix64→u64: JS float64 cannot represent u64
 // exactly). Per-purpose, per-entity NAMED streams (load/travel/dump/breakdown/tie-break) seeded by hashing
-// (masterSeed, streamName) so adding a truck does not shift the draws feeding the others — this is what
+// (masterSeed, streamName) so adding a truck does not shift the draws feeding the others, this is what
 // makes common-random-numbers policy comparisons valid (same arrivals/services across policies).
 
 const rotl = (x: number, k: number): number => (((x << k) | (x >>> (32 - k))) >>> 0);
 
-/** splitmix32 — expands a 32-bit seed into a stream, used to fill the xoshiro state words. */
+/** splitmix32, expands a 32-bit seed into a stream, used to fill the xoshiro state words. */
 function splitmix32(seed: number): () => number {
   let s = seed >>> 0;
   return () => {
@@ -81,7 +81,7 @@ export class Stream {
     return u < c ? a + Math.sqrt(u * (b - a) * (mode - a)) : b - Math.sqrt((1 - u) * (b - a) * (b - mode));
   }
 
-  /** Erlang-k with the given total mean (sum of k exponentials each mean/k) — shovel load time */
+  /** Erlang-k with the given total mean (sum of k exponentials each mean/k), shovel load time */
   erlang(k: number, mean: number): number {
     let s = 0; const m = mean / Math.max(k, 1);
     for (let i = 0; i < k; i++) s += this.exp(m);

@@ -39,7 +39,7 @@ export default function Experiments() {
         <p>{es ? 'El simulador se valida contra la teoría cerrada del match factor: al barrer el tamaño de la flota, la producción escala mientras MF<1 y SATURA al cruzar MF=1 (la rodilla de sobre-camionamiento cae en MF≈1). La pestaña «Validación MF» del banco lo muestra en vivo. Los controles oráculo (1×1) dan la respuesta exacta.' : 'The simulator is validated against closed-form match-factor theory: sweeping the fleet size, throughput scales while MF<1 and SATURATES as MF crosses 1 (the over-trucking knee lands at MF≈1). The bench\'s "MF validation" tab shows this live. The oracle controls (1×1) give the exact answer.'}</p>
 
         <h2>{es ? 'Honestidad' : 'Honesty'}</h2>
-        <p>{es ? 'Sin fuga (split de decisiones train/eval); sin números fabricados (la fidelidad sale de los artefactos, las toneladas de la simulación). Las políticas aprendidas se entrenan sobre el MISMO simulador que las evalúa — igualan a las mejores heurísticas pero no las superan, y se dice. Los resultados aprendido-vs-heurística están en la página Benchmark.' : 'No leakage (train/eval decision split); no fabricated numbers (fidelity from the artifacts, tonnes from the simulation). The learned policies train on the SAME simulator that evaluates them — they match the best heuristics but do not beat them, and we say so. The learned-vs-heuristic results are on the Benchmark page.'}</p>
+        <p>{es ? 'Sin fuga (split de decisiones train/eval); sin números fabricados (la fidelidad sale de los artefactos, las toneladas de la simulación). Las políticas aprendidas se entrenan sobre el MISMO simulador que las evalúa, igualan a las mejores heurísticas pero no las superan, y se dice. Los resultados aprendido-vs-heurística están en la página Benchmark.' : 'No leakage (train/eval decision split); no fabricated numbers (fidelity from the artifacts, tonnes from the simulation). The learned policies train on the SAME simulator that evaluates them, they match the best heuristics but do not beat them, and we say so. The learned-vs-heuristic results are on the Benchmark page.'}</p>
         <Refs ids={['morgan1968', 'burt2007', 'peters2007']} label="Refs" />
       </section>
     </div>
@@ -55,7 +55,7 @@ function SplitSVG({ es }: { es: boolean }) {
       <rect x="447" y="20" width="143" height="26" rx="4" fill="color-mix(in oklab, #d29922 30%, var(--color-surface))" stroke="var(--color-border)" />
       <text x="227" y="37" textAnchor="middle" fill="var(--color-fg)">{es ? '≈75% entrenamiento' : '≈75% train'}</text>
       <text x="518" y="37" textAnchor="middle" fill="var(--color-fg)">{es ? '≈25% eval' : '≈25% eval'}</text>
-      <text x="10" y="62" fill="var(--color-fg-subtle)">{es ? 'decisiones de despacho, separadas determinísticamente — la fidelidad se mide sólo en eval' : 'dispatch decisions, split deterministically — fidelity measured only on eval'}</text>
+      <text x="10" y="62" fill="var(--color-fg-subtle)">{es ? 'decisiones de despacho, separadas determinísticamente, la fidelidad se mide sólo en eval' : 'dispatch decisions, split deterministically, fidelity measured only on eval'}</text>
     </svg>
   );
 }

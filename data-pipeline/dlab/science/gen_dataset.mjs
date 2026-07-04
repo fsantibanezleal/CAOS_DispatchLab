@@ -3,7 +3,7 @@
 // at each dispatch decision, the per-shovel feature matrix + the action the reference policy took + the
 // episode's final tonnes. A Python script then trains an imitation/offline-RL policy on this and exports
 // ONNX, which the app runs live (onnxruntime-web) at each decision. The state encoding here is the single
-// source of truth — the app rebuilds the same per-shovel features before inference.
+// source of truth, the app rebuilds the same per-shovel features before inference.
 //
 // Run:  node --import tsx tools/dispatch-rl/gen_dataset.mjs
 import { writeFileSync } from 'node:fs';
@@ -11,7 +11,7 @@ import { runSimulation } from '../../../frontend/src/sim/model.ts';
 import { POLICIES } from '../../../frontend/src/policies/heuristics.ts';
 import { CASES } from '../../../frontend/src/sim/cases.ts';
 
-// multi-shovel cases only (a single-shovel decision is trivial — nothing to learn)
+// multi-shovel cases only (a single-shovel decision is trivial, nothing to learn)
 const MULTI = CASES.filter((c) => c.mine.shovels.length >= 2);
 const SEEDS = Array.from({ length: 12 }, (_, i) => 3 + i * 5);
 const REF = POLICIES.filter((p) => p.id !== 'fixed');   // log the reactive reference policies

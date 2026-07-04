@@ -1,18 +1,18 @@
 // CALIBRATED counterfactual re-simulation (#19): re-run a MEASURED shift under a different
 // dispatch policy, with every time component drawn from the sample's OWN empirical distributions
 // (per-shovel load medians, per-route full/empty travel, dump mean). This is the estimator the
-// Benchmark's "counterfactual tonnes" come from — the missing piece the agreement view (#18)
+// Benchmark's "counterfactual tonnes" come from, the missing piece the agreement view (#18)
 // honestly declined to fake.
 //
 // Model (transparent, stated in the UI):
 //   truck cycle = emptyTravel(dump→shovel, p10 base = queue-free) → FIFO queue at the shovel
 //   (capacity 1) → load (per-shovel median) → fullTravel(shovel→dump median) → FIFO dump
 //   (capacity 1 per dump) → policy decision (the SAME DispatchState interface the live policies
-//   consume, built from the sim's EXACT state — no estimation error at decision points).
+//   consume, built from the sim's EXACT state, no estimation error at decision points).
 //   Durations get a small seeded lognormal jitter (cv 0.15) so seed bands are meaningful.
 //   Payload = the sample's measured mean. Horizon = the measured shift.
 //
-// Honesty: this is a policy-effect estimate under the measured-case model — it inherits the
+// Honesty: this is a policy-effect estimate under the measured-case model, it inherits the
 // sample's provenance caveats (domain transfer) and the p10-as-base-travel assumption. It is NOT
 // a re-run of the source generator.
 import { type DispatchState, type ShovelView } from '../sim/types';

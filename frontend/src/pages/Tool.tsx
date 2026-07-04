@@ -27,7 +27,7 @@ const SPEEDS = [50, 200, 600, 1800]; // 50x = slow lane for close visual review
 const SWEEP_SEEDS = [3, 11, 19, 29, 41];
 const CMP_SEEDS = [3, 7, 11, 17, 23, 29, 37, 42, 59, 71];
 // #22: the demo operational-constraint set (applies to ANY synthetic case; the DES enforces it
-// for EVERY policy — the feasible set is filtered before the policy sees the state)
+// for EVERY policy, the feasible set is filtered before the policy sees the state)
 const DEMO_CONSTRAINTS = { maxQueuePerShovel: 3, breaks: [{ startSec: 4 * 3600, endSec: 4.5 * 3600 }] } as const;
 const fmt = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 0 });
 
@@ -65,7 +65,7 @@ export default function Tool() {
       .catch((e: unknown) => setRealErr(String(e)));
   };
   const realOK = source === 'real' && !!realReport?.ok;
-  // sample FAMILIES (#47): the flat mhs-*/openmines-* list was unreadable — group behind mini-tabs
+  // sample FAMILIES (#47): the flat mhs-*/openmines-* list was unreadable, group behind mini-tabs
   const famOf = (id: string) => (id.startsWith('mhs-ug') ? 'ug' : id.startsWith('mhs-pit') ? 'pit' : 'legacy');
   const FAMS = [
     { key: 'pit', en: 'open-pit', es: 'rajo' },
@@ -166,8 +166,8 @@ export default function Tool() {
   const tabs = [
     { id: 'pit3d', label: es ? (activeC.mine.minetopo ? 'Mina 3D' : 'Rajo 3D') : (activeC.mine.minetopo ? 'Mine 3D' : 'Pit 3D'), content: (
       <Panel t={activeC.mine.minetopo
-        ? (es ? 'Mina subterránea — rampa, niveles, piques y flota en 3D (color = estado del camión)' : 'Underground mine — decline, levels, ore passes and the fleet in 3D (colour = truck state)')
-        : (es ? 'Topografía del rajo — bancos, rampa espiral y flota en 3D (color = estado del camión); política actual' : 'Pit topography — benches, spiral ramp and the fleet in 3D (colour = truck state); current policy')}>
+        ? (es ? 'Mina subterránea, rampa, niveles, piques y flota en 3D (color = estado del camión)' : 'Underground mine, decline, levels, ore passes and the fleet in 3D (colour = truck state)')
+        : (es ? 'Topografía del rajo, bancos, rampa espiral y flota en 3D (color = estado del camión); política actual' : 'Pit topography, benches, spiral ramp and the fleet in 3D (colour = truck state); current policy')}>
         {activeC.mine.minetopo
           ? <Underground3D c={activeC} result={result} t={playT} lang={lang} />
           : <Pit3D c={activeC} result={result} t={playT} lang={lang} />}
@@ -181,7 +181,7 @@ export default function Tool() {
         </div>
       </Panel>) },
     { id: 'map', label: es ? 'Mapa del rajo' : 'Pit map', content: (
-      <Panel t={es ? 'Mapa animado — camiones, palas y chancador (color = cola); política actual' : 'Animated pit — trucks, shovels and crusher (colour = queue); current policy'}>
+      <Panel t={es ? 'Mapa animado, camiones, palas y chancador (color = cola); política actual' : 'Animated pit, trucks, shovels and crusher (colour = queue); current policy'}>
         <PitMap c={activeC} result={result} t={playT} lang={lang} />
         {/* playback controls live with the animation (they drive only this tab), not in the global sidebar */}
         <div className="dl-play" style={{ marginTop: '0.4rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -212,20 +212,20 @@ export default function Tool() {
           </>);
         })()}
       </Panel>) },
-    { id: 'feed', label: es ? 'Aliment. chancador' : 'Crusher feed', content: <Panel t={es ? 'Alimentación al chancador — toneladas acumuladas vs hora' : 'Crusher feed — cumulative tonnes vs shift hour'}><UPlotChart data={feed} build={buildFeed} height={200} /></Panel> },
+    { id: 'feed', label: es ? 'Aliment. chancador' : 'Crusher feed', content: <Panel t={es ? 'Alimentación al chancador, toneladas acumuladas vs hora' : 'Crusher feed, cumulative tonnes vs shift hour'}><UPlotChart data={feed} build={buildFeed} height={200} /></Panel> },
     { id: 'compare', label: es ? 'Comparar políticas' : 'Compare policies', content: (
-      <Panel t={es ? 'Pareto: toneladas (↑) vs espera (←) — heurísticas + APRENDIDAS, banda de semillas' : 'Pareto: tonnes (↑) vs wait (←) — heuristics + LEARNED, seed bands'}>
+      <Panel t={es ? 'Pareto: toneladas (↑) vs espera (←), heurísticas + APRENDIDAS, banda de semillas' : 'Pareto: tonnes (↑) vs wait (←), heuristics + LEARNED, seed bands'}>
         <ParetoScatter stats={cmp} front={front} lang={lang} />
         <p className="dl-hint small">{es ? 'En la frontera' : 'On the frontier'}: <b>{cmp.filter((s) => front.has(s.id)).map((s) => tn(s.id)).join(', ')}</b> · {CMP_SEEDS.length} {es ? 'semillas' : 'seeds'}</p>
-        <p className="tw-note dl-note"><b>{tn(tie.leader)}</b> {tie.tied.length === 0 ? (es ? 'lidera más allá de la banda' : 'leads beyond the band') : <>{es ? 'empata (en la banda) con' : 'ties (within the band) with'} <b>{tie.tied.map(tn).join(', ')}</b></>}. {es ? 'Las políticas APRENDIDAS son competitivas — honesto, sin victoria fabricada.' : 'The LEARNED policies are competitive — honest, no fabricated win.'}</p>
+        <p className="tw-note dl-note"><b>{tn(tie.leader)}</b> {tie.tied.length === 0 ? (es ? 'lidera más allá de la banda' : 'leads beyond the band') : <>{es ? 'empata (en la banda) con' : 'ties (within the band) with'} <b>{tie.tied.map(tn).join(', ')}</b></>}. {es ? 'Las políticas APRENDIDAS son competitivas, honesto, sin victoria fabricada.' : 'The LEARNED policies are competitive, honest, no fabricated win.'}</p>
       </Panel>) },
     { id: 'bench', label: es ? 'Aprendida vs heurística' : 'Learned vs heuristic', content: (
-      <Panel t={es ? 'Toneladas medianas — políticas APRENDIDAS vs heurísticas (mismo caso + semillas)' : 'Median tonnes — LEARNED vs heuristic policies (same case + seeds)'}>
+      <Panel t={es ? 'Toneladas medianas, políticas APRENDIDAS vs heurísticas (mismo caso + semillas)' : 'Median tonnes, LEARNED vs heuristic policies (same case + seeds)'}>
         <LearnedBars stats={cmp} es={es} tn={tn} />
       </Panel>) },
     { id: 'inspect', label: es ? 'Inspector de decisión' : 'Decision inspector', content: <DecisionInspector decisions={decisions.current} es={es} /> },
     { id: 'valid', label: es ? 'Validación MF' : 'MF validation', content: (
-      <Panel t={es ? 'Producción vs tamaño de flota — la rodilla cae en MF=1 (valida el simulador)' : 'Throughput vs fleet size — the knee lands at MF=1 (validates the simulator)'}>
+      <Panel t={es ? 'Producción vs tamaño de flota, la rodilla cae en MF=1 (valida el simulador)' : 'Throughput vs fleet size, the knee lands at MF=1 (validates the simulator)'}>
         <SweepChart pts={sweep} knee={knee} nMf1={nMf1} lang={lang} />
         <p className="dl-hint small">{es ? 'Rodilla medida' : 'Measured knee'}: <b>{sweep[knee].n}</b> ({es ? 'camiones' : 'trucks'}, MF {sweep[knee].mf.toFixed(2)}) · MF=1 {es ? 'en' : 'at'} <b>{nMf1.toFixed(1)}</b></p>
       </Panel>) },
@@ -248,7 +248,7 @@ export default function Tool() {
     { id: 'cycle', label: es ? 'Tiempo de ciclo' : 'Cycle time', content: (
       <Panel t={realOK
         ? (es ? 'Tiempo de ciclo MEDIDO por pala (mediana de carga vs viaje+descarga observados en el turno)' : 'MEASURED cycle time per shovel (median observed load vs haul+dump this shift)')
-        : (es ? 'Tiempo de ciclo ideal por pala (carga vs viaje+descarga) — de la cinemática rimpull/pendiente' : 'Ideal cycle time per shovel (load vs haul+dump) — from the rimpull/grade kinematics')}>
+        : (es ? 'Tiempo de ciclo ideal por pala (carga vs viaje+descarga), de la cinemática rimpull/pendiente' : 'Ideal cycle time per shovel (load vs haul+dump), from the rimpull/grade kinematics')}>
         <div className="dl-bars">{activeC.mine.shovels.map((s) => {
           let tLoad: number, tCycle: number;
           if (realOK && realReport?.sample) {
@@ -282,7 +282,7 @@ export default function Tool() {
   // comparisons + MF sweep stay synthetic-only (their aggregate versions land in Benchmark, #19)
   const cfTab = {
     id: 'counterfactual', label: es ? 'Despacho contrafactual' : 'Counterfactual dispatch', content: (
-      <Panel t={es ? 'Re-decidir el turno REAL bajo cada política — acuerdo con el despachador real en cada punto de decisión' : 'Re-deciding the REAL shift under each policy — agreement with the real dispatcher at each decision point'}>
+      <Panel t={es ? 'Re-decidir el turno REAL bajo cada política, acuerdo con el despachador real en cada punto de decisión' : 'Re-deciding the REAL shift under each policy, agreement with the real dispatcher at each decision point'}>
         {cfDecisions.length === 0 ? (
           <p className="dl-hint">{es ? 'Esta muestra no tiene puntos de decisión (ningún ciclo return→load completo).' : 'This sample has no decision points (no complete return→load cycle).'}</p>
         ) : (
@@ -350,7 +350,7 @@ export default function Tool() {
             )}
           </div>
         )}
-        {/* SCENARIO knobs — author the synthetic case; in real mode the case is READ from the sample,
+        {/* SCENARIO knobs, author the synthetic case; in real mode the case is READ from the sample,
             so the authoring grid hides entirely instead of rendering locked-but-clickable-looking (#47) */}
         {source === 'synthetic' ? (
           <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Caso' : 'Case'}</span>
@@ -364,7 +364,7 @@ export default function Tool() {
               : (es ? 'se lee de la muestra al cargarla' : 'read from the sample once it loads')}</span>
           </div>
         )}
-        {/* operational constraints (#22): enforced by the DES for EVERY policy — the chips show
+        {/* operational constraints (#22): enforced by the DES for EVERY policy, the chips show
             the EFFECTIVE set (baked case constraints like C10's crusher cap + the demo toggle).
             In real mode they do not apply (the replay reproduces the logged shift), so say that
             in one line instead of a greyed-out interactive-looking block (#47). */}
@@ -378,8 +378,8 @@ export default function Tool() {
             {!c.constraints && <span className="chip" style={{ pointerEvents: 'none', opacity: 0.6 }}>{es ? 'sin restricciones' : 'unconstrained'}</span>}
           </div>
           {c.constraints && <span className="dl-hint">{es
-            ? `El DES filtra el conjunto factible ANTES de cada política — todas la respetan por construcción. Elecciones inválidas: ${synResult.invalidChoices ?? 0}.`
-            : `The DES filters the feasible set BEFORE every policy — all of them comply by construction. Invalid choices: ${synResult.invalidChoices ?? 0}.`}</span>}
+            ? `El DES filtra el conjunto factible ANTES de cada política, todas la respetan por construcción. Elecciones inválidas: ${synResult.invalidChoices ?? 0}.`
+            : `The DES filters the feasible set BEFORE every policy, all of them comply by construction. Invalid choices: ${synResult.invalidChoices ?? 0}.`}</span>}
         </div>
         ) : (
           <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Restricciones operativas' : 'Operational constraints'}</span>
@@ -388,7 +388,7 @@ export default function Tool() {
         )}
         {source === 'synthetic' ? (
         <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Política' : 'Policy'}</span>
-          <div className="dl-chips">{allPolicies.map((p) => <button key={p.id} className={`chip ${policyId === p.id ? 'on' : ''} ${p.tier === 'learned' ? 'dl-learned-chip' : ''}`} onClick={() => setPolicyId(p.id)} title={es ? p.es : p.en}>{(es ? p.es : p.en).replace('Learned — ', '').replace('Aprendida — ', '').split(' (')[0]}</button>)}</div>
+          <div className="dl-chips">{allPolicies.map((p) => <button key={p.id} className={`chip ${policyId === p.id ? 'on' : ''} ${p.tier === 'learned' ? 'dl-learned-chip' : ''}`} onClick={() => setPolicyId(p.id)} title={es ? p.es : p.en}>{(es ? p.es : p.en).replace('Learned, ', '').replace('Aprendida, ', '').split(' (')[0]}</button>)}</div>
           {pol.tier === 'learned' && <span className="dl-hint" style={{ color: '#f85149' }}>{es ? 'política APRENDIDA (red entrenada offline)' : 'LEARNED policy (net trained offline)'}</span>}
         </div>
         ) : (
@@ -426,7 +426,7 @@ function LearnedBars({ stats, es, tn }: { stats: ReturnType<typeof comparePolici
       <div key={s.id} className="dl-bar-row"><div className="dl-bar-label"><span className="dl-dot" style={{ background: POLICY_COLOR[s.id] }} /> {tn(s.id)}{learned ? ' ★' : ''}</div>
         <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${(s.medTonnes / maxT) * 100}%`, background: POLICY_COLOR[s.id] }} /><span className="dl-bar-band" style={{ left: `${(s.loT / maxT) * 100}%`, width: `${((s.hiT - s.loT) / maxT) * 100}%` }} /></div><span className="dl-bar-num mono">{(s.medTonnes / 1000).toFixed(1)}k t</span></div>
       </div>); })}
-      <p className="tw-note dl-note">{es ? '★ = política APRENDIDA. Honesto: igualan a las mejores heurísticas (sus maestras) — el valor es una política aprendida única + rápida desde datos, no superarlas.' : '★ = LEARNED policy. Honest: they match the best heuristics (their teachers) — the value is a single fast learned policy from data, not beating them.'}</p>
+      <p className="tw-note dl-note">{es ? '★ = política APRENDIDA. Honesto: igualan a las mejores heurísticas (sus maestras), el valor es una política aprendida única + rápida desde datos, no superarlas.' : '★ = LEARNED policy. Honest: they match the best heuristics (their teachers), the value is a single fast learned policy from data, not beating them.'}</p>
     </div>
   );
 }
@@ -446,7 +446,7 @@ function RealDecisionInspector({ decisions, es }: { decisions: ReturnType<typeof
   const maxS = scores ? Math.max(...scores) : 1, minS = scores ? Math.min(...scores) : 0;
   return (
     <div style={{ marginTop: '0.8rem' }}>
-      <div className="dl-panel-t">{es ? 'Inspector — la red (RWR, ONNX en vivo) sobre el punto de decisión REAL' : 'Inspector — the net (RWR, live ONNX) on the REAL decision point'}</div>
+      <div className="dl-panel-t">{es ? 'Inspector, la red (RWR, ONNX en vivo) sobre el punto de decisión REAL' : 'Inspector, the net (RWR, live ONNX) on the REAL decision point'}</div>
       <div className="dl-bars">{d.state.shovels.map((v, k) => { const sc = scores ? scores[k] : 0; const w = scores ? (sc - minS) / (maxS - minS || 1) : 0; return (
         <div key={v.id} className="dl-bar-row"><div className="dl-bar-label">{v.spec.name}{v.id === d.chosen ? ` · ${es ? 'despachador real eligió' : 'real dispatcher chose'}` : ''}{k === argmax ? ' · ★' : ''}</div>
           <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${w * 100}%`, background: k === argmax ? '#f85149' : 'var(--color-accent)' }} /></div><span className="dl-bar-num mono">{scores ? sc.toFixed(2) : '…'}</span></div>
@@ -466,7 +466,7 @@ function DecisionInspector({ decisions, es }: { decisions: Decision[]; es: boole
   const argmax = scores ? scores.indexOf(Math.max(...scores)) : -1;
   const maxS = scores ? Math.max(...scores) : 1, minS = scores ? Math.min(...scores) : 0;
   return (
-    <Panel t={es ? 'Inspector de decisión — puntajes de la política APRENDIDA (RWR) vía onnxruntime-web, por pala' : 'Decision inspector — LEARNED (RWR) policy scores via onnxruntime-web, per shovel'}>
+    <Panel t={es ? 'Inspector de decisión, puntajes de la política APRENDIDA (RWR) vía onnxruntime-web, por pala' : 'Decision inspector, LEARNED (RWR) policy scores via onnxruntime-web, per shovel'}>
       <div className="dl-bars">{d.names.map((nm, k) => { const sc = scores ? scores[k] : 0; const w = scores ? (sc - minS) / (maxS - minS || 1) : 0; return (
         <div key={k} className="dl-bar-row"><div className="dl-bar-label">{nm}{k === d.chosen ? ` · ${es ? 'heurística eligió' : 'heuristic chose'}` : ''}{k === argmax ? ' · ★' : ''}</div>
           <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${w * 100}%`, background: k === argmax ? '#f85149' : 'var(--color-accent)' }} /></div><span className="dl-bar-num mono">{scores ? sc.toFixed(2) : '…'}</span></div>

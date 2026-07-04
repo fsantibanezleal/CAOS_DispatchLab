@@ -1,6 +1,6 @@
 {
   "id": "huolinhe-northpit-nearest",
-  "name": "North-pit shift (NearestDispatcher) — legacy OpenMines",
+  "name": "North-pit shift (NearestDispatcher), legacy OpenMines",
   "schema": "dispatchlab.cyclelog/v1",
   "kind": "structure-real",
   "source": "LEGACY optional generator, kept for cross-tool comparison (default samples now come from minehaulsim, issue #30): the MIT-licensed OpenMines simulator (github.com/370025263/openmines, arXiv:2404.00622), north_pit_mine.json config desensitized from the Huolinhe open-pit coal mine (Sept 2022). Single fixed mine layout, scalar-distance roads, no grades/rimpull, statistical congestion only.",

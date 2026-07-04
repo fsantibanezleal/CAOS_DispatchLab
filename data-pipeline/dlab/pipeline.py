@@ -2,7 +2,7 @@
 trace from the committed DES outputs (case-results.json) + the learned-policy metrics (dl-learned.json), runs the
 lane gate, and writes the manifest + a flat index (CONTRACT 2). The committed ONNX + dl-learned + case-results ARE the
 offline lane's real outputs, so the DEFAULT path is light (numpy/stdlib, no torch/node) and deterministic.
-`--retrain` regenerates those artifacts (Node DES dataset -> torch train -> ONNX; re-bake case-results) — see science/.
+`--retrain` regenerates those artifacts (Node DES dataset -> torch train -> ONNX; re-bake case-results), see science/.
 
     python -m dlab.pipeline                 # rebuild all replay traces + manifests from committed artifacts
     python -m dlab.pipeline C05             # one case
@@ -34,13 +34,13 @@ def _load_artifacts() -> tuple[dict, dict]:
     if missing:
         raise SystemExit(
             f"missing committed artifacts in {DERIVED}: {missing}. case-results.json is baked by the TS DES "
-            f"(science/bake_cases.mjs); dl-learned.json is the heavy lane's output — run --retrain to regenerate."
+            f"(science/bake_cases.mjs); dl-learned.json is the heavy lane's output, run --retrain to regenerate."
         )
     return read_json(DERIVED / "case-results.json"), read_json(DERIVED / "dl-learned.json")
 
 
 def _contract_flags() -> list[dict]:
-    """Apply CONTRACT 1 to the cases' dispatch scenarios — proves the ingestion gate, carries the MF flags."""
+    """Apply CONTRACT 1 to the cases' dispatch scenarios, proves the ingestion gate, carries the MF flags."""
     rows = [{"case_id": c.id, "n_shovels": c.n_shovels, "n_trucks": c.n_trucks,
              "truck_model": c.truck_model, "shift_sec": c.shift_sec} for c in registry.list_cases()]
     return validate_records(rows).flagged

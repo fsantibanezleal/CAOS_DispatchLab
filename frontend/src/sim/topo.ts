@@ -1,7 +1,7 @@
-// Parametric pit topography (pure TS, no three.js — unit-tested in test/topo.test.ts). Builds the terraced
+// Parametric pit topography (pure TS, no three.js, unit-tested in test/topo.test.ts). Builds the terraced
 // pit geometry every case's 3D view uses: bench rings at descending elevations, the spiral ramp polyline
 // connecting the rim to the floor, 3D positions for shovels (on their bench) and dumps (at the rim), and an
-// arc-length-parametrised 3D haul path per route. HONESTY: representational geometry — cycle TIMES always come
+// arc-length-parametrised 3D haul path per route. HONESTY: representational geometry, cycle TIMES always come
 // from the DES kinematics (route distM/grade); the 3D path only decides WHERE a truck is drawn at fraction f
 // of its leg, so trucks depart/arrive exactly when the (validated) DES says.
 import { type MineSpec, type NodePos, type PitTopoSpec } from './types';
@@ -22,7 +22,7 @@ export interface PitTopo {
   ramp: Vec3[];                       // spiral polyline rim → floor (descending)
   shovelPos3: Record<number, Vec3>;   // shovels projected onto their bench
   dumpPos3: Record<number, Vec3>;     // dumps at rim elevation (z=0)
-  paths: Record<string, Path3D>;      // `${shovelId}->${dumpId}` — the LOADED direction (shovel → dump)
+  paths: Record<string, Path3D>;      // `${shovelId}->${dumpId}`, the LOADED direction (shovel → dump)
 }
 
 const DEG = Math.PI / 180;
@@ -105,7 +105,7 @@ function rampIndexAtZ(ramp: Vec3[], z: number): number {
 
 /** A derived default topography for cases that don't specify one: pit centred on the shovel centroid,
  *  rim reaching past the dumps, shovels spread over the deeper half of the benches by route distance
- *  (longer haul = deeper bench — consistent with a real deepening pit). */
+ *  (longer haul = deeper bench, consistent with a real deepening pit). */
 export function defaultTopo(mine: MineSpec): PitTopoSpec {
   const sh = mine.shovels;
   const cx = sh.reduce((a, s) => a + s.pos.x, 0) / sh.length;

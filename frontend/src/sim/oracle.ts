@@ -1,20 +1,20 @@
 // Capacity oracle (#22 P2): a queue-free UPPER BOUND on shift tonnes from the transportation-LP
-// relaxation aggregated per resource family — the offline yardstick the Benchmark scores every
+// relaxation aggregated per resource family, the offline yardstick the Benchmark scores every
 // policy against ("% of oracle").
 //
 //   loads_shovels = Σ_s  1 + shift / (loadMean_s + spot_s)   (nonstop service from t=0)
 //   loads_trucks  = Σ_t  1 + shift / minCycle_t              (fastest feasible cycle, zero queueing;
-//                                                             the +1 covers the head start — trucks
+//                                                             the +1 covers the head start, trucks
 //                                                             begin AT a shovel, so load k completes
 //                                                             no earlier than (k−1)·minCycle)
 //   bound_tonnes  = min(loads_shovels, loads_trucks) × payload
 //
-// Honesty: this is a RELAXATION over the MEAN dynamics — it ignores queueing, interference and
+// Honesty: this is a RELAXATION over the MEAN dynamics, it ignores queueing, interference and
 // integrality. It bounds DETERMINISTIC runs exactly (asserted strictly in tests); STOCHASTIC
 // runs draw leg/service durations with mean-1 noise, so a lucky seed can graze or slightly
-// exceed it (the trivial 1×1 oracle case exists precisely to sit at the bound) — the Benchmark
+// exceed it (the trivial 1×1 oracle case exists precisely to sit at the bound), the Benchmark
 // therefore reports "% of oracle" on medians and tests allow a 2% noise margin per seed. The gap
-// between the best policy and the oracle is the price of congestion + myopia — exactly what the
+// between the best policy and the oracle is the price of congestion + myopia, exactly what the
 // Benchmark wants to show. (Refs: White & Olson 1986; Alarie & Gamache 2002.)
 import { travelTimeSec } from './kinematics';
 import { type CaseSpec } from './types';
