@@ -4,6 +4,19 @@
 Experiments/Benchmark show cross-case summaries by category. Each case mirrors the SPA's `src/sim/cases.ts`. All
 results are deterministic DES-simulation outputs, NOT a real plant.
 
+## Deep pages
+
+1. [The synthetic case corpus](01_synthetic-case-corpus.md), the 12 cases in full (config, asserted expected
+   band, validation anchor) grouped by the four axes, and why the corpus is control-heavy (C01/C04 tie, C05
+   Pareto, C12 oracle).
+2. [The real-sample lane](02_real-sample-lane.md), the `Synthetic | Real sample` Source selector: the
+   `cyclelog/v1` contract, the `minehaulsim` structure-real samples (+ geology via oreblocks), the legacy
+   OpenMines Huolinhe samples, the counterfactual re-decision, and the honest structure-real boundary.
+3. [Coverage matrix and the verdict system](03_coverage-and-verdicts.md), what binds in each case, how the
+   App turns a run into a verdict (tie / Pareto / oracle / binding-side), and how Benchmark aggregates.
+
+The quick-reference taxonomy table follows.
+
 | Category | Case ids | What they exercise |
 |---|---|---|
 | **single-shovel match-factor (the MF sweep)** | C01 (MF≈1), C02 (over-trucked MF≈2), C03 (under-trucked MF≈0.5) | the match-factor regime: balanced → all policies tie; over → shovel-bound saturation; under → shovel idle |

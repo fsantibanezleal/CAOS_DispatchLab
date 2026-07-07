@@ -452,7 +452,7 @@ function RealDecisionInspector({ decisions, es }: { decisions: ReturnType<typeof
           <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${w * 100}%`, background: k === argmax ? '#f85149' : 'var(--color-accent)' }} /></div><span className="dl-bar-num mono">{scores ? sc.toFixed(2) : '…'}</span></div>
         </div>); })}</div>
       <input className="range" type="range" min={0} max={decisions.length - 1} value={i} onChange={(e) => setI(+e.target.value)} style={{ width: '100%', marginTop: '0.5rem' }} />
-      <p className="dl-hint small">{es ? 'Decisión' : 'Decision'} {i + 1}/{decisions.length} · t={(d.t / 3600).toFixed(2)} h · truck {d.truck} · ★ = argmax de la red</p>
+      <p className="dl-hint small">{es ? 'Decisión' : 'Decision'} {i + 1}/{decisions.length} · t={(d.t / 3600).toFixed(2)} h · truck {d.truck} · ★ = {es ? 'argmax de la red' : 'argmax of the net'}</p>
     </div>
   );
 }
