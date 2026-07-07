@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.13.002], 2026-07-07
+
+### Added
+- Deep `docs/cases/` pages (ADR-0056), replacing the single landing table with three numbered pages:
+  the 12-case synthetic corpus (config + asserted expected band + validation anchor per case), the
+  real-sample lane (the `Synthetic | Real sample` Source selector, the `cyclelog/v1` contract, the
+  `minehaulsim` structure-real samples + oreblocks geology, the legacy OpenMines Huolinhe samples, the
+  counterfactual re-decision, and the honest structure-real boundary), and the coverage matrix + verdict
+  system. At-bar close-out per the 2026-07-07 refresh audit.
+
+### Fixed
+- i18n leak: the real-mode counterfactual inspector hint showed a hardcoded Spanish string
+  ("argmax de la red") in English mode; it is now bilingual.
+
 ## [0.13.001], 2026-07-04
 
 ### Changed
