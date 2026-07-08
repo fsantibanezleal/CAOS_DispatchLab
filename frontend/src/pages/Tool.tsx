@@ -6,9 +6,10 @@ import { analyticalMatchFactor, shovelCycle } from '../sim/matchfactor';
 import { comparePolicies, paretoFront, tieVerdict, POLICY_COLOR } from '../sim/compare';
 import { fleetSweep, kneeIndex, nAtMf1 } from '../sim/sweep';
 import { CASES, caseById } from '../sim/cases';
-import { POLICIES, policyById, type PolicyDef } from '../policies/heuristics';
+import { POLICIES, policyById, shortestWait, type PolicyDef } from '../policies/heuristics';
 import { loadLearnedPolicies } from '../policies/learnedRegistry';
 import { shovelFeats } from '../policies/learned';
+import { rolloutInspect, DEFAULT_ROLLOUT, type InspectResult } from '../policies/rollout';
 import { onnxScore } from '../lib/ort';
 import { PitMap } from '../viz/PitMap';
 import { Pit3D } from '../viz/Pit3D';
@@ -224,6 +225,7 @@ export default function Tool() {
         <LearnedBars stats={cmp} es={es} tn={tn} />
       </Panel>) },
     { id: 'inspect', label: es ? 'Inspector de decisión' : 'Decision inspector', content: <DecisionInspector decisions={decisions.current} es={es} /> },
+    { id: 'rollout', label: es ? 'Inspector de rollout' : 'Rollout inspector', content: <RolloutInspector c={activeC} seed={seed} es={es} /> },
     { id: 'valid', label: es ? 'Validación MF' : 'MF validation', content: (
       <Panel t={es ? 'Producción vs tamaño de flota, la rodilla cae en MF=1 (valida el simulador)' : 'Throughput vs fleet size, the knee lands at MF=1 (validates the simulator)'}>
         <SweepChart pts={sweep} knee={knee} nMf1={nMf1} lang={lang} />
@@ -454,6 +456,66 @@ function RealDecisionInspector({ decisions, es }: { decisions: ReturnType<typeof
       <input className="range" type="range" min={0} max={decisions.length - 1} value={i} onChange={(e) => setI(+e.target.value)} style={{ width: '100%', marginTop: '0.5rem' }} />
       <p className="dl-hint small">{es ? 'Decisión' : 'Decision'} {i + 1}/{decisions.length} · t={(d.t / 3600).toFixed(2)} h · truck {d.truck} · ★ = {es ? 'argmax de la red' : 'argmax of the net'}</p>
     </div>
+  );
+}
+
+function RolloutInspector({ c, seed, es }: { c: CaseSpec; seed: number; es: boolean }) {
+  const [di, setDi] = useState(0);
+  const [res, setRes] = useState<InspectResult | null>(null);
+  const [busy, setBusy] = useState(false);
+  const K = 6;
+  const multi = c.mine.shovels.length >= 2;
+  // reset the computed result whenever the case/seed/decision changes (never auto-compute, no compute-bomb)
+  useEffect(() => { setRes(null); }, [c.id, seed, di]);
+  const compute = () => {
+    if (!multi) return;
+    setBusy(true);
+    // yield to the paint so the "computing" state shows, then run the BOUNDED rollout (one decision,
+    // shovels x K short forks). Never on a timer, only on this explicit click.
+    setTimeout(() => {
+      try {
+        const r = rolloutInspect(c, seed, { ...DEFAULT_ROLLOUT, base: shortestWait, K, planModel: 'sample' }, di);
+        setRes(r);
+      } finally { setBusy(false); }
+    }, 20);
+  };
+  if (!multi) return <Panel t={es ? 'Inspector de rollout' : 'Rollout inspector'}><p className="dl-hint">{es ? 'El rollout necesita una decisión multi-pala (elige C05/C06/C07/C11/C15/C16).' : 'The rollout needs a multi-shovel decision (pick C05/C06/C07/C11/C15/C16).'}</p></Panel>;
+  const cands = res?.candidates ?? [];
+  const maxT = cands.length ? Math.max(...cands.flatMap((x) => x.samples.map((s) => s.tonnes))) : 1;
+  const minT = cands.length ? Math.min(...cands.flatMap((x) => x.samples.map((s) => s.tonnes))) : 0;
+  return (
+    <Panel t={es ? 'Inspector de rollout, los K futuros simulados por candidato en UNA decisión (bajo demanda, acotado)' : 'Rollout inspector, the K simulated futures per candidate at ONE decision (on demand, bounded)'}>
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <button className="chip on" onClick={compute} disabled={busy}>{busy ? (es ? 'Calculando…' : 'Computing…') : (es ? `Calcular rollout (K=${K})` : `Compute rollout (K=${K})`)}</button>
+        <label className="dl-hint" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>{es ? 'Decisión' : 'Decision'} #{di}
+          <input className="range" type="range" min={0} max={20} value={di} onChange={(e) => setDi(+e.target.value)} style={{ width: 120 }} /></label>
+      </div>
+      {res == null ? (
+        <p className="dl-hint small" style={{ marginTop: '0.5rem' }}>{es
+          ? 'Pulsa Calcular: para cada pala candidata, el DES se bifurca, se aplica la pala y se simula el resto del turno K veces con la política base; se elige el mejor objetivo esperado. Nada corre solo (sin bomba de cómputo).'
+          : 'Press Compute: for each candidate shovel, the DES forks, the shovel is applied, and the rest of the shift is simulated K times under the base policy; the best expected objective is chosen. Nothing runs on its own (no compute-bomb).'}</p>
+      ) : cands.length === 0 ? (
+        <p className="dl-hint small" style={{ marginTop: '0.5rem' }}>{es ? 'No hay una decisión en ese índice (turno más corto).' : 'No decision at that index (shorter shift).'}</p>
+      ) : (<>
+        <div className="dl-bars" style={{ marginTop: '0.5rem' }}>{cands.map((cand) => {
+          const w = (cand.meanTonnes - minT) / (maxT - minT || 1);
+          return (
+            <div key={cand.id} className="dl-bar-row">
+              <div className="dl-bar-label">{cand.name.split('(')[0].trim()}{cand.chosen ? ' · ★' : ''}{cand.base ? ` · ${es ? 'base ▷' : 'base ▷'}` : ''}</div>
+              <div className="dl-bar-pair">
+                <div className="dl-bar" style={{ position: 'relative' }}>
+                  <span className="dl-bar-fill" style={{ width: `${w * 100}%`, background: cand.chosen ? '#e3b341' : 'var(--color-accent)' }} />
+                  {/* each simulated future as a dot along the tonnes axis (the Monte-Carlo spread) */}
+                  {cand.samples.map((s, j) => <span key={j} style={{ position: 'absolute', left: `${((s.tonnes - minT) / (maxT - minT || 1)) * 100}%`, top: '50%', width: 5, height: 5, marginLeft: -2, marginTop: -2, borderRadius: '50%', background: 'var(--color-fg)', opacity: 0.55 }} />)}
+                </div>
+                <span className="dl-bar-num mono">{(cand.meanTonnes / 1000).toFixed(1)}k t</span>
+              </div>
+            </div>); })}</div>
+        <p className="dl-hint small">{es
+          ? `Decisión #${res.decisionIndex} · t=${(res.nowSec / 3600).toFixed(1)} h · camión ${res.truckId} · K=${res.K} futuros/candidato · ★ = elegido por el rollout · ▷ = elección de la base (shortest-wait). Los puntos son los K futuros simulados (la dispersión Monte-Carlo). En vivo la política desplegada es la DESTILACIÓN (dl-rollout.onnx); esto muestra la búsqueda real.`
+          : `Decision #${res.decisionIndex} · t=${(res.nowSec / 3600).toFixed(1)} h · truck ${res.truckId} · K=${res.K} futures/candidate · ★ = rollout's choice · ▷ = base choice (shortest-wait). Dots are the K simulated futures (the Monte-Carlo spread). Live, the deployed policy is the DISTILLATION (dl-rollout.onnx); this shows the real search.`}</p>
+      </>)}
+    </Panel>
   );
 }
 

@@ -11,6 +11,7 @@ export default function Methodology() {
     { id: 'or', label: es ? 'Tier OR + restricciones' : 'OR tier + constraints', content: <Or es={es} /> },
     { id: 'mf', label: es ? 'Match factor + colas' : 'Match factor + queueing', content: <Mf es={es} /> },
     { id: 'learned', label: es ? 'Tier aprendido' : 'Learned tier', content: <Learned es={es} /> },
+    { id: 'rollout', label: es ? 'Look-ahead y rollout' : 'Look-ahead & rollout', content: <Rollout es={es} /> },
   ];
   return (
     <div className="page-body prose">
@@ -114,6 +115,54 @@ function Learned({ es }: { es: boolean }) {
       <text x="430" y="110" textAnchor="middle" fill="#f85149" fontSize="10">{es ? 'argmax → pala elegida' : 'argmax → chosen shovel'}</text>
     </svg>
     <p>{es ? 'La POLÍTICA usa imitación ponderada por recompensa (RWR, Peters & Schaal 2007): reproduce las decisiones de referencia ponderadas por las toneladas del episodio. BC-best clona la mejor heurística. Ambas se exportan a ONNX y corren en vivo. Honesto: igualan a las heurísticas, no las superan, la SOTA del RL de despacho (Noriega 2024) muestra ganancias solo con entornos más ricos.' : 'The POLICY uses reward-weighted imitation (RWR, Peters & Schaal 2007): it reproduces the reference decisions weighted by episode tonnes. BC-best clones the best heuristic. Both export to ONNX and run live. Honest: they match the heuristics, not beat them, the SOTA of dispatch RL (Noriega 2024) shows gains only with richer environments.'}</p>
-    <Refs ids={['peters2007', 'mnih2015', 'hasselt2016', 'noriega2024']} label="Refs" />
+    <h3>{es ? '¿Por qué BC y (todavía) no RL offline?' : 'Why BC, and why not (yet) offline RL?'}</h3>
+    <p>{es
+      ? 'El tier aprendido clona comportamiento (BC); no aprende una política nueva. El sucesor natural es RL offline sobre el flujo de decisiones registrado (CQL, Kumar 2020; IQL, Kostrikov 2021), que puede en principio SUPERAR a la mejor heurística en vez de igualarla. No se incluye aún: sin garantía de mejora y propenso a sobre-afirmar en la instancia de evaluación; el rollout (pestaña siguiente) trae una garantía, así que es la apuesta beyond-SOTA primero.'
+      : 'The learned tier clones behaviour (BC); it does not learn a new policy. The natural successor is offline RL on the logged decision stream (CQL, Kumar 2020; IQL, Kostrikov 2021), which can in principle BEAT the best heuristic rather than match it. Not shipped yet: no improvement guarantee and overclaim-prone on the eval instance; the rollout (next tab) comes with a theorem, so it is the beyond-SOTA bet first.'}</p>
+    <Refs ids={['peters2007', 'mnih2015', 'hasselt2016', 'noriega2024', 'kumar2020cql', 'kostrikov2021iql']} label="Refs" />
+  </>);
+}
+
+function Rollout({ es }: { es: boolean }) {
+  return (<>
+    <p>{es
+      ? 'Toda la escalera anterior (greedy, shortest-wait, los dos criterios, Hungarian, el tier aprendido) es MIOPE: decide sobre el estado instantáneo. El único eje sin explorar es la NO-MIOPÍA: una mirada real a las consecuencias río abajo de una asignación. El dispatcher beyond-SOTA es un ROLLOUT Monte-Carlo de horizonte deslizante sobre el propio modelo de eventos discretos.'
+      : 'The whole ladder above (greedy, shortest-wait, the two criteria, Hungarian, the learned tier) is MYOPIC: it decides on the instantaneous state. The one unexplored axis is NON-MYOPIA: a genuine look at the downstream consequences of an assignment. The beyond-SOTA dispatcher is a receding-horizon Monte-Carlo ROLLOUT over the discrete-event model itself.'}</p>
+    <p>{es
+      ? <>En cada decisión, para cada pala candidata <InlineMath tex={String.raw`a`} />, se BIFURCA la simulación en su estado actual <InlineMath tex={String.raw`s`} />, se aplica <InlineMath tex={String.raw`a`} /> y se simula el resto del horizonte con una POLÍTICA BASE <InlineMath tex={String.raw`\pi`} /> (la mejor heurística miope). Se elige el <InlineMath tex={String.raw`a`} /> que optimiza el factor-Q simulado:</>
+      : <>At each decision, for every candidate shovel <InlineMath tex={String.raw`a`} />, the simulation is FORKED at its current state <InlineMath tex={String.raw`s`} />, <InlineMath tex={String.raw`a`} /> is applied, and the rest of the horizon is simulated under a BASE policy <InlineMath tex={String.raw`\pi`} /> (the best myopic heuristic). The <InlineMath tex={String.raw`a`} /> optimising the simulated Q-factor is chosen:</>}</p>
+    <Equation tex={String.raw`Q_\pi(s,a) = g(s,a) + J_\pi\big(f(s,a)\big), \qquad \tilde\pi(s) = \arg\max_{a\in A(s)} Q_\pi(s,a)`} />
+    <p>{es
+      ? <>donde <InlineMath tex={String.raw`f(s,a)`} /> es el estado sucesor, <InlineMath tex={String.raw`g`} /> la recompensa inmediata (toneladas) y <InlineMath tex={String.raw`J_\pi`} /> el retorno de la base desde ahí. Esto es UN paso de mejora de política (Bertsekas, Tsitsiklis y Wu 1997). Con un modelo determinista y una base secuencialmente consistente, el rollout NO puede ser peor que su base:</>
+      : <>where <InlineMath tex={String.raw`f(s,a)`} /> is the successor state, <InlineMath tex={String.raw`g`} /> the immediate reward (tonnes) and <InlineMath tex={String.raw`J_\pi`} /> the base return from there. This is ONE policy-improvement step (Bertsekas, Tsitsiklis & Wu 1997). On a deterministic model with a sequentially consistent base, the rollout can NEVER be worse than its base:</>}</p>
+    <Equation tex={String.raw`J_{\tilde\pi}(s)\ \ge\ J_\pi(s)\qquad \forall s \quad\text{(deterministic model, sequentially consistent base)}`} />
+    <svg viewBox="0 0 560 190" width="100%" style={sv} role="img" aria-label="rollout: fork the DES, simulate K futures per candidate, argmax">
+      {AR('ro-a')}
+      <circle cx="46" cy="95" r="7" fill="var(--color-accent)" /><text x="46" y="78" textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="10">{es ? 'decisión s' : 'decision s'}</text>
+      {[{ y: 40, c: '#3fb950', l: 'a₁' }, { y: 95, c: '#e3b341', l: 'a₂ ★' }, { y: 150, c: '#58a6ff', l: 'a₃' }].map((r, i) => (
+        <g key={i}>
+          <line x1="53" y1="95" x2="150" y2={r.y} stroke="var(--color-fg-subtle)" markerEnd="url(#ro-a)" />
+          <rect x="150" y={r.y - 14} width="86" height="28" rx="4" fill={`color-mix(in oklab, ${r.c} 18%, var(--color-surface))`} stroke="var(--color-border)" />
+          <text x="193" y={r.y + 4} textAnchor="middle" fill="var(--color-fg)" fontSize="10">{es ? 'fork + ' : 'fork + '}{r.l}</text>
+          {[0, 1, 2].map((k) => <line key={k} x1="236" y1={r.y} x2="300" y2={r.y - 10 + k * 10} stroke={r.c} strokeWidth="1" strokeDasharray="3 2" markerEnd="url(#ro-a)" />)}
+          <text x="330" y={r.y + 4} fill="var(--color-fg-subtle)" fontSize="10">{es ? 'K futuros con π base' : 'K futures under base π'}</text>
+        </g>
+      ))}
+      <rect x="470" y="80" width="80" height="30" rx="4" fill="color-mix(in oklab, #e3b341 26%, var(--color-surface))" stroke="#e3b341" />
+      <text x="510" y="99" textAnchor="middle" fill="var(--color-fg)" fontSize="10">argmax Q</text>
+      <text x="300" y="182" fill="var(--color-fg-subtle)" fontSize="10">{es ? 'promedio sobre K = E[objetivo] (números aleatorios comunes)' : 'average over K = E[objective] (common random numbers)'}</text>
+    </svg>
+    <p>{es
+      ? <>Bajo INCERTIDUMBRE de tiempos de ciclo (casos C15/C16) el rollout muestrea <InlineMath tex={String.raw`K`} /> realizaciones de ruido por candidato y estima el objetivo ESPERADO (variante estocástica, Bertsekas y Castanon 1999); la garantía se debilita a empírica-con-IC, así que el Benchmark reporta intervalos de confianza Monte-Carlo, nunca una victoria pelada. Una regla de conmutación (desviar de la base solo con ganancia simulada &gt; 0.4%) hace que el rollout se reduzca a la base cuando no hay ganancia robusta.</>
+      : <>Under cycle-time UNCERTAINTY (cases C15/C16) the rollout samples <InlineMath tex={String.raw`K`} /> noise realizations per candidate and estimates the EXPECTED objective (the stochastic variant, Bertsekas & Castanon 1999); the guarantee weakens to empirical-with-CI, so the Benchmark reports Monte-Carlo confidence intervals, never a bare win. A switching margin (deviate from the base only on a simulated gain &gt; 0.4%) makes the rollout reduce to its base when there is no robust gain.</>}</p>
+    <h3>{es ? 'Resultado honesto (medido, no afirmado)' : 'Honest result (measured, not asserted)'}</h3>
+    <p>{es
+      ? 'Sobre el modelo DETERMINISTA la cota de mejora se cumple exactamente: el rollout es >= su base en todo el corpus, con una ganancia REAL solo en el caso asimétrico C05 (~6% toneladas) y empates en las flotas homogéneas y los controles (C01/C04/C12). Bajo ruido, el rollout de equivalencia-cierta NO supera a la asignación miope (la base ya está a pocos % del oráculo de capacidad, y la ventaja del look-ahead es frágil al ruido). Se publica el NULO honesto: el horizonte compra ~0 para flotas homogéneas, la cota de mejora determinista es la contribución validada. Ver Benchmark.'
+      : 'On the DETERMINISTIC model the improvement bound holds exactly: the rollout is >= its base across the whole corpus, with a REAL gain only on the asymmetric C05 (~6% tonnes) and ties on the homogeneous fleets and the controls (C01/C04/C12). Under noise, the certainty-equivalent rollout does NOT beat myopic assignment (the base is already within a few % of the capacity oracle, and the look-ahead edge is fragile to noise). The honest NULL is shipped: horizon buys ~0 for homogeneous fleets, the deterministic improvement bound is the validated contribution. See Benchmark.'}</p>
+    <h3>{es ? 'En vivo: destilación estilo AlphaGo' : 'Live: AlphaGo-style distillation'}</h3>
+    <p>{es
+      ? 'El rollout verdadero (K x horizonte pasos DES por decisión) es demasiado pesado para el navegador. Así que corre OFFLINE sobre el corpus y sus acciones elegidas se DESTILAN en una MLP por-pala pequeña -> dl-rollout.onnx, que corre en vivo con onnxruntime-web como las redes RWR/BC. El panel «Rollout inspector» de la App corre un rollout ACOTADO bajo demanda (K y horizonte pequeños, nunca en autoplay) para mostrar los K futuros por candidato.'
+      : 'The true rollout (K x horizon DES steps per decision) is too heavy for the browser. So it runs OFFLINE over the corpus and its chosen actions are DISTILLED into a small per-shovel MLP -> dl-rollout.onnx, run live via onnxruntime-web like the RWR/BC nets. The App\'s "Rollout inspector" panel runs a BOUNDED rollout on demand (small K and horizon, never on autoplay) to show the K futures per candidate.'}</p>
+    <Refs ids={['bertsekas1997', 'bertsekas1999', 'seiler2022', 'mininggym2025', 'meng2025', 'zhang2020', 'white1986', 'alarie2002']} label="Refs" />
   </>);
 }

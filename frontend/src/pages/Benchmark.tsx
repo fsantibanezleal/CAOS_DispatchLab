@@ -14,6 +14,9 @@ interface SyntheticDoc { nSeeds: number; nCases: number; aggregate: { id: string
 interface RealPolicy { id: string; en: string; es: string; cfTonnes: number; loT: number; hiT: number; deltaPct: number; agreePct: number | null }
 interface RealSampleRow { id: string; name: string; ok: boolean; generator?: string; actualTonnes?: number; realDispatcher?: string; nDecisions?: number; calibrationBiasPct?: number | null; mostSimilarPolicy?: string | null; oracleTonnes?: number; actualPctOfOracle?: number; policies?: RealPolicy[] }
 interface RealDoc { caveat: string; syntheticRanking: string[]; samples: RealSampleRow[]; cross: { id: string; generator: string; realRank: string[]; tauVsSynthetic: number | null }[] }
+interface RollDet { base: number; rollout: number; deltaT: number; deltaPct: number; atLeastBase: boolean }
+interface RollCase { name: string; role: 'target' | 'control'; oracle: number; bestHeur: string; policies: Record<string, { medTonnes: number; ci: number; pctOfOracle: number }>; rolloutVsBestHeur: { meanDelta: number; ci: number; outsideCI: boolean }; rolloutVsHungarian: { meanDelta: number; ci: number; outsideCI: boolean }; deterministic: RollDet; verdict: string }
+interface RollDoc { method: string; base: string; nEval: number; winThreshold: number; winCount: number; win: boolean; honestVerdict: string; cases: Record<string, RollCase> }
 
 const base = import.meta.env.BASE_URL || '/';
 const label = (p: { id: string; en: string; es: string }, es: boolean) =>
@@ -23,9 +26,11 @@ export default function Benchmark() {
   const es = useShellLang() === 'es';
   const [syn, setSyn] = useState<SyntheticDoc | null>(null);
   const [real, setReal] = useState<RealDoc | null>(null);
+  const [roll, setRoll] = useState<RollDoc | null>(null);
   useEffect(() => {
     fetch(`${base}data/bench/synthetic.json`).then((r) => r.json()).then(setSyn).catch(() => {});
     fetch(`${base}data/bench/real.json`).then((r) => r.json()).then(setReal).catch(() => {});
+    fetch(`${base}data/bench/rollout.json`).then((r) => r.json()).then(setRoll).catch(() => {});
   }, []);
 
   if (!syn || !real) return <div className="page-body prose"><div className="page-head"><h1>Benchmark</h1><p className="dl-hint">{es ? 'Cargando artefactos precomputados…' : 'Loading precomputed artifacts…'}</p></div></div>;
@@ -34,6 +39,7 @@ export default function Benchmark() {
     { id: 'corpus', label: es ? 'Corpus sintético' : 'Synthetic corpus', content: <CorpusTab syn={syn} es={es} /> },
     { id: 'learned', label: es ? 'Aprendido vs clásico' : 'Learned vs classical', content: <LearnedTab syn={syn} es={es} /> },
     { id: 'mf', label: 'Match factor', content: <MfTab syn={syn} es={es} /> },
+    ...(roll ? [{ id: 'rollout', label: es ? 'Rollout (beyond-SOTA)' : 'Rollout (beyond-SOTA)', content: <RolloutTab roll={roll} es={es} /> }] : []),
     { id: 'cf', label: es ? 'Counterfactual real' : 'Real counterfactual', content: <CfTab real={real} es={es} /> },
     { id: 'cross', label: 'Cross-source', content: <CrossTab real={real} es={es} /> },
   ];
@@ -43,8 +49,8 @@ export default function Benchmark() {
       <div className="page-head">
         <h1>Benchmark</h1>
         <p className="lede">{es
-          ? `Comparaciones agregadas OFFLINE, ${syn.nCases} casos sintéticos × ${syn.aggregate.length} políticas (5 heurísticas + 2 aprendidas + el tier OR) × ${syn.nSeeds} seeds, más el counterfactual CALIBRADO sobre los ${real.samples.filter((s) => s.ok).length} turnos reales del corpus, todo contra el ORÁCULO de capacidad (cota superior sin colas). Todo precomputado por el pipeline y commiteado; esta página solo lee los artefactos. Números honestos, los resultados nulos y las discrepancias se muestran.`
-          : `OFFLINE aggregate comparisons, ${syn.nCases} synthetic cases × ${syn.aggregate.length} policies (5 heuristics + 2 learned + the OR tier) × ${syn.nSeeds} seeds, plus the CALIBRATED counterfactual over the corpus of ${real.samples.filter((s) => s.ok).length} real shifts, all scored against the capacity ORACLE (queue-free upper bound). Everything precomputed by the pipeline and committed; this page only reads the artifacts. Honest numbers, null results and discrepancies are shown.`}</p>
+          ? `Comparaciones agregadas OFFLINE, ${syn.nCases} casos sintéticos × ${syn.aggregate.length} políticas (5 heurísticas + OR/Hungarian + 2 aprendidas + el rollout destilado) × ${syn.nSeeds} seeds, más el rollout Monte-Carlo beyond-SOTA (pestaña Rollout) y el counterfactual CALIBRADO sobre los ${real.samples.filter((s) => s.ok).length} turnos reales, todo contra el ORÁCULO de capacidad (cota superior sin colas). Todo precomputado por el pipeline y commiteado; esta página solo lee los artefactos. Números honestos, los resultados nulos y las discrepancias se muestran.`
+          : `OFFLINE aggregate comparisons, ${syn.nCases} synthetic cases × ${syn.aggregate.length} policies (5 heuristics + OR/Hungarian + 2 learned + the distilled rollout) × ${syn.nSeeds} seeds, plus the beyond-SOTA Monte-Carlo rollout (Rollout tab) and the CALIBRATED counterfactual over the corpus of ${real.samples.filter((s) => s.ok).length} real shifts, all scored against the capacity ORACLE (queue-free upper bound). Everything precomputed by the pipeline and committed; this page only reads the artifacts. Honest numbers, null results and discrepancies are shown.`}</p>
       </div>
       <Tabs tabs={tabs} />
       <Refs ids={['noriega2024', 'peters2007', 'mnih2015']} label="Refs" />
@@ -207,6 +213,57 @@ function CfTab({ real, es }: { real: RealDoc; es: boolean }) {
       <p className="tw-note">{es
         ? '↔ = acuerdo de decisiones con el despachador real. Compara políticas ENTRE SÍ (cf-vs-cf); el delta vs real carga el sesgo de calibración mostrado arriba.'
         : '↔ = decision agreement with the real dispatcher. Compare policies AGAINST EACH OTHER (cf-vs-cf); the delta vs actual carries the calibration bias shown above.'}</p>
+    </section>
+  );
+}
+
+function RolloutTab({ roll, es }: { roll: RollDoc; es: boolean }) {
+  const ids = Object.keys(roll.cases);
+  const verdictLabel = (v: string): string => {
+    const map: Record<string, [string, string]> = {
+      'control-tie-ok': ['tie (control) OK', 'empate (control) OK'],
+      'control-tie-VIOLATED': ['CONTROL VIOLATED', 'CONTROL VIOLADO'],
+      'rollout-win': ['rollout win', 'gana rollout'],
+      'rollout-ahead': ['rollout ahead', 'rollout adelante'],
+      'tie-within-CI': ['tie (within CI)', 'empate (dentro del IC)'],
+      'myopic-ahead': ['myopic ahead', 'miope adelante'],
+    };
+    return (map[v] ?? [v, v])[es ? 1 : 0];
+  };
+  return (
+    <section>
+      <h2>{es ? 'El dispatcher beyond-SOTA: rollout Monte-Carlo de horizonte deslizante' : 'The beyond-SOTA dispatcher: receding-horizon Monte-Carlo rollout'}</h2>
+      <div className={`dl-verdict ${roll.win ? 'ok' : 'null'}`} style={{ padding: '0.6rem 0.8rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-surface)', margin: '0.5rem 0' }}>
+        <strong>{roll.win ? (es ? `VICTORIA en ${roll.winCount} casos objetivo` : `WIN on ${roll.winCount} target cases`) : (es ? 'RESULTADO NULO (honesto)' : 'NULL RESULT (honest)')}</strong>
+        <p className="tw-note" style={{ marginBottom: 0 }}>{es
+          ? `Un rollout es UN paso de mejora de política (Bertsekas, Tsitsiklis y Wu 1997): sobre el modelo determinista es demostrablemente >= su base. Regla de victoria: superar a la MEJOR heurística Y a Hungarian fuera del IC en >= ${roll.winThreshold} casos objetivo (${roll.winCount}/${roll.winThreshold}). Base: ${roll.base}. Eval: ${roll.nEval} seeds held-out (disjuntos del entrenamiento).`
+          : `A rollout is ONE policy-improvement step (Bertsekas, Tsitsiklis & Wu 1997): on the deterministic model it is provably >= its base. Win rule: beat the BEST heuristic AND Hungarian outside the CI on >= ${roll.winThreshold} target cases (${roll.winCount}/${roll.winThreshold}). Base: ${roll.base}. Eval: ${roll.nEval} held-out seeds (disjoint from training).`}</p>
+      </div>
+
+      <h3>{es ? 'Cota de mejora DETERMINISTA (garantía exacta)' : 'DETERMINISTIC improvement bound (exact guarantee)'}</h3>
+      <table><thead><tr><th>{es ? 'Caso' : 'Case'}</th><th>base (kt)</th><th>rollout (kt)</th><th>Δ%</th><th>{es ? '>= base' : '>= base'}</th></tr></thead>
+        <tbody>{ids.map((id) => { const d = roll.cases[id].deterministic; return (
+          <tr key={id}><td className="mono">{id}</td><td className="mono">{(d.base / 1000).toFixed(1)}</td><td className="mono">{(d.rollout / 1000).toFixed(1)}</td>
+            <td className="mono">{d.deltaPct > 0 ? '+' : ''}{d.deltaPct.toFixed(2)}%</td><td>{d.atLeastBase ? '✓' : '✗'}</td></tr>
+        ); })}</tbody></table>
+      <p className="tw-note">{es
+        ? 'El rollout nunca es peor que su base (garantía). Ganancia REAL solo en el caso asimétrico C05 (~6%): ahí la mirada de horizonte evita comprometer camiones a la pala lejana que hambrea a la cercana. Los controles C01/C04/C12 empatan exactamente (una victoria ahí sería una fuga).'
+        : 'The rollout is never worse than its base (guarantee). REAL gain only on the asymmetric C05 (~6%): there the horizon view avoids committing trucks to the far shovel that starves the near one. The controls C01/C04/C12 tie exactly (a win there would be a leak).'}</p>
+
+      <h3>{es ? 'Bajo incertidumbre de tiempos de ciclo (IC Monte-Carlo)' : 'Under cycle-time uncertainty (Monte-Carlo CIs)'}</h3>
+      <table><thead><tr><th>{es ? 'Caso' : 'Case'}</th><th>{es ? 'rol' : 'role'}</th><th>{es ? 'mejor heur.' : 'best heur.'}</th><th>rollout Δ vs best</th><th>rollout Δ vs Hung.</th><th>{es ? 'veredicto' : 'verdict'}</th></tr></thead>
+        <tbody>{ids.map((id) => { const c = roll.cases[id]; const fmt = (x: { meanDelta: number; ci: number }) => `${x.meanDelta > 0 ? '+' : ''}${x.meanDelta.toFixed(0)} ±${x.ci.toFixed(0)}`; return (
+          <tr key={id}><td className="mono">{id}</td><td>{c.role === 'control' ? (es ? 'control' : 'control') : (es ? 'objetivo' : 'target')}</td>
+            <td>{c.bestHeur}</td><td className="mono">{fmt(c.rolloutVsBestHeur)}</td><td className="mono">{fmt(c.rolloutVsHungarian)}</td>
+            <td>{verdictLabel(c.verdict)}</td></tr>
+        ); })}</tbody></table>
+      <p className="tw-note">{es
+        ? roll.honestVerdict
+        : roll.honestVerdict}</p>
+      <p className="tw-note">{es
+        ? 'La política en vivo es una DESTILACIÓN del rollout (dl-rollout.onnx), corre con onnxruntime-web como las redes RWR/BC; sus números verdaderos offline son estos. El «Rollout inspector» de la App muestra los K futuros por candidato en una decisión.'
+        : 'The live policy is a DISTILLATION of the rollout (dl-rollout.onnx), run via onnxruntime-web like the RWR/BC nets; its true offline numbers are these. The App\'s "Rollout inspector" shows the K futures per candidate at one decision.'}</p>
+      <Refs ids={['bertsekas1997', 'bertsekas1999', 'seiler2022', 'mininggym2025', 'meng2025']} label="Refs" />
     </section>
   );
 }
