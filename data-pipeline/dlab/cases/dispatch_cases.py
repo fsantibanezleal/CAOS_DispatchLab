@@ -1,7 +1,9 @@
 """DispatchLab cases spanning CATEGORIES (the truck-shovel dispatch problem-type taxonomy). The App shows ONE
-selected case; Experiments/Benchmark show cross-case summaries by category. The 8 cases mirror the SPA's
-src/sim/cases.ts (C01-C07 + the C12 oracle). All results are deterministic DES-SIMULATION outputs, NOT a real plant , 
-stated openly. C12 is the closed-form ORACLE control (throughput must equal the exact analytic value)."""
+selected case; Experiments/Benchmark show cross-case summaries by category. The 14 cases mirror the SPA's
+src/sim/cases.ts (C01-C12 + the stochastic pair C15/C16). All results are DES-SIMULATION outputs, NOT a real
+plant, stated openly. C12 is the closed-form ORACLE control (throughput must equal the exact analytic value);
+C15/C16 are the stochastic regimes (high-variance cycles / Poisson breakdowns) where myopic assignment is
+genuinely suboptimal and the Monte-Carlo rollout dispatcher is evaluated."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,6 +14,7 @@ SINGLE = "single-shovel match-factor (the MF sweep)"
 MULTI = "multi-shovel dispatch (the policy decision)"
 GEOM = "geometry & constraints (the #22 physics axes)"
 ORACLE = "oracle control (closed-form check)"
+STOCH = "stochastic regime (rollout look-ahead)"
 
 
 @dataclass(frozen=True)
@@ -68,4 +71,12 @@ CASES: list[Case] = [
     Case("C12", "1-truck-1-shovel oracle", ORACLE, 1, 1, "793F",
          "throughput = floor(shift / cycle) · payload EXACTLY, the closed-form determinism check",
          "closed-form 1x1 oracle (exact)"),
+    Case("C15", "Stochastic cycle times (Erlang load + travel noise)", STOCH, 3, 12, "793F",
+         "high-variance load (Erlang k=2) + travel (lognormal CV 0.35) drive bunching the mean-cost "
+         "myopic assignment cannot see; the Monte-Carlo rollout samples it (>= base by the improvement bound)",
+         "stochastic rollout vs myopic (variance-driven bunching)"),
+    Case("C16", "Shovel breakdowns (Poisson failure + repair)", STOCH, 3, 12, "793F",
+         "the near shovel fails on a Poisson clock (MTBF 1.5 h, MTTR 0.5 h); a myopic policy keeps feeding a "
+         "dying shovel, a look-ahead sampling failures hedges onto the healthy ones",
+         "stochastic rollout vs myopic (breakdown hedging)"),
 ]

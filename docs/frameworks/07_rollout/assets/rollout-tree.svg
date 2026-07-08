@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 260" width="640" height="260" role="img" aria-label="Rollout: fork the DES at a decision, simulate K futures per candidate under the base policy, choose argmax Q">
+  <style>
+    :root { --fg: #1c2330; --sub: #5b6472; --bg: #ffffff; --surf: #f4f6fa; --border: #d5dae2;
+            --a1: #3fb950; --a2: #e3b341; --a3: #58a6ff; }
+    @media (prefers-color-scheme: dark) {
+      :root { --fg: #e6edf3; --sub: #9aa4b2; --bg: #0d1117; --surf: #161b22; --border: #30363d; }
+    }
+    text { font-family: ui-sans-serif, system-ui, sans-serif; fill: var(--fg); }
+    .sub { fill: var(--sub); font-size: 11px; }
+    .box { fill: var(--surf); stroke: var(--border); }
+    .edge { stroke: var(--sub); fill: none; }
+  </style>
+  <rect x="0" y="0" width="640" height="260" fill="var(--bg)" />
+  <marker id="rt-a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--sub)" /></marker>
+  <circle cx="52" cy="130" r="9" fill="var(--a2)" />
+  <text x="52" y="108" text-anchor="middle" class="sub">decision s</text>
+  <text x="52" y="160" text-anchor="middle" class="sub">truck t</text>
+
+  <!-- candidate a1 -->
+  <line x1="62" y1="130" x2="170" y2="55" class="edge" marker-end="url(#rt-a)" />
+  <rect x="170" y="38" width="120" height="34" rx="5" class="box" stroke="var(--a1)" />
+  <text x="230" y="59" text-anchor="middle" font-size="12">fork + shovel a1</text>
+  <!-- candidate a2 (chosen) -->
+  <line x1="62" y1="130" x2="170" y2="130" class="edge" marker-end="url(#rt-a)" />
+  <rect x="170" y="113" width="120" height="34" rx="5" class="box" stroke="var(--a2)" stroke-width="2" />
+  <text x="230" y="134" text-anchor="middle" font-size="12">fork + shovel a2</text>
+  <!-- candidate a3 -->
+  <line x1="62" y1="130" x2="170" y2="205" class="edge" marker-end="url(#rt-a)" />
+  <rect x="170" y="188" width="120" height="34" rx="5" class="box" stroke="var(--a3)" />
+  <text x="230" y="209" text-anchor="middle" font-size="12">fork + shovel a3</text>
+
+  <!-- K futures per candidate -->
+  <g stroke="var(--a1)">
+    <line x1="290" y1="55" x2="360" y2="40" class="edge" marker-end="url(#rt-a)" />
+    <line x1="290" y1="55" x2="360" y2="55" class="edge" marker-end="url(#rt-a)" />
+    <line x1="290" y1="55" x2="360" y2="70" class="edge" marker-end="url(#rt-a)" />
+  </g>
+  <g stroke="var(--a2)">
+    <line x1="290" y1="130" x2="360" y2="115" class="edge" marker-end="url(#rt-a)" />
+    <line x1="290" y1="130" x2="360" y2="130" class="edge" marker-end="url(#rt-a)" />
+    <line x1="290" y1="130" x2="360" y2="145" class="edge" marker-end="url(#rt-a)" />
+  </g>
+  <g stroke="var(--a3)">
+    <line x1="290" y1="205" x2="360" y2="190" class="edge" marker-end="url(#rt-a)" />
+    <line x1="290" y1="205" x2="360" y2="205" class="edge" marker-end="url(#rt-a)" />
+    <line x1="290" y1="205" x2="360" y2="220" class="edge" marker-end="url(#rt-a)" />
+  </g>
+  <text x="400" y="59" class="sub">K futures under base policy pi</text>
+  <text x="400" y="134" class="sub">Q(s,a2) = mean simulated objective</text>
+  <text x="400" y="209" class="sub">(common random numbers)</text>
+
+  <rect x="470" y="112" width="150" height="36" rx="6" class="box" stroke="var(--a2)" stroke-width="2" />
+  <text x="545" y="134" text-anchor="middle" font-size="12">argmax Q  ->  a2</text>
+</svg>

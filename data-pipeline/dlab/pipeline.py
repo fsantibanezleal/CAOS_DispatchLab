@@ -66,12 +66,15 @@ def retrain(seed: int = 42) -> None:
     results. The science is preserved verbatim in dlab/science/."""
     print("[retrain] node DES dataset generation (logs decisions) ...", flush=True)
     _node(str(SCIENCE / "gen_dataset.mjs"))
-    print("[retrain] torch train the learned policies -> ONNX ...", flush=True)
+    print("[retrain] rollout benchmark + distillation dataset (Monte-Carlo rollout over the corpus) ...", flush=True)
+    _node(str(SCIENCE / "rollout_bench.mjs"))
+    print("[retrain] torch train the learned policies + distil the rollout -> ONNX ...", flush=True)
     vp = "python"
     subprocess.run([vp, str(SCIENCE / "train_policy.py")], check=True, cwd=str(REPO_ROOT))
-    print("[retrain] re-bake case-results (TS DES comparePolicies over the cases) ...", flush=True)
+    print("[retrain] re-bake case-results + synthetic benchmark (TS DES over the cases) ...", flush=True)
     _node(str(SCIENCE / "bake_cases.mjs"))
-    print(f"[retrain] wrote ONNX + dl-learned.json + case-results.json -> {DERIVED}", flush=True)
+    _node(str(SCIENCE / "bench_synthetic.mjs"))
+    print(f"[retrain] wrote ONNX (incl. dl-rollout) + dl-learned.json + case-results.json + bench/rollout.json -> {DERIVED}", flush=True)
 
 
 def run_all(seed: int = 42) -> list[dict]:

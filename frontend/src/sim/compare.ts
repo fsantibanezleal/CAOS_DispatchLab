@@ -43,5 +43,5 @@ export function tieVerdict(stats: PolicyStats[]): { leader: string; tied: string
 
 export const POLICY_COLOR: Record<string, string> = {
   greedy: '#58a6ff', shortestWait: '#3fb950', minTruckWait: '#d29922', minShovelWait: '#bc8cff', fixed: '#8b949e',
-  rwr: '#f85149', bcbest: '#f778ba', hungarian: '#39c5cf',
+  rwr: '#f85149', bcbest: '#f778ba', hungarian: '#39c5cf', rollout: '#e3b341',
 };

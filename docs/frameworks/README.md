@@ -19,5 +19,6 @@ algorithm + its provenance.
 |---|---|
 | [Dispatch policies + match factor](05_policies/policies.md) | the classical criteria (min-truck-wait / min-shovel-wait); match factor (Morgan/Peterson; Burt & Caccetta) |
 | [Learned dispatch policies](06_learned-dispatch/learned.md) | reward-weighted imitation + behaviour cloning from logged DES decisions |
+| [Look-ahead & rollout (beyond-SOTA)](07_rollout/rollout.md) | receding-horizon Monte-Carlo rollout + the policy-improvement bound (Bertsekas, Tsitsiklis & Wu 1997; Bertsekas & Castanon 1999); distilled to `dl-rollout.onnx` |
 
 DOI-verified references are in `frontend/src/data/citations.ts` and surfaced in the Methodology page.

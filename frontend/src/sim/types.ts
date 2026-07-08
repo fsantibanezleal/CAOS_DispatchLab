@@ -9,10 +9,14 @@ export interface NodePos { x: number; y: number; }
 export interface ShovelSpec {
   id: number; name: string; pos: NodePos;
   loadMeanSec: number;       // mean load time
-  loadPasses: number;        // Erlang-k shape (bucket passes)
+  loadPasses: number;        // Erlang-k shape (bucket passes); fewer passes = higher load-time CV
   spotMeanSec: number;       // truck spotting before loading
   faceType: 'ore' | 'waste';
   grade: number;             // %Cu of the face (blend constraint, later)
+  /** Poisson breakdown + repair on this shovel (C16). Absent = never fails. The failure interrupts
+   *  service; queued trucks wait for the repair. A myopic policy keeps committing trucks to a shovel
+   *  that is about to (or has just) failed; a look-ahead policy sampling futures can avoid it. */
+  breakdown?: { mtbfSec: number; mttrSec: number };
 }
 
 export interface DumpSpec {
@@ -70,6 +74,10 @@ export interface CaseSpec {
   blendWindow?: { min: number; max: number };  // crusher grade window (binding-blend cases)
   /** Operational constraints (#22): enforced by the DES BEFORE any policy sees the state. */
   constraints?: import('./constraints').OperationalConstraints;
+  /** Per-case stochastic amplitude (C15/C16). travelCv overrides the default 0.08 lognormal travel
+   *  noise; a higher CV is the regime where variance-driven bunching makes myopic assignment
+   *  genuinely suboptimal and a Monte-Carlo rollout can defensibly help. */
+  noise?: { travelCv?: number };
 }
 
 // ---- dispatch policy interface ----

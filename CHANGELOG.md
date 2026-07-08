@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.14.000], 2026-07-07
+
+### Added, the beyond-SOTA Monte-Carlo rollout dispatcher (non-myopia)
+- A receding-horizon Monte-Carlo **rollout** dispatcher (`frontend/src/policies/rollout.ts`) over a new
+  forkable, closure-free discrete-event engine (`frontend/src/sim/rolloutSim.ts`) that is validated
+  byte-for-byte against the live `model.ts` on the deterministic corpus (parity test). At each decision it
+  forks the DES, tries each candidate shovel, simulates the horizon under a base heuristic, and picks the
+  argmax simulated objective, one policy-improvement step (Bertsekas, Tsitsiklis & Wu 1997,
+  DOI 10.1023/A:1009635226865; the stochastic variant, Bertsekas & Castanon 1999, DOI 10.1023/A:1009634810396).
+- Two stochastic cases where myopic assignment is genuinely suboptimal: **C15** (Erlang load + lognormal
+  travel noise) and **C16** (Poisson shovel breakdown + repair), added to the DES, the oracle, and both the
+  TypeScript and Python case corpora (14 cases total).
+- **Live**: the rollout is DISTILLED offline into `dl-rollout.onnx` (held-out imitation accuracy ~0.84) and
+  runs live via onnxruntime-web like the RWR/BC nets; a new **Rollout inspector** App tab shows the K
+  simulated futures per candidate + the chosen action vs the base (on demand, bounded, no autoplay).
+- **Benchmark**: a leakage-safe rollout benchmark (`science/rollout_bench.mjs`, disjoint train/eval seed banks,
+  Monte-Carlo 95% CIs) writing `data/derived/bench/rollout.json`, surfaced in a new Benchmark "Rollout" tab.
+- **Docs**: a Methodology "Look-ahead & rollout" SubTab (Q-factor + the improvement inequality in KaTeX, the
+  deterministic-vs-stochastic split, a "why BC, why not yet offline RL" note) and `docs/frameworks/07_rollout/`
+  with a theme-aware SVG. New DOI-verified citations (Bertsekas 1997/1999, Seiler 2022, Mining-Gym 2025,
+  curriculum-PPO 2025, Zhang 2020, CQL, IQL, two SAGE 2025 DOIs resolved via Crossref).
+
+### Result (measured, honest)
+- On the DETERMINISTIC model the improvement bound holds exactly: rollout >= base on every case, with a REAL
+  gain only on the asymmetric **C05 (~6% tonnes)** and exact ties on the controls C01/C04/C12.
+- Under cycle-time uncertainty the certainty-equivalent rollout does NOT beat myopic assignment (the base is
+  already within a few % of the capacity oracle, and the look-ahead edge is fragile to noise). The beyond-SOTA
+  WIN condition is NOT met; the honest NULL is shipped alongside the validated deterministic improvement bound.
+
+### Fixed
+- `science/train_policy.py` wrote its ONNX + `dl-learned.json` to a stale `data-pipeline/public` path never
+  consumed by anything; it now writes the canonical `data/derived` the pipeline + `copy-data.mjs` read.
+
 ## [0.13.002], 2026-07-07
 
 ### Added
