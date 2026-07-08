@@ -15,7 +15,7 @@ const get = (name: string) => (sessions[name] ??= ort.InferenceSession.create(`$
 const locks: Record<string, Promise<unknown>> = {};
 
 /** Score each candidate shovel (per-shovel 6-feature rows) with a learned policy's ONNX model. */
-export async function onnxScore(model: 'dl-policy.onnx' | 'dl-bcbest.onnx', feats: number[][]): Promise<number[]> {
+export async function onnxScore(model: 'dl-policy.onnx' | 'dl-bcbest.onnx' | 'dl-rollout.onnx', feats: number[][]): Promise<number[]> {
   const s = await get(model);
   const prev = locks[model] || Promise.resolve();
   const run = prev.then(async () => {

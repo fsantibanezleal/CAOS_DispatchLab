@@ -5,7 +5,7 @@
 import { type Policy, type DispatchState, type ShovelView } from '../sim/types';
 
 export interface Layer { W: number[][]; b: number[] }
-export interface LearnedWeights { policy: Layer[]; bcbest: Layer[] }
+export interface LearnedWeights { policy: Layer[]; bcbest: Layer[]; rollout?: Layer[] }
 
 /** per-shovel features (identical to the training encoder). */
 export function shovelFeats(v: ShovelView, travelSec: number): number[] {

@@ -19,6 +19,8 @@ interface ShovelRT {
   inbound: number;
   served: number; queueWaitSec: number; busySec: number; idleSec: number;
   lastChange: number;        // last time busy/idle state changed
+  down: boolean;             // C16: the shovel is broken down (cannot start a service until repaired)
+  repairEndsAt: number;      // sim seconds the current repair completes (if down)
 }
 
 const rk = (s: number, d: number) => `${s}->${d}`;
@@ -46,12 +48,13 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   const stay = (truck: number, at: { x: number; y: number }, t0: number, t1: number, state: Leg['state'], node: number) => {
     if (trace && t1 > t0) trace.push({ truck, x0: at.x, y0: at.y, x1: at.x, y1: at.y, t0, t1, state, node });
   };
-  const loadS = rng.stream('load'), travelS = rng.stream('travel'), dumpS = rng.stream('dump');
-  const tmul = () => (det ? 1 : travelS.lognormal(1, 0.08));
+  const loadS = rng.stream('load'), travelS = rng.stream('travel'), dumpS = rng.stream('dump'), breakS = rng.stream('breakdown');
+  const travelCv = c.noise?.travelCv ?? 0.08;
+  const tmul = () => (det ? 1 : travelS.lognormal(1, travelCv));
   const mine = c.mine;
 
   const sh = new Map<number, ShovelRT>();
-  for (const s of mine.shovels) sh.set(s.id, { id: s.id, spec: s, queue: [], loading: false, serviceEndsAt: 0, inbound: 0, served: 0, queueWaitSec: 0, busySec: 0, idleSec: 0, lastChange: 0 });
+  for (const s of mine.shovels) sh.set(s.id, { id: s.id, spec: s, queue: [], loading: false, serviceEndsAt: 0, inbound: 0, served: 0, queueWaitSec: 0, busySec: 0, idleSec: 0, lastChange: 0, down: false, repairEndsAt: 0 });
   const dumpBusy = new Map<number, boolean>(), dumpQ = new Map<number, number[]>();
   for (const d of mine.dumps) { dumpBusy.set(d.id, false); dumpQ.set(d.id, []); }
 
@@ -78,7 +81,10 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     const truck = truckById.get(truckId)!;
     const shovels: ShovelView[] = mine.shovels.map((spec) => {
       const r = sh.get(spec.id)!;
-      const freeInSec = r.loading ? Math.max(0, r.serviceEndsAt - now) : 0;
+      // a down shovel cannot start service until repaired: surface the remaining repair time so
+      // reactive policies steer away from it (they cannot ANTICIPATE the failure, only react to it)
+      const freeInSec = r.down ? Math.max(0, r.repairEndsAt - now)
+        : r.loading ? Math.max(0, r.serviceEndsAt - now) : 0;
       return { id: spec.id, spec, queueLen: r.queue.length, loading: r.loading, inbound: r.inbound, freeInSec, loadMeanSec: spec.loadMeanSec };
     });
     const fromDump = atDumpId ?? crusher.id;
@@ -102,9 +108,32 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     return { now, truck, atDumpId, shovels, travelEmptySec, fleet, etaEmptySecFor };
   };
 
+  // ---- shovel breakdown / repair (C16): Poisson failure + repair, interrupting service ----
+  const scheduleFailure = (s: ShovelRT) => {
+    const bd = s.spec.breakdown; if (!bd) return;
+    const dt = det ? bd.mtbfSec : breakS.exp(bd.mtbfSec);   // det: fire at regular mean intervals (reproducible)
+    sim.schedule(dt, () => onFailure(s), 0);
+  };
+  const onFailure = (s: ShovelRT) => {
+    if (s.down) return;
+    const now = sim.now();
+    // the failure blocks STARTING new services; a load already in progress finishes normally, then the
+    // shovel sits down (queued trucks wait, accruing queue wait) until the repair completes.
+    s.down = true;
+    const bd = s.spec.breakdown!;
+    const rep = det ? bd.mttrSec : breakS.exp(bd.mttrSec);
+    s.repairEndsAt = now + rep;
+    sim.schedule(rep, () => onRepair(s), 0);
+  };
+  const onRepair = (s: ShovelRT) => {
+    s.down = false; s.lastChange = sim.now();
+    tryStartShovel(s);
+    scheduleFailure(s);                          // next failure cycle
+  };
+
   // ---- start a shovel service if idle + queue non-empty ----
   const tryStartShovel = (s: ShovelRT) => {
-    if (s.loading || s.queue.length === 0) return;
+    if (s.down || s.loading || s.queue.length === 0) return;
     const now = sim.now();
     const truckId = s.queue.shift()!;
     const wait = now - (truckArr.get(truckId) ?? now);
@@ -235,6 +264,9 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     s.queue.push(truckId);
     tryStartShovel(s);
   };
+
+  // ---- arm the breakdown clocks (C16) ----
+  for (const s of mine.shovels) { const r = sh.get(s.id)!; if (s.breakdown) scheduleFailure(r); }
 
   // ---- initial dispatch: each truck starts heading to its start shovel ----
   for (const t of c.fleet.trucks) {

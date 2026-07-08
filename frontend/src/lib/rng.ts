@@ -36,6 +36,21 @@ export class Stream {
     if ((this.s0 | this.s1 | this.s2 | this.s3) === 0) this.s0 = 1; // avoid the all-zero state
   }
 
+  /** Deep copy of the stream's exact state (words + gauss spare); the rollout forks the DES and must
+   *  carry the noise state so a forked future continues the SAME stream, not a fresh one. */
+  clone(): Stream {
+    const s = Object.create(Stream.prototype) as Stream;
+    s.s0 = this.s0; s.s1 = this.s1; s.s2 = this.s2; s.s3 = this.s3; s.gaussSpare = this.gaussSpare;
+    return s;
+  }
+
+  /** Reseed in place (used to draw an INDEPENDENT sampled future in a rollout branch). */
+  reseed(seed: number): void {
+    const sm = splitmix32(seed >>> 0);
+    this.s0 = sm(); this.s1 = sm(); this.s2 = sm(); this.s3 = sm(); this.gaussSpare = null;
+    if ((this.s0 | this.s1 | this.s2 | this.s3) === 0) this.s0 = 1;
+  }
+
   /** raw uint32 */
   nextU32(): number {
     const result = Math.imul(rotl(Math.imul(this.s1, 5) >>> 0, 7) >>> 0, 9) >>> 0;
@@ -98,5 +113,18 @@ export class Rng {
     let s = this.cache.get(name);
     if (!s) { s = new Stream((this.masterSeed ^ fnv1a(name)) >>> 0); this.cache.set(name, s); }
     return s;
+  }
+
+  /** Deep copy including every materialised stream's state (for the forkable rollout DES). */
+  clone(): Rng {
+    const r = new Rng(this.masterSeed);
+    for (const [k, v] of this.cache) r.cache.set(k, v.clone());
+    return r;
+  }
+
+  /** Reseed every materialised stream from a new master (independent sampled future in a rollout branch). */
+  reseedAll(seed: number): void {
+    this.masterSeed = seed >>> 0;
+    for (const [k, v] of this.cache) v.reseed((this.masterSeed ^ fnv1a(k)) >>> 0);
   }
 }
