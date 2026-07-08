@@ -13,10 +13,14 @@ export function loadLearnedPolicies(): Promise<PolicyDef[]> {
     const base = import.meta.env.BASE_URL || '/';
     const data = await fetch(`${base}dl-learned.json`).then((r) => r.json());
     const w: LearnedWeights = data.weights;
-    return [
+    const defs: PolicyDef[] = [
       { id: 'rwr', en: 'Learned, RWR policy', es: 'Aprendida, política RWR', fn: makeLearnedPolicy(w.policy), tier: 'learned' },
       { id: 'bcbest', en: 'Learned, BC-best', es: 'Aprendida, BC-best', fn: makeLearnedPolicy(w.bcbest), tier: 'learned' },
-    ] as PolicyDef[];
+    ];
+    // the beyond-SOTA tier: the distilled Monte-Carlo rollout dispatcher (imitates the offline rollout at
+    // onnxruntime-web speed). Its true offline numbers + the improvement bound live on the Benchmark page.
+    if (w.rollout) defs.push({ id: 'rollout', en: 'Rollout (distilled)', es: 'Rollout (destilada)', fn: makeLearnedPolicy(w.rollout), tier: 'rollout' });
+    return defs;
   })();
   return cache;
 }

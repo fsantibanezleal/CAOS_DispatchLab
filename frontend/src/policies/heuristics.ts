@@ -45,7 +45,7 @@ export const minTruckWait: Policy = (s) => pick(s, (v, t) => waitAtArrival(v, t)
  * truck's travel). Keeps the expensive shovel fed; the conflicting opposite of #4. */
 export const minShovelWait: Policy = (s) => pick(s, (v) => v.freeInSec + backlog(v) * v.loadMeanSec);
 
-export interface PolicyDef { id: string; en: string; es: string; fn: Policy; tier: 'heuristic' | 'criterion' | 'baseline' | 'learned' | 'or'; }
+export interface PolicyDef { id: string; en: string; es: string; fn: Policy; tier: 'heuristic' | 'criterion' | 'baseline' | 'learned' | 'or' | 'rollout'; }
 export const POLICIES: PolicyDef[] = [
   { id: 'greedy', en: 'Greedy (earliest completion)', es: 'Greedy (fin más temprano)', fn: greedy, tier: 'heuristic' },
   { id: 'shortestWait', en: 'Shortest expected wait', es: 'Espera esperada mínima', fn: shortestWait, tier: 'heuristic' },

@@ -120,5 +120,44 @@ const mixedFleet: FleetSpec = {
 };
 export const C11: CaseSpec = { id: 'C11', name: 'Mixed fleet (793F + 930E)', mine: c06Mine, fleet: mixedFleet, shiftSec: SHIFT };
 
-export const CASES: CaseSpec[] = [C01, C02, C03, C04, C05, C06, C07, C08, C09, C10, C11, C12];
+// ---- #rollout stochastic regime, the cases where MYOPIC assignment is genuinely suboptimal ----
+// (the regimes the beyond-SOTA Monte-Carlo rollout can defensibly help; a deterministic myopic pick
+//  optimises the instantaneous mean cost and ignores variance-driven bunching / failure risk).
+
+// C15 stochastic cycle times: 3-shovel asymmetric geometry + HIGH-variance load (Erlang k=2, CV≈0.71)
+// and travel (lognormal CV=0.35). Bunching the mean-cost Hungarian cannot see; a rollout samples it.
+const c15Mine: MineSpec = {
+  name: 'Stochastic-cycle pit (3 shovels, asymmetric)',
+  shovels: [
+    shovel(1, 'Shovel 1 (near)', 120, 110, { loadPasses: 2 }),
+    shovel(2, 'Shovel 2 (mid)', 120, 220, { loadPasses: 2 }),
+    shovel(3, 'Shovel 3 (far)', 120, 330, { loadPasses: 2 }),
+  ],
+  dumps: [crusher(10, 'Crusher', 560, 220)],
+  routes: { '1->10': route(1400, 3), '2->10': route(2400, 4), '3->10': route(3600, 5) },
+};
+export const C15: CaseSpec = {
+  id: 'C15', name: 'Stochastic cycle times (Erlang load + travel noise)', mine: c15Mine,
+  fleet: fleet(12, '793F', [1, 2, 3]), shiftSec: SHIFT, noise: { travelCv: 0.35 },
+};
+
+// C16 shovel breakdowns: 3-shovel asymmetric geometry; the NEAR shovel (the one a myopic policy
+// over-feeds) fails on a Poisson clock (MTBF 1.5 h, MTTR 0.5 h). A myopic policy keeps committing
+// trucks to a dying shovel; a look-ahead that samples failures can hedge onto the healthy ones.
+const c16Mine: MineSpec = {
+  name: 'Breakdown pit (near shovel fails on a Poisson clock)',
+  shovels: [
+    shovel(1, 'Shovel 1 (near, fails)', 120, 110, { breakdown: { mtbfSec: 5400, mttrSec: 1800 } }),
+    shovel(2, 'Shovel 2 (mid)', 120, 220),
+    shovel(3, 'Shovel 3 (far)', 120, 330),
+  ],
+  dumps: [crusher(10, 'Crusher', 560, 220)],
+  routes: { '1->10': route(1400, 3), '2->10': route(2400, 4), '3->10': route(3600, 5) },
+};
+export const C16: CaseSpec = {
+  id: 'C16', name: 'Shovel breakdowns (Poisson failure + repair)', mine: c16Mine,
+  fleet: fleet(12, '793F', [1, 2, 3]), shiftSec: SHIFT, noise: { travelCv: 0.12 },
+};
+
+export const CASES: CaseSpec[] = [C01, C02, C03, C04, C05, C06, C07, C08, C09, C10, C11, C12, C15, C16];
 export const caseById = (id: string): CaseSpec => CASES.find((c) => c.id === id) ?? C01;

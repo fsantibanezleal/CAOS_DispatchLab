@@ -24,6 +24,10 @@ const LEARNED = [
   { id: 'rwr', en: 'Learned, RWR policy', es: 'Aprendida, política RWR', fn: makeLearnedPolicy(learnedDoc.weights.policy), tier: 'learned' },
   { id: 'bcbest', en: 'Learned, BC-best', es: 'Aprendida, BC-best', fn: makeLearnedPolicy(learnedDoc.weights.bcbest), tier: 'learned' },
 ];
+// the DISTILLED rollout policy (beyond-SOTA tier): the fast live net that imitates the Monte-Carlo rollout
+// dispatcher. Its TRUE offline numbers (+ the deterministic improvement bound) live in bench/rollout.json;
+// here it appears alongside the other live policies so the synthetic benchmark ranks it on the same engine.
+if (learnedDoc.weights.rollout) LEARNED.push({ id: 'rollout', en: 'Rollout (distilled)', es: 'Rollout (destilada)', fn: makeLearnedPolicy(learnedDoc.weights.rollout), tier: 'rollout' });
 const ALL = [...POLICIES, ...LEARNED];
 
 const SEEDS = Array.from({ length: 20 }, (_, i) => 101 + i * 13);   // 2x the case-results bank
