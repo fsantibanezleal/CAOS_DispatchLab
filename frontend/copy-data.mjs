@@ -18,7 +18,7 @@ if (!existsSync(DERIVED)) {
 mkdirSync(PUB, { recursive: true });
 
 // 1) the live-lane artifacts the SPA fetches from the site root (the learned-policy ONNX + the metrics)
-for (const f of ['dl-policy.onnx', 'dl-bcbest.onnx', 'dl-learned.json']) {
+for (const f of ['dl-policy.onnx', 'dl-bcbest.onnx', 'dl-rollout.onnx', 'dl-learned.json']) {
   const from = join(DERIVED, f);
   if (existsSync(from)) copyFileSync(from, join(PUB, f));
   else console.warn(`[copy-data] missing ${f}, run scripts/precompute (or --retrain)`);
