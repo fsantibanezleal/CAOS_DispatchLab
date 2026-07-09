@@ -20,13 +20,50 @@ function levelAt(series: { t: number; level: number }[] | undefined, t: number):
   return lvl;
 }
 
-/** The haul POLYLINE for a leg: shovel -> portal -> destination (loaded), or its reverse (empty), so the
- *  truck sprite travels on the drawn pit roads through the portal, never a straight shovel->dump line. When
- *  the mine has no portal (a replayed real sample) it is the legacy straight segment. */
+type Pt = { x: number; y: number };
+/** The 2D surface road network (#87): a shared TRUNK from the portal to a junction, then curved SPURS to
+ *  each destination. Mirrors the 3D topo network so hauls follow real roads, never a straight rim->dump line. */
+function surfaceNet(c: CaseSpec): { junction: Pt; trunk: Pt[]; spurs: Record<number, Pt[]> } | null {
+  const portal = c.mine.portal;
+  if (!portal) return null;
+  const dumps = c.mine.dumps;
+  const cx = dumps.reduce((a, d) => a + d.pos.x, 0) / (dumps.length || 1);
+  const cy = dumps.reduce((a, d) => a + d.pos.y, 0) / (dumps.length || 1);
+  const junction: Pt = { x: portal.x + (cx - portal.x) * 0.45, y: portal.y + (cy - portal.y) * 0.45 };
+  const curve = (a: Pt, b: Pt, bend: number): Pt[] => {
+    const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;
+    const ctrl = { x: (a.x + b.x) / 2 + nx * bend, y: (a.y + b.y) / 2 + ny * bend };
+    const n = Math.max(6, Math.ceil(len / 40)); const pts: Pt[] = [];
+    for (let i = 0; i <= n; i++) { const t = i / n, u = 1 - t; pts.push({ x: u * u * a.x + 2 * u * t * ctrl.x + t * t * b.x, y: u * u * a.y + 2 * u * t * ctrl.y + t * t * b.y }); }
+    return pts;
+  };
+  const dTo = (p: Pt) => Math.hypot(p.x - portal.x, p.y - portal.y);
+  const trunk = curve(portal, junction, dTo(junction) * 0.12);
+  const spurs: Record<number, Pt[]> = {};
+  dumps.forEach((d, i) => { spurs[d.id] = curve(junction, d.pos, Math.hypot(d.pos.x - junction.x, d.pos.y - junction.y) * 0.16 * (i % 2 ? 1 : -1)); });
+  return { junction, trunk, spurs };
+}
+function nearestDumpId(c: CaseSpec, p: Pt): number | null {
+  let best: number | null = null, bd = Infinity;
+  for (const d of c.mine.dumps) { const dd = Math.hypot(d.pos.x - p.x, d.pos.y - p.y); if (dd < bd) { bd = dd; best = d.id; } }
+  return best;
+}
+/** The haul POLYLINE for a leg: shovel -> portal -> trunk -> junction -> spur -> destination (loaded), or its
+ *  reverse (empty), so the truck travels the drawn ROAD NETWORK, never a straight line. No portal (real
+ *  sample) -> legacy straight segment. */
 function legPoly(c: CaseSpec, l: Leg): { x: number; y: number }[] {
-  const p = c.mine.portal;
+  const portal = c.mine.portal;
   const a = { x: l.x0, y: l.y0 }, b = { x: l.x1, y: l.y1 };
-  return p ? [a, p, b] : [a, b];
+  if (!portal) return [a, b];
+  const net = surfaceNet(c);
+  if (!net) return [a, portal, b];
+  const dumpEnd = l.state === 'haulFull' ? b : a;
+  const shovelEnd = l.state === 'haulFull' ? a : b;
+  const did = nearestDumpId(c, dumpEnd);
+  const spur = did != null ? net.spurs[did] : null;
+  const loaded = [shovelEnd, portal, ...net.trunk.slice(1), ...(spur ? spur.slice(1) : [dumpEnd])];
+  return l.state === 'haulFull' ? loaded : loaded.slice().reverse();
 }
 /** Position at fraction f in [0,1] of the polyline's arc length (constant spatial speed; always on a road). */
 function posAlong(pts: { x: number; y: number }[], f: number): { x: number; y: number } {
@@ -82,14 +119,19 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
     const portal = c.mine.portal;
     g.strokeStyle = border; g.lineCap = 'round';
     if (portal) {
-      const usedDumps = new Set<number>();
-      for (const key of Object.keys(c.mine.routes)) usedDumps.add(Number(key.split('->')[1]));
+      const net = surfaceNet(c);
       // internal pit roads (thicker, the ramp network to the exit)
       g.lineWidth = 6;
       for (const s of c.mine.shovels) { g.beginPath(); g.moveTo(sx(s.pos.x), sy(s.pos.y)); g.lineTo(sx(portal.x), sy(portal.y)); g.stroke(); }
-      // direct surface hauls (portal -> destination)
+      // surface road network: shared TRUNK (portal -> junction) + curved SPURS (junction -> each dump)
+      const drawPoly = (pts: Pt[]) => { g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(sx(p.x), sy(p.y)) : g.moveTo(sx(p.x), sy(p.y)))); g.stroke(); };
       g.lineWidth = 8;
-      for (const d of c.mine.dumps) if (usedDumps.has(d.id)) { g.beginPath(); g.moveTo(sx(portal.x), sy(portal.y)); g.lineTo(sx(d.pos.x), sy(d.pos.y)); g.stroke(); }
+      if (net) {
+        drawPoly(net.trunk);
+        for (const d of c.mine.dumps) if (net.spurs[d.id]) drawPoly(net.spurs[d.id]);
+        // junction marker
+        g.save(); g.fillStyle = border; g.beginPath(); g.arc(sx(net.junction.x), sy(net.junction.y), 4, 0, Math.PI * 2); g.fill(); g.restore();
+      }
     } else {
       g.lineWidth = 7;
       for (const s of c.mine.shovels) for (const d of c.mine.dumps) if (c.mine.routes[`${s.id}->${d.id}`]) {

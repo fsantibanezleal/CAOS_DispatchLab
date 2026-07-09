@@ -93,6 +93,22 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     stockTarget.set(sp.id, tgt);
   }
 
+  // ---- haul-road car-following (baseline, #87): same-direction trucks on one road hold FIFO order and a
+  // security-distance headway. A faster truck caught behind a slower one is HELD to arrive no earlier than
+  // (leader arrival + headway), so order is preserved (no overtaking) and bunching emerges (effective
+  // travel time rises above free-flow). Truck bunching: Soofastaei et al. 2016. Keyed per DIRECTED road
+  // (loaded shovel->dump and empty dump->shovel are separate corridors). Headway = security distance /
+  // the leg's average speed, so it scales with the road (short/fast legs pack tighter than long/slow ones).
+  const SECURITY_M = 60;                          // minimum spacing between consecutive trucks on a haul road
+  const roadLastArrival = new Map<string, number>();
+  const carFollow = (dirKey: string, departSec: number, freeFlowTt: number, distM: number): number => {
+    const headway = distM > 0 ? SECURITY_M * (freeFlowTt / distM) : 0;   // = SECURITY_M / avg leg speed
+    const freeArrival = departSec + freeFlowTt;
+    const prev = roadLastArrival.get(dirKey);
+    const arrival = prev == null ? freeArrival : Math.max(freeArrival, prev + headway);
+    roadLastArrival.set(dirKey, arrival);
+    return arrival - departSec;                   // effective travel time (>= free-flow when bunched)
+  };
   const truckArr = new Map<number, number>();    // truck id → time it joined its current shovel queue
   // OR tier (#22): trucks that will ask for a dispatch decision soon (at/near a dump), the
   // fleet view the joint-assignment policy solves over. Insertion order is deterministic.
@@ -215,7 +231,9 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     tryStartShovel(s);
     const truck = truckById.get(truckId)!;
     const dumpId = destFor(s);
-    const tt = haulTimeSec(mine, s.id, dumpId, truck.spec, true) * tmul();
+    const freeTt = haulTimeSec(mine, s.id, dumpId, truck.spec, true) * tmul();
+    const distM = mine.routes[rk(s.id, dumpId)]?.distM ?? 0;
+    const tt = carFollow(`L:${s.id}->${dumpId}`, now, freeTt, distM);   // loaded corridor, no overtaking
     const sp = posOf('shovel', s.id), dp = posOf('dump', dumpId);
     stay(truckId, sp, arr, now, 'atShovel', s.id);
     move(truckId, sp, dp, now, now + tt, 'haulFull', dumpId, s.spec.faceType);
@@ -343,7 +361,9 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     const arr = truckArr.get(truckId) ?? now;
     const target = sh.get(chosen) ?? sh.get(mine.shovels[0].id)!;
     target.inbound++;
-    const tt = haulTimeSec(mine, target.id, dumpId, truck.spec, false) * tmul();
+    const freeTt = haulTimeSec(mine, target.id, dumpId, truck.spec, false) * tmul();
+    const distM = mine.routes[rk(target.id, dumpId)]?.distM ?? 0;
+    const tt = carFollow(`E:${dumpId}->${target.id}`, now, freeTt, distM);   // empty corridor, no overtaking
     const dp = posOf('dump', dumpId), sp = posOf('shovel', target.id);
     stay(truckId, dp, arr, now, 'atDump', dumpId);
     move(truckId, dp, sp, now, now + tt, 'haulEmpty', target.id);

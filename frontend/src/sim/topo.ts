@@ -23,6 +23,7 @@ export interface PitTopo {
   shovelPos3: Record<number, Vec3>;   // shovels projected onto their bench
   dumpPos3: Record<number, Vec3>;     // dumps at rim elevation (z=0)
   paths: Record<string, Path3D>;      // `${shovelId}->${dumpId}`, the LOADED direction (shovel → dump)
+  roads: { portal: Vec3; junction: Vec3; trunk: Vec3[]; spurs: Record<number, Vec3[]> };  // surface network (#87)
 }
 
 const DEG = Math.PI / 180;
@@ -153,7 +154,33 @@ export function buildPitTopo(mine: MineSpec): PitTopo {
     dumpPos3[d.id] = { x: spec.center.x + dx * push, y: spec.center.y + dy * push, z: 0 };
   }
 
-  // per-route 3D paths (loaded direction: shovel bench → ramp up → rim → dump)
+  // ---- surface road network (#87): hauls leave the portal on a shared TRUNK road to a junction, then
+  // take a curved SPUR to each destination. Real roads outside the pit, never a straight magic line from
+  // the rim to the waste/stockpile/plant. Distances follow the road polyline. ----
+  const portalPt: Vec3 = ramp[0] ?? { x: spec.center.x, y: spec.center.y - spec.rimRy, z: 0 };
+  const dcx = mine.dumps.reduce((a, d) => a + dumpPos3[d.id].x, 0) / (mine.dumps.length || 1);
+  const dcy = mine.dumps.reduce((a, d) => a + dumpPos3[d.id].y, 0) / (mine.dumps.length || 1);
+  const junction: Vec3 = { x: portalPt.x + (dcx - portalPt.x) * 0.45, y: portalPt.y + (dcy - portalPt.y) * 0.45, z: 0 };
+  const roadCurve = (a: Vec3, b: Vec3, bend: number): Vec3[] => {
+    const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;                        // unit perpendicular
+    const ctrl: Vec3 = { x: (a.x + b.x) / 2 + nx * bend, y: (a.y + b.y) / 2 + ny * bend, z: (a.z + b.z) / 2 };
+    const n = Math.max(6, Math.ceil(len / 45));
+    const pts: Vec3[] = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, u = 1 - t;
+      pts.push({ x: u * u * a.x + 2 * u * t * ctrl.x + t * t * b.x, y: u * u * a.y + 2 * u * t * ctrl.y + t * t * b.y, z: u * u * a.z + 2 * u * t * ctrl.z + t * t * b.z });
+    }
+    return pts;
+  };
+  const trunk = roadCurve(portalPt, junction, Math.hypot(junction.x - portalPt.x, junction.y - portalPt.y) * 0.12);
+  const spurs: Record<number, Vec3[]> = {};
+  mine.dumps.forEach((d, i) => {
+    const dp = dumpPos3[d.id];
+    spurs[d.id] = roadCurve(junction, dp, Math.hypot(dp.x - junction.x, dp.y - junction.y) * 0.16 * (i % 2 ? 1 : -1));
+  });
+
+  // per-route 3D paths (loaded direction: shovel bench → ramp up → portal → trunk → spur → dump)
   const paths: Record<string, Path3D> = {};
   for (const s of mine.shovels) {
     const k = Math.max(1, Math.min(spec.nBenches, spec.shovelBench[s.id] ?? spec.nBenches));
@@ -180,18 +207,11 @@ export function buildPitTopo(mine: MineSpec): PitTopo {
     // that has no authored route to the dump it just left still needs a portal-routed return path,
     // without one it fell back to a straight line that cut through the terrain and vanished (#74).
     for (const d of mine.dumps) {
-      const dp = dumpPos3[d.id];
-      // surface leg (rim exit → dump pad) subdivided ~50 m for uniform sampling
-      const exit = up[up.length - 1] ?? benchArc[benchArc.length - 1];
-      const surf: Vec3[] = [];
-      const nS = Math.max(2, Math.ceil(dist3(exit, dp) / 50));
-      for (let i = 1; i <= nS; i++) {
-        const t = i / nS;
-        surf.push({ x: exit.x + (dp.x - exit.x) * t, y: exit.y + (dp.y - exit.y) * t, z: exit.z + (dp.z - exit.z) * t });
-      }
-      paths[`${s.id}->${d.id}`] = toPath([...benchArc, ...up, ...surf]);
+      // surface leg follows the ROAD NETWORK: portal -> trunk -> junction -> spur -> dump (never a
+      // straight rim->dump line). up ends at the portal, so append the trunk then this dump's spur.
+      paths[`${s.id}->${d.id}`] = toPath([...benchArc, ...up, ...trunk.slice(1), ...spurs[d.id].slice(1)]);
     }
   }
 
-  return { spec, benches: rings, ramp, shovelPos3, dumpPos3, paths };
+  return { spec, benches: rings, ramp, shovelPos3, dumpPos3, paths, roads: { portal: portalPt, junction, trunk, spurs } };
 }
