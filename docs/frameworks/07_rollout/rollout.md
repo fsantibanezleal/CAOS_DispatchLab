@@ -39,7 +39,7 @@ can silently overfit the eval instance). Asserted as a hard test in `frontend/te
 
 ### Stochastic variant + the certainty-equivalent planner
 
-Under cycle-time uncertainty (cases C15/C16) the rollout samples `K` noise realizations per candidate and
+Under cycle-time uncertainty (the complex stochastic cases C04-C08) the rollout samples `K` noise realizations per candidate and
 estimates the **expected** objective (the stochastic-scheduling rollout, Bertsekas & Castanon 1999,
 DOI `10.1023/A:1009634810396`); the guarantee weakens to empirical-with-CI. Two practical guards make the
 shipped policy robust:

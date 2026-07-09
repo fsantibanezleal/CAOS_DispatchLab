@@ -20,7 +20,7 @@ export const architecture: ArchitectureConfig = {
         'It is a real system, not a demo. A centisecond discrete-event simulation (frontend/src/sim/) re-runs on every ' +
         'control; truck travel is physical (speed by grade, rolling resistance and load); shovels load on a real cycle ' +
         'and queues form at both ends. Heuristic policies compete with a learned dispatch NN and a behaviour-clone of ' +
-        'the best, both ONNX, client-side. The analytical match factor anchors it and C12 is a closed-form oracle.',
+        'the best, both ONNX, client-side. The analytical match factor anchors it and a closed-form 1x1 oracle (a test fixture) pins determinism.',
       body_es:
         'DispatchLab es un producto de transporte en rajo abierto: dados N camiones, M palas y distintos caminos de ' +
         'acarreo, simula un turno bajo una política de despacho y muestra el throughput (toneladas), el match factor y ' +
@@ -30,7 +30,7 @@ export const architecture: ArchitectureConfig = {
         're-corre con cada control; el viaje del camión es físico (velocidad por pendiente, resistencia a la rodadura y ' +
         'carga); las palas cargan en un ciclo real y se forman colas en ambos extremos. Las políticas heurísticas ' +
         'compiten con una NN de despacho aprendida y un clon de comportamiento de la mejor, ambos ONNX, en el cliente. ' +
-        'El match factor analítico la ancla y C12 es un oráculo de forma cerrada.',
+        'El match factor analítico la ancla y un oráculo 1x1 de forma cerrada (un fixture de test) fija el determinismo.',
     },
     {
       id: 'lanes',

@@ -12,7 +12,7 @@ dlab/
 ├─ io/      contract.py (CONTRACT 1: dispatch-scenario schema + outlier policy) · schema.py · formats.py
 ├─ core/    rng.py · trace.py (CONTRACT 2 trace) · manifest.py (CONTRACT 2) · gate.py (lane gate)
 ├─ stages/  preprocess · feature_extraction · train · infer · evaluate · export, thin wrappers over science/
-├─ cases/   dispatch_cases.py (the 8 cases C01-C07 + C12 oracle)
+├─ cases/   dispatch_cases.py (the 8 cases C01-C08; the 1x1 oracle is a test fixture, not a case)
 └─ science/ gen_dataset.mjs (Node: log DES decisions) · train_policy.py (torch: fit the learned policies -> ONNX) ·
             bake_cases.mjs (the per-case multi-policy comparison -> case-results.json), the preserved verbatim heavy
             lane (ruff-excluded; run only via --retrain)

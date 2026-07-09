@@ -116,6 +116,37 @@ test('every primitive appears in >= 1 case (the fail-if-any-axis-uncovered gate)
   has((c) => c.mine.dumps.some((d) => d.kind === 'stockpile'), 'stockpile instantiated');
 });
 
+test('TOPOGRAPHY: no two cases share an identical node layout (each case is a distinct pit)', () => {
+  // A layout signature = the portal + every shovel/dump position, canonically ordered. Two cases sharing it
+  // would be the SAME mine drawn twice (the round-1 defect: one template reused across all tiles).
+  const sig = (c: CaseSpec) => JSON.stringify({
+    portal: c.mine.portal ?? null,
+    shovels: c.mine.shovels.map((s) => [s.pos.x, s.pos.y]).sort(),
+    dumps: c.mine.dumps.map((d) => [d.pos.x, d.pos.y, d.kind]).sort(),
+  });
+  const seen = new Map<string, string>();
+  for (const c of CASES) {
+    const s = sig(c);
+    const dup = seen.get(s);
+    assert.ok(dup === undefined, `${c.id} shares an identical node layout with ${dup} (not a distinct topography)`);
+    seen.set(s, c.id);
+  }
+});
+
+test('TOPOGRAPHY: geometry genuinely varies, a DEEP steep-ramp pit and a PLANE flat-ramp pit both exist', () => {
+  // Distinct depth/geometry must show up in the PHYSICS, not only the layout: the corpus must contain a deep
+  // pit (long, steep internal ramps to a deep portal) and a plane/shallow pit (short, flat internal roads).
+  const maxRampGrade = (c: CaseSpec) => Math.max(0, ...Object.values(c.mine.pitRoad ?? {}).map((r) => r.gradePct));
+  const maxRampDist = (c: CaseSpec) => Math.max(0, ...Object.values(c.mine.pitRoad ?? {}).map((r) => r.distM));
+  const deep = CASES.filter((c) => maxRampGrade(c) >= 8 && maxRampDist(c) >= 3000);
+  const plane = CASES.filter((c) => maxRampGrade(c) <= 2 && maxRampDist(c) <= 800);
+  assert.ok(deep.length >= 1, 'no DEEP pit (a case with a >= 8% ramp climbing >= 3000 m to a deep portal)');
+  assert.ok(plane.length >= 1, 'no PLANE/shallow pit (a case whose internal ramps are all <= 2% and <= 800 m)');
+  // and the bench depth (nBenches) must not be constant across the corpus (visibly different pit sections)
+  const benchDepths = new Set(CASES.map((c) => c.mine.topo?.nBenches ?? 0));
+  assert.ok(benchDepths.size >= 3, `pit depth barely varies (only ${benchDepths.size} distinct nBenches)`);
+});
+
 test('the boss case C08 is a full multi-phase network (>= 12 shovels, 2 crushers + waste + stockpile, mixed fleet)', () => {
   const c = CASES.find((x) => x.id === 'C08')!;
   assert.ok(c.mine.shovels.length >= 12, `C08 has ${c.mine.shovels.length} shovels`);

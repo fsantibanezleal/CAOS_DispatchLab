@@ -18,13 +18,15 @@ the honesty bar.
 
 `compare.ts` runs every policy over a seed set and reports DISTRIBUTIONS, not a single number: a Pareto scatter
 (tonnes ↑-better vs truck-wait ←-better) with the non-dominated frontier, and a **TIE rule**, a rival whose tonnes
-band overlaps the leader's is "not significant" (no overconfident winner). On a balanced pit (C01/C04) all policies
-TIE; on an asymmetric pit (C05) a genuine Pareto trade-off emerges. case-results.json bakes this per case.
+band overlaps the leader's is "not significant" (no overconfident winner). On a balanced / symmetric pit all policies
+TIE; on an asymmetric case a genuine Pareto trade-off emerges. case-results.json bakes this per case.
 
 ## The oracle control
 
-C12 (1 truck, 1 shovel) is a closed-form **oracle**: throughput must equal `floor(shift / cycle) · payload` exactly , 
-the determinism check that the DES timeline is correct, not just plausible.
+The 1x1 oracle FIXTURE (1 truck, 1 shovel; `frontend/test/fixtures.ts`, not a shipped user case) is a closed-form
+**oracle**: throughput must equal `floor(shift / cycle) · payload` exactly, the determinism check that the DES
+timeline is correct, not just plausible. Keeping it as a test fixture is why the shipped corpus carries no
+1-source tile.
 
 ## Match-factor validation
 

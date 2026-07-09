@@ -104,6 +104,8 @@ The round-2 corpus has **no 1-source tiles**. The determinism anchors live as fi
 - each stockpile **fills to >= 30 % AND draws down**, with rehandle legs + active reclaim;
 - the route table + every baked leg is a **valid material-flow path only**;
 - **empty trucks return to a same-lane shovel on a road**; none render at the origin;
+- **no two cases share an identical node layout**, and the corpus has both a DEEP steep-ramp pit and a PLANE
+  flat-ramp pit (distinct topographies in layout AND physics), so a templated corpus fails;
 - every primitive appears (>= 4 shovels, multi-dump, waste dump, multiple crushers, stockpile + reclaim,
   crusher bays 1 & 2, mixed fleet).
 
