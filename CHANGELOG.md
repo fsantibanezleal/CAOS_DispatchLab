@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.15.000], 2026-07-07
+
+### Fixed, the synthetic case corpus was a toy (multi-source / multi-destination network) (#67)
+Every case used to be shovels -> ONE crusher -> back, with no stockpiles, no waste dumps, no multi-destination
+routing, and `DumpSpec.kind` values `'stockpile'`/`'waste'` were dead (never instantiated). The corpus is now
+a realistic multi-source, multi-destination dispatch network.
+
+### Added, the engine primitives (identical in `sim/model.ts` and the forkable `sim/rolloutSim.ts`)
+- **Multi-destination routing**: ore routes to the nearest crusher, waste to the nearest waste dump, by face
+  type; deterministic nearest-by-route assignment when there is more than one valid destination.
+- **Multiple crushers / plants** with independent feed KPIs (`SimResult.crusherFeeds`), the aggregate feed KPI
+  kept backward-compatible for the single-crusher cases.
+- **Crusher receiving BAYS** (a c-server): a 2-bay crusher tips two trucks in parallel; a 1-bay crusher is the
+  legacy single-server FIFO (byte-identical).
+- **Intermediate STOCKPILES** (`DumpSpec` `areaCapacityT` / `reclaimRateTph` / `rehandleAtQueue` /
+  `reclaimTargetId`): ore trucks **rehandle** onto the pile when the crusher is backed up (all bays busy + a
+  queue), and a **reclaimer** draws the pile down on a fixed deterministic grid to feed its target crusher.
+  A stockpile is a SINK that becomes a SOURCE; its level is baked into `SimResult.stockLevels`.
+- Determinism preserved: integer-tick clock, seeded named RNG streams, `(time, priority, seq)` event order.
+  The 1x1 oracle (C12), the tie controls (C01/C04), and the positive control (C05) all still hold, and the
+  **parity test now includes the stockpile case C13 and the boss C14** (RolloutSim == model.ts byte-for-byte).
+
+### Added, the corpus (16 cases; >= 4 shovels is the FLOOR)
+- Redesigned so every non-control case has >= 4 shovels (up to 6), >= 2 destinations where it teaches
+  something, and instantiates waste dumps + stockpiles. The only sub-4 cases are the labelled controls
+  (C01-C03 MF sweep, C12 1x1 oracle). New **C13** (2-bay crusher + stockpile rehandle + waste dump) and
+  **C14 BOSS** (6 shovels, 2 phases, 3 dumps = crusher + waste + stockpile, ore/waste + reclaim + bays, mixed
+  793F + 930E fleet). C06 = ore + waste routing; C07 = two crushers; C11/C15/C16 scaled to 4 shovels.
+- **Axis-coverage CI gate** (`frontend/test/axisCoverage.test.ts`): asserts every primitive {>=4 shovels,
+  multi-dump, waste dump, multiple crushers, stockpile+reclaim, crusher-bays 1&2, mixed fleet} appears in
+  >= 1 case, and the >= 4-shovel floor; a toy corpus FAILS the build. No dead `DumpSpec.kind` values.
+
+### Changed
+- **Viz**: the Pit map + Pit 3D render typed nodes (crusher = red, waste dump = slate, stockpile = amber with
+  a live FILL level that rises on rehandle and falls on reclaim), shovels tinted by face type, reclaim
+  conveyors drawn dashed. Paused-by-default (no compute-bomb).
+- Re-baked `data/derived` (case-results, traces, manifests, index, synthetic + rollout benchmarks) for the
+  16-case corpus. Python mirror (`dlab/cases/dispatch_cases.py`) + docs (`docs/cases/`) updated to the network
+  model. The C10 test now gates the crusher FEED (not total tonnes; waste to its own dump is uncapped).
+
 ## [0.14.000], 2026-07-07
 
 ### Added, the beyond-SOTA Monte-Carlo rollout dispatcher (non-myopia)

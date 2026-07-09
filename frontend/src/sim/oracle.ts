@@ -28,8 +28,10 @@ export interface OracleBound {
 
 export function capacityOracle(c: CaseSpec): OracleBound {
   const rk = (s: number, d: number) => `${s}->${d}`;
+  // ore can also be REHANDLED onto a stockpile (a possibly nearer, faster destination); the relaxation
+  // includes it so the bound stays a valid UPPER bound on shift tonnes even when trucks divert to the pile.
   const dumpsFor = (faceType: 'ore' | 'waste') =>
-    c.mine.dumps.filter((d) => d.accepts.includes(faceType));
+    c.mine.dumps.filter((d) => d.accepts.includes(faceType) || (faceType === 'ore' && d.kind === 'stockpile'));
 
   const loadsShovels = c.mine.shovels.reduce(
     (acc, s) => acc + 1 + c.shiftSec / (s.loadMeanSec + s.spotMeanSec), 0);

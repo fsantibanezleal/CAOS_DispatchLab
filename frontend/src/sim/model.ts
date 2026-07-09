@@ -9,7 +9,7 @@ import { Rng } from '../lib/rng';
 import { travelTimeSec } from './kinematics';
 import { analyticalMatchFactor } from './matchfactor';
 import { feasibleShovels, inBreak, nearestFeasible } from './constraints';
-import { type CaseSpec, type Policy, type SimResult, type ShovelView, type DispatchState, type MineSpec, type Leg } from './types';
+import { type CaseSpec, type Policy, type SimResult, type ShovelView, type DispatchState, type MineSpec, type DumpSpec, type Leg } from './types';
 
 interface ShovelRT {
   id: number; spec: CaseSpec['mine']['shovels'][number];
@@ -25,10 +25,27 @@ interface ShovelRT {
 
 const rk = (s: number, d: number) => `${s}->${d}`;
 
-/** Pick the dump a shovel's material goes to (first dump that accepts the face type). */
-function dumpFor(mine: MineSpec, faceType: 'ore' | 'waste'): number {
-  const d = mine.dumps.find((x) => x.accepts.includes(faceType)) ?? mine.dumps[0];
-  return d.id;
+const RECLAIM_DT = 60;   // reclaimer feed step [s], a fixed deterministic grid (no RNG)
+
+/** Nearest dump of a candidate set from a shovel by loaded route distance (tie: lower id). Deterministic. */
+function nearestDump(mine: MineSpec, shovelId: number, cand: DumpSpec[]): DumpSpec | undefined {
+  let best: DumpSpec | undefined, bestD = Infinity;
+  for (const d of cand) {
+    const r = mine.routes[rk(shovelId, d.id)];
+    if (!r) continue;
+    if (r.distM < bestD - 1e-9 || (Math.abs(r.distM - bestD) <= 1e-9 && (!best || d.id < best.id))) { best = d; bestD = r.distM; }
+  }
+  return best;
+}
+
+/** Nearest crusher to a node by planar position (for a stockpile reclaimer's default target; tie: lower id). */
+function nearestByPos(from: { x: number; y: number }, cand: DumpSpec[]): number | undefined {
+  let best: DumpSpec | undefined, bestD = Infinity;
+  for (const d of cand) {
+    const dist = Math.hypot(d.pos.x - from.x, d.pos.y - from.y);
+    if (dist < bestD - 1e-9 || (Math.abs(dist - bestD) <= 1e-9 && (!best || d.id < best.id))) { best = d; bestD = dist; }
+  }
+  return best?.id;
 }
 
 export interface RunOpts { deterministic?: boolean; trace?: boolean; onDecision?: (state: DispatchState, chosen: number) => void }
@@ -42,11 +59,11 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     const n = kind === 'shovel' ? mine.shovels.find((x) => x.id === id) : mine.dumps.find((x) => x.id === id);
     return n ? n.pos : { x: 0, y: 0 };
   };
-  const move = (truck: number, from: { x: number; y: number }, to: { x: number; y: number }, t0: number, t1: number, state: Leg['state'], node: number) => {
-    if (trace) trace.push({ truck, x0: from.x, y0: from.y, x1: to.x, y1: to.y, t0, t1, state, node });
+  const move = (truck: number, from: { x: number; y: number }, to: { x: number; y: number }, t0: number, t1: number, state: Leg['state'], node: number, mat?: 'ore' | 'waste') => {
+    if (trace) trace.push({ truck, x0: from.x, y0: from.y, x1: to.x, y1: to.y, t0, t1, state, node, mat });
   };
-  const stay = (truck: number, at: { x: number; y: number }, t0: number, t1: number, state: Leg['state'], node: number) => {
-    if (trace && t1 > t0) trace.push({ truck, x0: at.x, y0: at.y, x1: at.x, y1: at.y, t0, t1, state, node });
+  const stay = (truck: number, at: { x: number; y: number }, t0: number, t1: number, state: Leg['state'], node: number, mat?: 'ore' | 'waste') => {
+    if (trace && t1 > t0) trace.push({ truck, x0: at.x, y0: at.y, x1: at.x, y1: at.y, t0, t1, state, node, mat });
   };
   const loadS = rng.stream('load'), travelS = rng.stream('travel'), dumpS = rng.stream('dump'), breakS = rng.stream('breakdown');
   const travelCv = c.noise?.travelCv ?? 0.08;
@@ -55,20 +72,67 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
 
   const sh = new Map<number, ShovelRT>();
   for (const s of mine.shovels) sh.set(s.id, { id: s.id, spec: s, queue: [], loading: false, serviceEndsAt: 0, inbound: 0, served: 0, queueWaitSec: 0, busySec: 0, idleSec: 0, lastChange: 0, down: false, repairEndsAt: 0 });
-  const dumpBusy = new Map<number, boolean>(), dumpQ = new Map<number, number[]>();
-  for (const d of mine.dumps) { dumpBusy.set(d.id, false); dumpQ.set(d.id, []); }
+  // dumps are c-servers (bays): `dumpServers` counts BUSY bays, `baysOf` the capacity. A 1-bay dump is a
+  // single-server FIFO (servers in {0,1}), byte-identical to the legacy boolean.
+  const dumpById = new Map(mine.dumps.map((d) => [d.id, d]));
+  const baysOf = (id: number) => Math.max(1, dumpById.get(id)?.bays ?? 1);
+  const isCrusher = (id: number) => dumpById.get(id)?.kind === 'crusher';
+  const crushersList = mine.dumps.filter((d) => d.kind === 'crusher');
+  const stockpiles = mine.dumps.filter((d) => d.kind === 'stockpile');
+  const dumpServers = new Map<number, number>(), dumpQ = new Map<number, number[]>();
+  for (const d of mine.dumps) { dumpServers.set(d.id, 0); dumpQ.set(d.id, []); }
+  // stockpile levels (tonnes stacked) + a reclaim target crusher per stockpile (nearest crusher, or authored)
+  const stockLevel = new Map<number, number>();
+  const stockTarget = new Map<number, number>();
+  for (const sp of stockpiles) {
+    stockLevel.set(sp.id, 0);
+    const tgt = sp.reclaimTargetId ?? nearestByPos(sp.pos, crushersList) ?? (crushersList[0] ?? mine.dumps[0]).id;
+    stockTarget.set(sp.id, tgt);
+  }
 
   const truckArr = new Map<number, number>();    // truck id → time it joined its current shovel queue
   // OR tier (#22): trucks that will ask for a dispatch decision soon (at/near a dump), the
   // fleet view the joint-assignment policy solves over. Insertion order is deterministic.
   const pendingDecision = new Map<number, { readyEta: number; atDumpId: number }>();
   let tonnes = 0, truckWaitSec = 0;
-  const crusher = mine.dumps.find((d) => d.kind === 'crusher') ?? mine.dumps[0];
+  // the AGGREGATE ore-plant feed (all crushers) + independent per-crusher series; `capCrusher` is the
+  // single crusher the crusherMaxTph cap (C10) gates on (backward-compatible with the one-crusher corpus).
+  const capCrusher = crushersList[0] ?? mine.dumps[0];
   const crusherFeed: { t: number; tonnes: number }[] = [{ t: 0, tonnes: 0 }];
   let crusherTonnes = 0;
+  const crusherFeeds = new Map<number, { t: number; tonnes: number }[]>();
+  const crusherTonnesById = new Map<number, number>();
+  for (const cr of crushersList) { crusherFeeds.set(cr.id, [{ t: 0, tonnes: 0 }]); crusherTonnesById.set(cr.id, 0); }
+  const stockSeries = new Map<number, { t: number; level: number }[]>();
+  for (const sp of stockpiles) stockSeries.set(sp.id, [{ t: 0, level: 0 }]);
+
+  const feedCrusher = (crusherId: number, add: number, now: number) => {
+    crusherTonnes += add; crusherFeed.push({ t: now, tonnes: crusherTonnes });
+    const ct = (crusherTonnesById.get(crusherId) ?? 0) + add;
+    crusherTonnesById.set(crusherId, ct);
+    (crusherFeeds.get(crusherId) ?? crusherFeed).push({ t: now, tonnes: ct });
+  };
 
   const truckById = new Map(c.fleet.trucks.map((t) => [t.id, t]));
   const route = (s: number, d: number) => mine.routes[rk(s, d)] ?? { distM: 1500, gradePct: 0, rrPct: 3 };
+
+  // ---- destination routing (multi-destination) ----
+  // Ore -> nearest crusher; waste -> nearest waste dump. When the target crusher is backed up (all bays
+  // busy AND its queue >= the stockpile's rehandle threshold) and a stockpile with room feeds it, the
+  // loaded ore truck REHANDLES onto the stockpile instead (a reclaimer feeds the crusher later).
+  const destFor = (s: ShovelRT): number => {
+    const spec = s.spec;
+    const accept = mine.dumps.filter((d) => d.accepts.includes(spec.faceType));
+    const primary = (nearestDump(mine, spec.id, accept) ?? accept[0] ?? mine.dumps[0]).id;
+    if (spec.faceType !== 'ore' || stockpiles.length === 0) return primary;
+    const cand = stockpiles.filter((sp) => (stockTarget.get(sp.id) === primary)
+      && mine.routes[rk(spec.id, sp.id)] && (stockLevel.get(sp.id) ?? 0) < (sp.areaCapacityT ?? Infinity));
+    const sp = nearestDump(mine, spec.id, cand);
+    if (!sp) return primary;
+    const backedUp = (dumpServers.get(primary) ?? 0) >= baysOf(primary)
+      && (dumpQ.get(primary)?.length ?? 0) >= (sp.rehandleAtQueue ?? 3);
+    return backedUp ? sp.id : primary;
+  };
 
   // ---- shovel busy/idle accounting ----
   const markShovel = (s: ShovelRT, busy: boolean, now: number) => {
@@ -87,7 +151,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
         : r.loading ? Math.max(0, r.serviceEndsAt - now) : 0;
       return { id: spec.id, spec, queueLen: r.queue.length, loading: r.loading, inbound: r.inbound, freeInSec, loadMeanSec: spec.loadMeanSec };
     });
-    const fromDump = atDumpId ?? crusher.id;
+    const fromDump = atDumpId ?? capCrusher.id;
     const travelEmptySec = (toShovelId: number) => {
       const rt = route(toShovelId, fromDump);
       return travelTimeSec(rt.distM, -rt.gradePct, rt.rrPct, truck.spec, false);
@@ -152,12 +216,12 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     markShovel(s, false, now); s.served++;
     tryStartShovel(s);
     const truck = truckById.get(truckId)!;
-    const dumpId = dumpFor(mine, s.spec.faceType);
+    const dumpId = destFor(s);
     const rt = route(s.id, dumpId);
     const tt = travelTimeSec(rt.distM, rt.gradePct, rt.rrPct, truck.spec, true) * tmul();
     const sp = posOf('shovel', s.id), dp = posOf('dump', dumpId);
     stay(truckId, sp, arr, now, 'atShovel', s.id);
-    move(truckId, sp, dp, now, now + tt, 'haulFull', dumpId);
+    move(truckId, sp, dp, now, now + tt, 'haulFull', dumpId, s.spec.faceType);
     sim.schedule(tt, () => arriveDump(truckId, dumpId), 1);
   };
 
@@ -171,27 +235,52 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   };
 
   const tryStartDump = (dumpId: number) => {
-    if (dumpBusy.get(dumpId)) return;
-    const q = dumpQ.get(dumpId)!; if (q.length === 0) return;
-    const truckId = q.shift()!;
-    truckWaitSec += sim.now() - (truckArr.get(truckId) ?? sim.now());
-    dumpBusy.set(dumpId, true);
-    const d = mine.dumps.find((x) => x.id === dumpId)!;
-    const dur = det ? d.dumpMeanSec : dumpS.lognormal(d.dumpMeanSec, 0.25);
-    sim.schedule(dur, () => onDumped(truckId, dumpId), 0);
+    // start as many trucks as there are FREE bays (a 2-bay crusher tips two trucks in parallel).
+    const bays = baysOf(dumpId);
+    const q = dumpQ.get(dumpId)!;
+    while ((dumpServers.get(dumpId) ?? 0) < bays && q.length > 0) {
+      const truckId = q.shift()!;
+      truckWaitSec += sim.now() - (truckArr.get(truckId) ?? sim.now());
+      dumpServers.set(dumpId, (dumpServers.get(dumpId) ?? 0) + 1);
+      const d = dumpById.get(dumpId)!;
+      const dur = det ? d.dumpMeanSec : dumpS.lognormal(d.dumpMeanSec, 0.25);
+      sim.schedule(dur, () => onDumped(truckId, dumpId), 0);
+    }
   };
 
   const onDumped = (truckId: number, dumpId: number) => {
     const now = sim.now();
     const truck = truckById.get(truckId)!;
     tonnes += truck.spec.payloadT;
-    if (c.constraints?.crusherMaxTph != null && dumpId === crusher.id) {
+    if (c.constraints?.crusherMaxTph != null && dumpId === capCrusher.id) {
       oreInFlightT = Math.max(0, oreInFlightT - truck.spec.payloadT);   // commitment delivered
     }
-    if (dumpId === crusher.id) { crusherTonnes += truck.spec.payloadT; crusherFeed.push({ t: now, tonnes: crusherTonnes }); }
-    dumpBusy.set(dumpId, false);
+    if (isCrusher(dumpId)) feedCrusher(dumpId, truck.spec.payloadT, now);
+    else if (dumpById.get(dumpId)?.kind === 'stockpile') {              // REHANDLE: material stacks on the pile
+      const d = dumpById.get(dumpId)!;
+      const lvl = Math.min((stockLevel.get(dumpId) ?? 0) + truck.spec.payloadT, d.areaCapacityT ?? Infinity);
+      stockLevel.set(dumpId, lvl);
+      stockSeries.get(dumpId)?.push({ t: now, level: lvl });
+    }
+    dumpServers.set(dumpId, Math.max(0, (dumpServers.get(dumpId) ?? 1) - 1));
     tryStartDump(dumpId);
     decide(truckId, dumpId);
+  };
+
+  // ---- stockpile reclaim (a SINK becomes a SOURCE): draw the pile down at reclaimRateTph to feed its
+  //      target crusher, on a fixed deterministic time grid (no RNG). The reclaimer feeds even when the
+  //      pit cannot, so a full stockpile keeps the plant fed. ----
+  const scheduleReclaim = (sp: DumpSpec) => { sim.schedule(RECLAIM_DT, () => onReclaim(sp), 0); };
+  const onReclaim = (sp: DumpSpec) => {
+    const now = sim.now();
+    const lvl = stockLevel.get(sp.id) ?? 0;
+    const draw = Math.min(lvl, (sp.reclaimRateTph ?? 0) * (RECLAIM_DT / 3600));
+    if (draw > 0) {
+      stockLevel.set(sp.id, lvl - draw);
+      stockSeries.get(sp.id)?.push({ t: now, level: lvl - draw });
+      feedCrusher(stockTarget.get(sp.id) ?? capCrusher.id, draw, now);
+    }
+    scheduleReclaim(sp);
   };
 
   // ---- the dispatch decision, under the operational constraints (#22 P3) ----
@@ -268,6 +357,9 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   // ---- arm the breakdown clocks (C16) ----
   for (const s of mine.shovels) { const r = sh.get(s.id)!; if (s.breakdown) scheduleFailure(r); }
 
+  // ---- arm the stockpile reclaimers (fixed grid, deterministic) ----
+  for (const sp of stockpiles) scheduleReclaim(sp);
+
   // ---- initial dispatch: each truck starts heading to its start shovel ----
   for (const t of c.fleet.trucks) {
     const s = sh.get(t.startShovel) ?? sh.get(mine.shovels[0].id)!;
@@ -292,6 +384,8 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   return {
     caseId: c.id, policy: policy.name || 'policy', seed, shiftSec: c.shiftSec,
     tonnes, truckWaitSec, shovels, meanShovelUtil, crusherFeed,
+    crusherFeeds: crushersList.length > 1 ? Object.fromEntries(crusherFeeds) : undefined,
+    stockLevels: stockpiles.length > 0 ? Object.fromEntries(stockSeries) : undefined,
     matchFactor: analyticalMatchFactor(c),
     trace,
     invalidChoices,

@@ -11,6 +11,14 @@ import { buildPitTopo, sampleAt, type PitTopo } from '../sim/topo';
 // zero rAF work when paused with no interaction, and it halts on a hidden tab.
 const STATE_COLOR: Record<Leg['state'], number> = { haulFull: 0xd29922, haulEmpty: 0x58a6ff, atShovel: 0x8b949e, atDump: 0x8b949e };
 
+/** Stockpile level (tonnes) at playback time t, from the step series baked into the result. */
+function levelAt(series: { t: number; level: number }[] | undefined, t: number): number {
+  if (!series || series.length === 0) return 0;
+  let lvl = series[0].level;
+  for (const p of series) { if (p.t <= t) lvl = p.level; else break; }
+  return lvl;
+}
+
 /** Build the terraced shell geometry (walls + berms per level + floor) for a topo. */
 function shellGeometry(topo: PitTopo): THREE.BufferGeometry {
   const N = 96; // angular segments
@@ -146,12 +154,22 @@ export function Pit3D({ c, result, t, lang }: { c: CaseSpec; result: SimResult; 
       scene.add(mesh); disposables.push(g, m); return mesh;
     };
     for (const s of c.mine.shovels) {
-      mkBox(topo.shovelPos3[s.id], 22, 0xe3b341, 0.9);
+      mkBox(topo.shovelPos3[s.id], 22, s.faceType === 'ore' ? 0xe3b341 : 0x9aa4ae, 0.9);
       mkLabel(`S${s.id}`, topo.shovelPos3[s.id], 42);
     }
+    // dumps by kind: crusher = red, waste = slate, stockpile = amber cone-ish box scaled by its FILL level
+    const stockMeshes: { id: number; mesh: THREE.Mesh; cap: number }[] = [];
     for (const d of c.mine.dumps) {
-      mkBox(topo.dumpPos3[d.id], 26, d.kind === 'crusher' ? 0xf85149 : 0x8b949e, 1.2);
-      mkLabel(d.kind === 'crusher' ? (es ? 'chancador' : 'crusher') : (es ? 'botadero' : 'dump'), topo.dumpPos3[d.id], 52, 1.1);
+      if (d.kind === 'stockpile') {
+        const cap = d.areaCapacityT ?? 1;
+        const mesh = mkBox(topo.dumpPos3[d.id], 30, 0xe3b341, 1.6);   // nominal FULL height; scaled per frame
+        stockMeshes.push({ id: d.id, mesh, cap });
+        mkLabel(es ? 'acopio' : 'stockpile', topo.dumpPos3[d.id], 52, 1.1);
+        continue;
+      }
+      const isCr = d.kind === 'crusher';
+      mkBox(topo.dumpPos3[d.id], 26, isCr ? 0xf85149 : 0x8b949e, 1.2);
+      mkLabel(isCr ? (es ? 'chancador' : 'crusher') : (es ? 'botadero' : 'waste dump'), topo.dumpPos3[d.id], 52, 1.1);
     }
 
     // trucks: one instanced mesh, positions updated per render from the trace at tRef
@@ -164,8 +182,15 @@ export function Pit3D({ c, result, t, lang }: { c: CaseSpec; result: SimResult; 
     scene.add(inst); disposables.push(tg, tm);
 
     const m4 = new THREE.Matrix4();
+    const HS = 30 * 1.6;   // nominal full stockpile height (size * hM from mkBox)
     const placeTrucks = () => {
       const now = tRef.current;
+      // stockpile fill: scale each pile's height by its current level fraction, keeping the base on the ground
+      for (const sm of stockMeshes) {
+        const frac = Math.max(0.02, Math.min(1, levelAt(result.stockLevels?.[sm.id], now) / sm.cap));
+        sm.mesh.scale.set(1, frac, 1);
+        sm.mesh.position.y = (HS * frac) / 2;
+      }
       let i = 0;
       for (const [, legs] of byTruck) {
         let active: Leg | undefined;
