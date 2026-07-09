@@ -1,296 +1,343 @@
 // Synthetic-but-physics-grounded cases. No public ground-truthed dispatch benchmark exists (real DISPATCH/
-// Wenco cycle logs are proprietary), so the mine is generated from documented physics (rimpull/grade
-// kinematics, Erlang load times) and VALIDATED against the closed-form match factor + the oracle controls.
-// A real truck-shovel problem is MULTI-SOURCE and MULTI-DESTINATION with intermediate buffers, so the corpus
-// is >= 4 shovels (the FLOOR), routes ore to a crusher / waste to a waste dump, runs multiple crushers, gives
-// crushers 1-2 receiving bays, and stages ore through stockpiles (rehandle + reclaim). The only sub-4 cases
-// are the labelled didactic CONTROLS: the 1x1 oracle (C12) and the single-shovel match-factor sweep (C01-C03).
+// Wenco cycle logs are proprietary), so each mine is generated from documented physics (rimpull/grade
+// kinematics, Erlang load times) and VALIDATED against the closed-form match factor + the oracle controls
+// (the 1x1 oracle + tie/positive controls live as fixtures in the test suite, not as user tiles).
+//
+// Round-2 corpus (#67), Felipe's exact design:
+//   * 2-3 SIMPLE teaching cases: >= 4 shovels, >= 2 destinations, kept simple (routing + match factor).
+//   * ALL OTHER cases are COMPLEX and DYNAMIC: >= 6 shovels (scaling to 12), an intermediate ore STOCKPILE
+//     that is ACTIVELY CYCLED (the crusher is the binding bottleneck so ore trucks constantly rehandle onto
+//     the pile and the reclaimer draws it back down), multiple plants + waste dump(s), plus breakdowns /
+//     stochastic cycle times / blend windows / shift breaks / phases. The showcase C08 is a 12-shovel,
+//     3-phase network with every node type and every dynamic.
+//
+// PIT PORTAL + INTERNAL ROADS (#67 round 2): every pit has a single EXIT/PORTAL. A haul is a POLYLINE, a
+// LOADED truck runs shovel -> internal pit road (`pitRoad`, the ramp climb) -> portal -> a DIRECT surface
+// haul (`portalHaul`) -> destination; an EMPTY truck runs the reverse (destination -> portal -> pit road ->
+// shovel), always on drawn roads, never a straight shovel->destination line and never to the origin. The DES
+// leg time is the SUM of the two rimpull segments (`sim/haul.ts`). This portal + internal-road layout, varied
+// per pit (deep pit = long steep internal ramps to a deep portal; plane pit = short flat internal roads), IS
+// the distinct topography, so no two cases look alike.
+//
+// Material-flow model (domain-correct): the only LOADED legs are shovel(ore)->crusher, shovel(ore)->stockpile
+// (rehandle), shovel(waste)->waste dump; the only EMPTY move is delivery-point->a SHOVEL of the same lane;
+// stockpile->plant is the RECLAIMER (a non-truck conveyor). Invalid paths are never authored; every authored
+// road carries real traffic in the baked trace.
 import { TRUCKS } from './kinematics';
-import { type CaseSpec, type MineSpec, type FleetSpec, type ShovelSpec, type DumpSpec, type Route, type PitTopoSpec } from './types';
+import { type CaseSpec, type MineSpec, type FleetSpec, type ShovelSpec, type DumpSpec, type Route, type PitTopoSpec, type NodePos } from './types';
 
 const SHIFT = 28800; // 8 h
+const DEG = Math.PI / 180;
 
-function shovel(id: number, name: string, x: number, y: number, opts: Partial<ShovelSpec> = {}): ShovelSpec {
-  return { id, name, pos: { x, y }, loadMeanSec: 150, loadPasses: 4, spotMeanSec: 30, faceType: 'ore', grade: 0.8, ...opts };
+/** A node on a bearing `angDeg` and radius `r` around a pit centre, so shovels ring the pit (not a column). */
+function at(c: NodePos, r: number, angDeg: number): NodePos {
+  return { x: Math.round(c.x + r * Math.cos(angDeg * DEG)), y: Math.round(c.y + r * Math.sin(angDeg * DEG)) };
 }
-function crusher(id: number, name: string, x: number, y: number, opts: Partial<DumpSpec> = {}): DumpSpec {
-  return { id, name, pos: { x, y }, kind: 'crusher', dumpMeanSec: 60, accepts: ['ore'], ...opts };
+
+function shovel(id: number, name: string, p: NodePos, opts: Partial<ShovelSpec> = {}): ShovelSpec {
+  return { id, name, pos: p, loadMeanSec: 150, loadPasses: 4, spotMeanSec: 30, faceType: 'ore', grade: 0.8, ...opts };
 }
-function waste(id: number, name: string, x: number, y: number, opts: Partial<DumpSpec> = {}): DumpSpec {
-  return { id, name, pos: { x, y }, kind: 'waste', dumpMeanSec: 45, accepts: ['waste'], ...opts };
+function crusher(id: number, name: string, p: NodePos, opts: Partial<DumpSpec> = {}): DumpSpec {
+  return { id, name, pos: p, kind: 'crusher', dumpMeanSec: 60, accepts: ['ore'], ...opts };
+}
+function waste(id: number, name: string, p: NodePos, opts: Partial<DumpSpec> = {}): DumpSpec {
+  return { id, name, pos: p, kind: 'waste', dumpMeanSec: 45, accepts: ['waste'], ...opts };
 }
 /** A stockpile is reached only by REHANDLE (accepts: [], never a normal-routing destination); a reclaimer
  *  draws it down to feed its target crusher. */
-function stock(id: number, name: string, x: number, y: number, opts: Partial<DumpSpec> = {}): DumpSpec {
-  return { id, name, pos: { x, y }, kind: 'stockpile', dumpMeanSec: 40, accepts: [], areaCapacityT: 20000, reclaimRateTph: 1800, rehandleAtQueue: 2, ...opts };
+function stock(id: number, name: string, p: NodePos, opts: Partial<DumpSpec> = {}): DumpSpec {
+  return { id, name, pos: p, kind: 'stockpile', dumpMeanSec: 40, accepts: [], areaCapacityT: 16000, reclaimRateTph: 2400, rehandleAtQueue: 2, ...opts };
 }
-function route(distM: number, gradePct: number, rrPct = 3): Route { return { distM, gradePct, rrPct }; }
+/** An internal pit-road / surface-haul segment: distance [m], LOADED (climb-out) grade %, rolling resistance %. */
+function seg(distM: number, gradePct: number, rrPct = 3): Route { return { distM, gradePct, rrPct }; }
 
-function fleet(n: number, model: keyof typeof TRUCKS, shovelIds: number[]): FleetSpec {
-  const trucks = Array.from({ length: n }, (_, i) => ({ id: i + 1, spec: TRUCKS[model], startShovel: shovelIds[i % shovelIds.length] }));
-  return { trucks };
+interface PitDef {
+  name: string;
+  center: NodePos; portal: NodePos;
+  shovels: ShovelSpec[]; dumps: DumpSpec[];
+  pitRoad: Record<number, Route>;      // shovelId -> internal leg (shovel <-> portal), carries the ramp grade
+  haul: Record<number, Route>;         // dumpId   -> surface leg (portal <-> destination), flatter
+  adjacency: Record<number, number[]>; // shovelId -> the dump ids it may route to (ore: crushers[+stockpile]; waste: waste dumps)
+  topo: PitTopoSpec;
 }
-/** A heterogeneous fleet: `a` 793F (218 t) + `b` 930E (290 t), round-robined onto the shovels. */
-function mixedFleet(a: number, b: number, shovelIds: number[]): FleetSpec {
-  const trucks = [
-    ...Array.from({ length: a }, (_, i) => ({ id: i + 1, spec: TRUCKS['793F'], startShovel: shovelIds[i % shovelIds.length] })),
-    ...Array.from({ length: b }, (_, i) => ({ id: a + i + 1, spec: TRUCKS['930E'], startShovel: shovelIds[(a + i) % shovelIds.length] })),
-  ];
-  return { trucks };
+/** Assemble a MineSpec from the portal segment layer: the combined `routes` table (adjacency + ranking +
+ *  distance-weighted grade) is derived from pitRoad + portalHaul so every legacy consumer keeps working, while
+ *  the DES timing + viz polyline use the two segments through the portal (sim/haul.ts). */
+function buildMine(d: PitDef): MineSpec {
+  const routes: Record<string, Route> = {};
+  for (const [sidStr, dids] of Object.entries(d.adjacency)) {
+    const sid = Number(sidStr); const a = d.pitRoad[sid];
+    for (const did of dids) {
+      const b = d.haul[did]; const dist = a.distM + b.distM;
+      routes[`${sid}->${did}`] = {
+        distM: dist,
+        gradePct: Math.round(((a.gradePct * a.distM + b.gradePct * b.distM) / dist) * 100) / 100,
+        rrPct: Math.round(((a.rrPct * a.distM + b.rrPct * b.distM) / dist) * 100) / 100,
+      };
+    }
+  }
+  return { name: d.name, shovels: d.shovels, dumps: d.dumps, routes, portal: d.portal, pitRoad: d.pitRoad, portalHaul: d.haul, topo: d.topo };
+}
+
+/** A fleet with EXPLICIT per-truck start shovels (so each material lane's truck population is exact). */
+function fleetOn(model: keyof typeof TRUCKS, starts: number[]): FleetSpec {
+  return { trucks: starts.map((s, i) => ({ id: i + 1, spec: TRUCKS[model], startShovel: s })) };
+}
+/** A heterogeneous fleet: 793F starts + 930E starts, ids in order (the mixed-fleet / bunching axis). */
+function mixedOn(a793: number[], b930: number[]): FleetSpec {
+  const rows = [...a793.map((s) => ({ m: '793F' as const, s })), ...b930.map((s) => ({ m: '930E' as const, s }))];
+  return { trucks: rows.map((r, i) => ({ id: i + 1, spec: TRUCKS[r.m], startShovel: r.s })) };
 }
 
 // ============================================================================================
-// Tier 0 - CONTROLS (intentionally sub-4; teach the primitives one at a time, prove correctness)
+// SIMPLE tier (2-3 cases): >= 4 shovels, >= 2 destinations, kept simple (the teaching tier)
 // ============================================================================================
 
-// ---- C01 balanced single-shovel control (MF~1; greedy must tie the optimisers) ----
-const c01Mine: MineSpec = {
-  name: 'Single-shovel pit', shovels: [shovel(1, 'Shovel 1', 120, 200)], dumps: [crusher(10, 'Crusher', 520, 120)],
-  routes: { '1->10': route(2000, 4) },
+// ---- C01 SHALLOW compact pit, ore + waste routing (teach: the 'which dump' decision + match factor) ----
+const C01c = { x: 300, y: 300 };
+export const C01: CaseSpec = {
+  id: 'C01', name: 'Ore + waste routing (shallow pit)', shiftSec: SHIFT,
+  fleet: fleetOn('793F', [1, 2, 1, 2, 3, 4, 3, 4, 1, 2, 3, 4]),
+  mine: buildMine({
+    name: 'Shallow compact pit (ore + waste)', center: C01c, portal: at(C01c, 165, -8),
+    shovels: [
+      shovel(1, 'Ore 1', at(C01c, 110, 200)),
+      shovel(2, 'Ore 2', at(C01c, 115, 158)),
+      shovel(3, 'Waste 1', at(C01c, 110, 120), { faceType: 'waste', grade: 0 }),
+      shovel(4, 'Waste 2', at(C01c, 115, 78), { faceType: 'waste', grade: 0 }),
+    ],
+    dumps: [crusher(10, 'Crusher', at(C01c, 330, -16)), waste(20, 'Waste dump', at(C01c, 300, 70))],   // 1-bay crusher
+    pitRoad: { 1: seg(450, 2), 2: seg(400, 2), 3: seg(420, 2), 4: seg(460, 2) },
+    haul: { 10: seg(950, 1, 2), 20: seg(750, 1, 2) },
+    adjacency: { 1: [10], 2: [10], 3: [20], 4: [20] },
+    topo: { center: C01c, rimRx: 190, rimRy: 165, nBenches: 3, benchHeightM: 12, benchWidthM: 16, faceAngleDeg: 60, shovelBench: { 1: 2, 2: 2, 3: 2, 4: 3 } },
+  }),
 };
-export const C01: CaseSpec = { id: 'C01', name: 'Control: balanced single-shovel (MF~1)', mine: c01Mine, fleet: fleet(4, '793F', [1]), shiftSec: SHIFT };
 
-// ---- C02 over-trucked degenerate (MF~2; queues dominate, policies converge) ----
-export const C02: CaseSpec = { id: 'C02', name: 'Control: over-trucked single-shovel (MF~2)', mine: c01Mine, fleet: fleet(8, '793F', [1]), shiftSec: SHIFT };
-
-// ---- C03 under-trucked (MF<1; shovel sits idle, nothing can feed it) ----
-export const C03: CaseSpec = { id: 'C03', name: 'Control: under-trucked single-shovel (MF~0.5)', mine: c01Mine, fleet: fleet(2, '793F', [1]), shiftSec: SHIFT };
-
-// ---- C12 trivial 1-truck-1-shovel oracle (deterministic; throughput = payload*floor(.) exactly) ----
-const c12Mine: MineSpec = {
-  name: 'Oracle 1x1', shovels: [shovel(1, 'Shovel 1', 150, 200, { spotMeanSec: 0 })], dumps: [crusher(10, 'Crusher', 500, 200)],
-  routes: { '1->10': route(1800, 0, 2) },
+// ---- C02 TWO PLANTS on a round pit (teach: two plants, each with its own feed; the lane balances them) ----
+const C02c = { x: 300, y: 290 };
+export const C02: CaseSpec = {
+  id: 'C02', name: 'Two plants (independent feeds)', shiftSec: SHIFT,
+  fleet: fleetOn('793F', [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 4]),
+  mine: buildMine({
+    name: 'Two-plant round pit', center: C02c, portal: at(C02c, 170, 0),
+    shovels: [
+      shovel(1, 'Shovel 1 (A)', at(C02c, 120, 205)),
+      shovel(2, 'Shovel 2 (A)', at(C02c, 120, 250)),
+      shovel(3, 'Shovel 3 (B)', at(C02c, 120, 335)),
+      shovel(4, 'Shovel 4 (B)', at(C02c, 120, 30)),
+    ],
+    dumps: [crusher(10, 'Plant A', at(C02c, 300, 40)), crusher(11, 'Plant B', at(C02c, 300, -40))],   // both 1-bay
+    pitRoad: { 1: seg(600, 2), 2: seg(520, 2), 3: seg(560, 2), 4: seg(520, 2) },
+    haul: { 10: seg(1100, 2, 2), 11: seg(1250, 2, 2) },
+    adjacency: { 1: [10], 2: [10], 3: [11], 4: [11] },
+    topo: { center: C02c, rimRx: 175, rimRy: 160, nBenches: 4, benchHeightM: 14, benchWidthM: 12, shovelBench: { 1: 3, 2: 3, 3: 2, 4: 2 } },
+  }),
 };
-export const C12: CaseSpec = { id: 'C12', name: 'Control: 1-truck-1-shovel oracle', mine: c12Mine, fleet: fleet(1, '793F', [1]), shiftSec: SHIFT };
+
+// ---- C03 ASYMMETRIC roads on a tilted pit (teach: when hauls differ, dispatch matters; look-ahead helps) ----
+const C03c = { x: 300, y: 300 };
+export const C03: CaseSpec = {
+  id: 'C03', name: 'Asymmetric roads (dispatch matters)', shiftSec: SHIFT,
+  fleet: fleetOn('793F', [1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 4, 4]),
+  mine: buildMine({
+    name: 'Asymmetric tilted pit', center: C03c, portal: at(C03c, 150, -20),
+    shovels: [
+      shovel(1, 'Ore 1 (near)', at(C03c, 90, 205)),
+      shovel(2, 'Ore 2 (mid)', at(C03c, 130, 155)),
+      shovel(3, 'Ore 3 (far)', at(C03c, 150, 118)),
+      shovel(4, 'Waste', at(C03c, 130, 60), { faceType: 'waste', grade: 0 }),
+    ],
+    dumps: [crusher(10, 'Crusher', at(C03c, 300, -16)), waste(20, 'Waste dump', at(C03c, 300, 55))],   // 1-bay
+    pitRoad: { 1: seg(300, 2), 2: seg(1900, 4, 3.5), 3: seg(3400, 6, 4), 4: seg(1000, 3) },
+    haul: { 10: seg(700, 1, 2), 20: seg(850, 2, 2) },
+    adjacency: { 1: [10], 2: [10], 3: [10], 4: [20] },
+    topo: { center: C03c, rimRx: 165, rimRy: 130, nBenches: 6, benchHeightM: 15, benchWidthM: 11, shovelBench: { 1: 2, 2: 4, 3: 6, 4: 3 } },
+  }),
+};
 
 // ============================================================================================
-// Tier 1 - real multi-source topology (>= 4 shovels is the FLOOR from here on)
+// COMPLEX / DYNAMIC tier: >= 6 shovels, an ACTIVELY-CYCLED ore stockpile, multi-destination, dynamics
 // ============================================================================================
 
-// ---- C04 four shovels, fully SYMMETRIC (tie control: rollout must equal its base EXACTLY) ----
-const c04Mine: MineSpec = {
-  name: 'Four-shovel symmetric pit',
-  shovels: [shovel(1, 'Shovel 1', 120, 90), shovel(2, 'Shovel 2', 120, 190), shovel(3, 'Shovel 3', 120, 290), shovel(4, 'Shovel 4', 120, 390)],
-  dumps: [crusher(10, 'Crusher', 580, 240)],
-  routes: { '1->10': route(2200, 4), '2->10': route(2200, 4), '3->10': route(2200, 4), '4->10': route(2200, 4) },
-};
-export const C04: CaseSpec = { id: 'C04', name: 'Four shovels, symmetric roads (tie control)', mine: c04Mine, fleet: fleet(16, '793F', [1, 2, 3, 4]), shiftSec: SHIFT };
-
-// ---- C05 four shovels, strong ASYMMETRY (positive control: look-ahead beats greedy) ----
-const c05Mine: MineSpec = {
-  name: 'Four-shovel asymmetric pit',
-  shovels: [
-    shovel(1, 'Shovel 1 (near)', 150, 110),
-    shovel(2, 'Shovel 2 (mid)', 130, 220),
-    shovel(3, 'Shovel 3 (far)', 120, 330),
-    shovel(4, 'Shovel 4 (far, steep)', 115, 430),
-  ],
-  dumps: [crusher(10, 'Crusher (2 bays)', 590, 260, { bays: 2 })],   // 2 bays so the SHOVELS/roads bind, not the plant
-  routes: { '1->10': route(700, 2), '2->10': route(2600, 4), '3->10': route(4200, 5), '4->10': route(5200, 8, 4) },
-};
-export const C05: CaseSpec = { id: 'C05', name: 'Four shovels, asymmetric roads (positive control)', mine: c05Mine, fleet: fleet(12, '793F', [1, 2, 3, 4]), shiftSec: SHIFT };
-
-// ---- C06 ore + waste routing to TWO destinations (crusher + waste dump) ----
-const c06Mine: MineSpec = {
-  name: 'Ore + waste pit (two destinations)',
-  shovels: [
-    shovel(1, 'Ore 1', 130, 110),
-    shovel(2, 'Ore 2', 130, 210),
-    shovel(3, 'Waste 1', 130, 330, { faceType: 'waste', grade: 0 }),
-    shovel(4, 'Waste 2', 130, 430, { faceType: 'waste', grade: 0 }),
-  ],
-  dumps: [crusher(10, 'Crusher', 580, 150), waste(20, 'Waste dump', 560, 400)],
-  routes: {
-    '1->10': route(1800, 3), '2->10': route(2200, 4),
-    '3->20': route(1500, 2), '4->20': route(2000, 3),
-  },
-};
-export const C06: CaseSpec = { id: 'C06', name: 'Ore + waste routing (crusher + waste dump)', mine: c06Mine, fleet: fleet(16, '793F', [1, 2, 3, 4]), shiftSec: SHIFT };
-
-// ---- C07 TWO crushers (multiple plants); ore routes to the nearest, each with its own feed KPI ----
-const c07Mine: MineSpec = {
-  name: 'Two-plant pit',
-  shovels: [
-    shovel(1, 'Shovel 1', 130, 90), shovel(2, 'Shovel 2', 130, 190),
-    shovel(3, 'Shovel 3', 130, 320), shovel(4, 'Shovel 4', 130, 420),
-  ],
-  dumps: [crusher(10, 'Plant A', 580, 120), crusher(11, 'Plant B', 580, 400)],
-  routes: {
-    '1->10': route(1600, 3), '1->11': route(3200, 4),
-    '2->10': route(1900, 3), '2->11': route(2800, 4),
-    '3->10': route(3000, 4), '3->11': route(1700, 3),
-    '4->10': route(3400, 5), '4->11': route(1500, 3),
-  },
-};
-export const C07: CaseSpec = { id: 'C07', name: 'Two crushers (nearest-plant routing)', mine: c07Mine, fleet: fleet(18, '793F', [1, 2, 3, 4]), shiftSec: SHIFT };
-
-// ============================================================================================
-// Tier 2 - geometry & constraints (#22 physics axes), each >= 4 shovels + a second destination
-// ============================================================================================
-
-// C08 deep pit: long 8% ramps, rimpull binds, the FLEET (not the shovels) is the constraint
-const c08Mine: MineSpec = {
-  name: 'Deep pit, long steep ramps',
-  shovels: [
-    shovel(1, 'Ore 1 (deep)', 120, 120), shovel(2, 'Ore 2 (deep)', 120, 240), shovel(3, 'Ore 3 (deep)', 120, 360),
-    shovel(4, 'Waste (deep)', 120, 470, { faceType: 'waste', grade: 0 }),
-  ],
-  dumps: [crusher(10, 'Crusher (rim)', 580, 200), waste(20, 'Waste dump (rim)', 560, 430)],
-  routes: {
-    '1->10': route(4800, 8, 3.5), '2->10': route(5100, 8, 3.5), '3->10': route(5400, 8, 3.5),
-    '4->20': route(5000, 8, 3.5),
-  },
-};
-export const C08: CaseSpec = { id: 'C08', name: 'Deep pit (long 8% ramps, truck-bound)', mine: c08Mine, fleet: fleet(16, '793F', [1, 2, 3, 4]), shiftSec: SHIFT };
-
-// C09 shallow pit: short flat roads, travel negligible, the SHOVELS are the constraint
-const c09Mine: MineSpec = {
-  name: 'Shallow pit, short flat roads',
-  shovels: [
-    shovel(1, 'Ore 1', 160, 130), shovel(2, 'Ore 2', 160, 240), shovel(3, 'Ore 3', 160, 350),
-    shovel(4, 'Waste', 160, 450, { faceType: 'waste', grade: 0 }),
-  ],
-  dumps: [crusher(10, 'Crusher', 500, 210), waste(20, 'Waste dump', 500, 420)],
-  routes: {
-    '1->10': route(700, 1, 2), '2->10': route(800, 1, 2), '3->10': route(900, 1, 2),
-    '4->20': route(750, 1, 2),
-  },
-};
-export const C09: CaseSpec = { id: 'C09', name: 'Shallow pit (short flat roads, shovel-bound)', mine: c09Mine, fleet: fleet(20, '793F', [1, 2, 3]), shiftSec: SHIFT };
-
-// C10 crusher-limited: the PLANT cap (trailing-hour tph), not the fleet, is the ceiling on the crusher feed;
-// ore shovels pause when the crusher saturates. Waste keeps moving to its own dump (uncapped).
-const c10Mine: MineSpec = {
-  name: 'Crusher-limited pit',
-  shovels: [
-    shovel(1, 'Ore 1', 120, 110), shovel(2, 'Ore 2', 120, 210), shovel(3, 'Ore 3', 120, 310),
-    shovel(4, 'Waste', 120, 430, { faceType: 'waste', grade: 0 }),
-  ],
-  dumps: [crusher(10, 'Crusher (capped)', 580, 180), waste(20, 'Waste dump', 560, 410)],
-  routes: {
-    '1->10': route(1300, 3), '2->10': route(1700, 3), '3->10': route(2100, 4),
-    '4->20': route(1500, 3),
-  },
-};
-export const C10: CaseSpec = {
-  id: 'C10', name: 'Crusher-limited (2.6 kt/h plant cap)', mine: c10Mine,
-  fleet: fleet(18, '793F', [1, 2, 3]), shiftSec: SHIFT,
-  constraints: { crusherMaxTph: 2600 },
+// ---- C04 DEEP NARROW pit (haul-bound): long 8-9% internal ramps, an active stockpile, stochastic cycles ----
+const C04c = { x: 300, y: 300 };
+export const C04: CaseSpec = {
+  id: 'C04', name: 'Deep narrow pit (stockpile + stochastic cycles)', shiftSec: SHIFT,
+  fleet: fleetOn('793F', [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 5, 6, 5, 6]),
+  noise: { travelCv: 0.30 },
+  constraints: { breaks: [{ startSec: 4 * 3600, endSec: 4.5 * 3600 }] },
+  mine: buildMine({
+    name: 'Deep narrow pit (long steep ramps)', center: C04c, portal: at(C04c, 145, -12),
+    shovels: [
+      shovel(1, 'Ore 1 (deep)', at(C04c, 70, 205), { loadPasses: 2 }),
+      shovel(2, 'Ore 2 (deep)', at(C04c, 95, 168), { loadPasses: 2 }),
+      shovel(3, 'Ore 3 (deep)', at(C04c, 110, 132), { loadPasses: 2 }),
+      shovel(4, 'Ore 4 (deep)', at(C04c, 120, 98), { loadPasses: 2 }),
+      shovel(5, 'Waste 1', at(C04c, 95, 300), { faceType: 'waste', grade: 0 }),
+      shovel(6, 'Waste 2', at(C04c, 110, 335), { faceType: 'waste', grade: 0 }),
+    ],
+    dumps: [
+      crusher(10, 'Crusher (2 bays)', at(C04c, 300, -20), { bays: 2, dumpMeanSec: 150 }),   // slow -> backs up
+      waste(20, 'Waste dump', at(C04c, 290, 60)),
+      stock(30, 'Stockpile', at(C04c, 235, 18), { areaCapacityT: 10000, reclaimRateTph: 3800, rehandleAtQueue: 2, reclaimTargetId: 10 }),
+    ],
+    pitRoad: { 1: seg(3600, 9, 3.5), 2: seg(3900, 9, 3.5), 3: seg(4300, 8, 3.5), 4: seg(4600, 8, 3.5), 5: seg(2000, 5, 3.5), 6: seg(2300, 5, 3.5) },
+    haul: { 10: seg(800, 1, 2), 20: seg(700, 2, 2), 30: seg(600, 1, 2) },
+    adjacency: { 1: [10, 30], 2: [10, 30], 3: [10, 30], 4: [10, 30], 5: [20], 6: [20] },
+    topo: { center: C04c, rimRx: 150, rimRy: 130, nBenches: 9, benchHeightM: 16, benchWidthM: 9, faceAngleDeg: 68, rampWidthM: 22, shovelBench: { 1: 6, 2: 7, 3: 8, 4: 9, 5: 4, 6: 5 } },
+  }),
 };
 
-// C11 mixed fleet: 793F + 930E share the pit, heterogeneous speeds/payloads (bunching source),
-// single crusher so the per-dump feed shows BOTH payload classes (218 and 290) landing.
-const c11Mine: MineSpec = {
-  name: 'Mixed-fleet pit',
-  shovels: [shovel(1, 'Shovel 1', 120, 110), shovel(2, 'Shovel 2', 120, 220), shovel(3, 'Shovel 3', 120, 330), shovel(4, 'Shovel 4', 120, 440)],
-  dumps: [crusher(10, 'Crusher', 580, 270)],
-  routes: { '1->10': route(1400, 3), '2->10': route(2000, 3), '3->10': route(2600, 4), '4->10': route(3200, 5) },
+// ---- C05 SHALLOW WIDE pit (shovel-bound): short flat roads, a SLOW crusher, an active stockpile ----
+const C05c = { x: 300, y: 290 };
+export const C05: CaseSpec = {
+  id: 'C05', name: 'Shallow wide pit (shovel-bound, active stockpile)', shiftSec: SHIFT,
+  fleet: fleetOn('793F', [1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 6, 7, 8, 6, 7]),
+  noise: { travelCv: 0.30 },
+  constraints: { breaks: [{ startSec: 4 * 3600, endSec: 4.5 * 3600 }] },
+  mine: buildMine({
+    name: 'Shallow wide pit (short flat roads)', center: C05c, portal: at(C05c, 205, -5),
+    shovels: [
+      shovel(1, 'Ore 1', at(C05c, 150, 190), { loadMeanSec: 120, spotMeanSec: 25 }),
+      shovel(2, 'Ore 2', at(C05c, 145, 215), { loadMeanSec: 120, spotMeanSec: 25 }),
+      shovel(3, 'Ore 3', at(C05c, 150, 160), { loadMeanSec: 120, spotMeanSec: 25 }),
+      shovel(4, 'Ore 4', at(C05c, 160, 235), { loadMeanSec: 120, spotMeanSec: 25 }),
+      shovel(5, 'Ore 5', at(C05c, 150, 138), { loadMeanSec: 120, spotMeanSec: 25 }),
+      shovel(6, 'Waste 1', at(C05c, 150, 300), { faceType: 'waste', grade: 0 }),
+      shovel(7, 'Waste 2', at(C05c, 155, 332), { faceType: 'waste', grade: 0 }),
+      shovel(8, 'Waste 3', at(C05c, 160, 22), { faceType: 'waste', grade: 0 }),
+    ],
+    dumps: [
+      crusher(10, 'Crusher (2 bays)', at(C05c, 320, -6), { bays: 2, dumpMeanSec: 100 }),
+      waste(20, 'Waste dump', at(C05c, 300, 75)),
+      stock(30, 'Stockpile', at(C05c, 260, 22), { areaCapacityT: 11000, reclaimRateTph: 4200, rehandleAtQueue: 2, reclaimTargetId: 10 }),
+    ],
+    pitRoad: { 1: seg(420, 1, 2), 2: seg(380, 1, 2), 3: seg(460, 1, 2), 4: seg(360, 1, 2), 5: seg(480, 1, 2), 6: seg(400, 1, 2), 7: seg(440, 1, 2), 8: seg(520, 1, 2) },
+    haul: { 10: seg(700, 1, 2), 20: seg(600, 1, 2), 30: seg(520, 1, 2) },
+    adjacency: { 1: [10, 30], 2: [10, 30], 3: [10, 30], 4: [10, 30], 5: [10, 30], 6: [20], 7: [20], 8: [20] },
+    topo: { center: C05c, rimRx: 215, rimRy: 185, nBenches: 2, benchHeightM: 11, benchWidthM: 20, faceAngleDeg: 55, shovelBench: { 1: 2, 2: 2, 3: 2, 4: 2, 5: 1, 6: 2, 7: 2, 8: 1 } },
+  }),
 };
-export const C11: CaseSpec = { id: 'C11', name: 'Mixed fleet (793F + 930E)', mine: c11Mine, fleet: mixedFleet(6, 6, [1, 2, 3, 4]), shiftSec: SHIFT };
 
-// ============================================================================================
-// Tier 3 - buffers, bays, and the boss
-// ============================================================================================
+// ---- C06 TWO-PLANT network with a shovel BREAKDOWN + a mixed fleet + an active stockpile ----
+const C06c = { x: 300, y: 290 };
+export const C06: CaseSpec = {
+  id: 'C06', name: 'Two-plant network (breakdown + mixed fleet + stockpile)', shiftSec: SHIFT,
+  fleet: mixedOn([1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 1, 2, 3, 4, 7, 8, 7, 8]),
+  noise: { travelCv: 0.18 },
+  constraints: { breaks: [{ startSec: 4 * 3600, endSec: 4.5 * 3600 }] },
+  mine: buildMine({
+    name: 'Two-plant network (breakdown + mixed fleet)', center: C06c, portal: at(C06c, 165, -6),
+    shovels: [
+      shovel(1, 'Ore 1 (near, fails)', at(C06c, 95, 205), { breakdown: { mtbfSec: 5400, mttrSec: 1500 } }),
+      shovel(2, 'Ore 2', at(C06c, 120, 172)),
+      shovel(3, 'Ore 3', at(C06c, 130, 142)),
+      shovel(4, 'Ore 4', at(C06c, 125, 250)),
+      shovel(5, 'Ore 5', at(C06c, 130, 32)),
+      shovel(6, 'Ore 6', at(C06c, 135, 62)),
+      shovel(7, 'Waste 1', at(C06c, 120, 300), { faceType: 'waste', grade: 0 }),
+      shovel(8, 'Waste 2', at(C06c, 130, 335), { faceType: 'waste', grade: 0 }),
+    ],
+    dumps: [
+      crusher(10, 'Plant A (2 bays)', at(C06c, 290, 30), { bays: 2, dumpMeanSec: 114 }),
+      crusher(11, 'Plant B', at(C06c, 300, -32)),   // 1-bay
+      waste(20, 'Waste dump', at(C06c, 285, 78)),
+      stock(30, 'Stockpile', at(C06c, 235, 12), { areaCapacityT: 11000, reclaimRateTph: 3600, rehandleAtQueue: 2, reclaimTargetId: 10 }),
+    ],
+    pitRoad: { 1: seg(700, 3, 3.5), 2: seg(1000, 3, 3.5), 3: seg(1300, 4, 3.5), 4: seg(900, 3, 3.5), 5: seg(900, 3, 3.5), 6: seg(1100, 3, 3.5), 7: seg(700, 3), 8: seg(1000, 3) },
+    haul: { 10: seg(900, 2, 2), 11: seg(1000, 2, 2), 20: seg(800, 2, 2), 30: seg(700, 1, 2) },
+    adjacency: { 1: [10, 30], 2: [10, 30], 3: [10, 30], 4: [10, 30], 5: [11], 6: [11], 7: [20], 8: [20] },
+    topo: { center: C06c, rimRx: 185, rimRy: 155, nBenches: 6, benchHeightM: 15, benchWidthM: 11, shovelBench: { 1: 2, 2: 4, 3: 5, 4: 3, 5: 3, 6: 4, 7: 3, 8: 4 } },
+  }),
+};
 
-// C13 crusher BAYS + stockpile buffering: a 2-bay crusher, a waste dump, and a stockpile that ore trucks
-// REHANDLE onto when both bays are busy and a queue forms; the reclaimer draws the pile down to feed the
-// crusher. The stockpile is a SINK that becomes a SOURCE.
-// Fast shovels (short spot/load) + short hauls flood a SLOW 2-bay plant, so the crusher (not the shovels) is
-// the bottleneck: the queue at the crusher exceeds the rehandle threshold, ore trucks divert onto the
-// stockpile, and the reclaimer draws it back down. The stockpile visibly fills and draws.
-const c13Mine: MineSpec = {
-  name: 'Bays + stockpile pit',
-  shovels: [
-    shovel(1, 'Ore 1', 130, 100, { loadMeanSec: 95, spotMeanSec: 20 }),
-    shovel(2, 'Ore 2', 130, 200, { loadMeanSec: 95, spotMeanSec: 20 }),
-    shovel(3, 'Ore 3', 130, 300, { loadMeanSec: 95, spotMeanSec: 20 }),
-    shovel(4, 'Waste', 130, 430, { faceType: 'waste', grade: 0 }),
-  ],
-  dumps: [
-    crusher(10, 'Crusher (2 bays)', 590, 150, { bays: 2, dumpMeanSec: 105 }),   // slow plant -> it backs up
-    waste(20, 'Waste dump', 560, 430),
-    stock(30, 'Stockpile', 400, 300, { areaCapacityT: 24000, reclaimRateTph: 3200, rehandleAtQueue: 3, reclaimTargetId: 10 }),
-  ],
-  routes: {
-    '1->10': route(900, 2), '2->10': route(1100, 2), '3->10': route(1300, 3),
-    '1->30': route(750, 2), '2->30': route(900, 2), '3->30': route(1100, 2),
-    '4->20': route(1200, 2),
-  },
+// ---- C07 CRUSHER-LIMITED blend pit: a hard plant cap forces heavy rehandle onto a big stockpile ----
+const C07c = { x: 300, y: 295 };
+export const C07: CaseSpec = {
+  id: 'C07', name: 'Crusher-limited blend (heavy rehandle)', shiftSec: SHIFT,
+  fleet: fleetOn('793F', [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 7, 8, 7, 8]),
+  noise: { travelCv: 0.22 },
+  blendWindow: { min: 0.75, max: 0.95 },
+  constraints: { breaks: [{ startSec: 4 * 3600, endSec: 4.5 * 3600 }] },
+  mine: buildMine({
+    name: 'Crusher-limited blend pit', center: C07c, portal: at(C07c, 170, -5),
+    shovels: [
+      shovel(1, 'Ore 1', at(C07c, 110, 205), { grade: 0.9, loadMeanSec: 120, spotMeanSec: 25 }),
+      shovel(2, 'Ore 2', at(C07c, 130, 170), { grade: 0.7, loadMeanSec: 120, spotMeanSec: 25 }),
+      shovel(3, 'Ore 3', at(C07c, 135, 140), { grade: 1.1, loadMeanSec: 120, spotMeanSec: 25 }),
+      shovel(4, 'Ore 4', at(C07c, 130, 248), { grade: 0.6, loadMeanSec: 120, spotMeanSec: 25 }),
+      shovel(5, 'Ore 5', at(C07c, 135, 35), { grade: 1.0, loadMeanSec: 120, spotMeanSec: 25 }),
+      shovel(6, 'Ore 6', at(C07c, 140, 65), { grade: 0.8, loadMeanSec: 120, spotMeanSec: 25 }),
+      shovel(7, 'Waste 1', at(C07c, 125, 300), { faceType: 'waste', grade: 0 }),
+      shovel(8, 'Waste 2', at(C07c, 135, 335), { faceType: 'waste', grade: 0 }),
+    ],
+    dumps: [
+      crusher(10, 'Crusher (2 bays, slow)', at(C07c, 300, -6), { bays: 2, dumpMeanSec: 110 }),
+      waste(20, 'Waste dump', at(C07c, 285, 70)),
+      stock(30, 'Stockpile', at(C07c, 240, 30), { areaCapacityT: 11000, reclaimRateTph: 3600, rehandleAtQueue: 2, reclaimTargetId: 10 }),
+    ],
+    pitRoad: { 1: seg(700, 3, 3.5), 2: seg(1000, 3, 3.5), 3: seg(1300, 4, 3.5), 4: seg(800, 3, 3.5), 5: seg(1100, 3, 3.5), 6: seg(1400, 4, 3.5), 7: seg(700, 3), 8: seg(1000, 3) },
+    haul: { 10: seg(800, 2, 2), 20: seg(700, 2, 2), 30: seg(600, 1, 2) },
+    adjacency: { 1: [10, 30], 2: [10, 30], 3: [10, 30], 4: [10, 30], 5: [10, 30], 6: [10, 30], 7: [20], 8: [20] },
+    topo: { center: C07c, rimRx: 180, rimRy: 155, nBenches: 5, benchHeightM: 14, benchWidthM: 12, shovelBench: { 1: 2, 2: 3, 3: 4, 4: 3, 5: 3, 6: 4, 7: 3, 8: 4 } },
+  }),
 };
-export const C13: CaseSpec = { id: 'C13', name: 'Crusher bays + stockpile rehandle', mine: c13Mine, fleet: fleet(22, '793F', [1, 2, 3, 4]), shiftSec: SHIFT };
-
-// C14 THE BOSS: a recognizably real open-pit network. 6 shovels across 2 phases (upper + lower bench),
-// 3 dumps (a 2-bay crusher + a waste dump + a stockpile with reclaim), ore/waste routing, rehandle + reclaim,
-// and a mixed 793F + 930E fleet (heterogeneous match factor). Everything at once.
-const c14Topo: PitTopoSpec = {
-  center: { x: 300, y: 270 },
-  rimRx: 300, rimRy: 240, nBenches: 6, benchHeightM: 15, benchWidthM: 12, faceAngleDeg: 65, rampWidthM: 25,
-  shovelBench: { 1: 3, 2: 3, 3: 4, 4: 5, 5: 6, 6: 6 }, // upper phase (3,4) + lower phase (5,6)
-};
-const c14Mine: MineSpec = {
-  name: 'Large multi-phase pit (the boss)',
-  shovels: [
-    shovel(1, 'Ore 1 (upper)', 150, 110),
-    shovel(2, 'Ore 2 (upper)', 130, 210),
-    shovel(3, 'Ore 3 (lower)', 120, 320),
-    shovel(4, 'Ore 4 (lower)', 130, 420),
-    shovel(5, 'Waste 1 (upper)', 210, 470, { faceType: 'waste', grade: 0 }),
-    shovel(6, 'Waste 2 (lower)', 300, 470, { faceType: 'waste', grade: 0 }),
-  ],
-  dumps: [
-    crusher(10, 'Crusher (2 bays)', 600, 130, { bays: 2 }),
-    waste(20, 'Waste dump', 590, 440),
-    stock(30, 'Stockpile', 430, 260, { areaCapacityT: 28000, reclaimRateTph: 2200, rehandleAtQueue: 2, reclaimTargetId: 10 }),
-  ],
-  routes: {
-    '1->10': route(1700, 3), '2->10': route(2100, 4), '3->10': route(3000, 5), '4->10': route(3600, 6, 4),
-    '1->30': route(1300, 2), '2->30': route(1600, 3), '3->30': route(2200, 4), '4->30': route(2700, 5),
-    '5->20': route(1800, 3), '6->20': route(2100, 3),
-  },
-  topo: c14Topo,
-};
-export const C14: CaseSpec = { id: 'C14', name: 'Boss: 6 shovels, 2 phases, 3 dumps, mixed fleet', mine: c14Mine, fleet: mixedFleet(8, 6, [1, 2, 3, 4, 5, 6]), shiftSec: SHIFT };
 
 // ============================================================================================
-// Stochastic regimes (rollout look-ahead), >= 4 shovels
+// The BOSS / showcase: a large 12-shovel, 3-phase network with every node type + every dynamic
 // ============================================================================================
 
-// C15 stochastic cycle times: 4-shovel asymmetric geometry + HIGH-variance load (Erlang k=2, CV~0.71)
-// and travel (lognormal CV=0.35). Bunching the mean-cost Hungarian cannot see; a rollout samples it.
-const c15Mine: MineSpec = {
-  name: 'Stochastic-cycle pit (4 shovels, asymmetric)',
-  shovels: [
-    shovel(1, 'Shovel 1 (near)', 120, 100, { loadPasses: 2 }),
-    shovel(2, 'Shovel 2 (mid)', 120, 210, { loadPasses: 2 }),
-    shovel(3, 'Shovel 3 (far)', 120, 320, { loadPasses: 2 }),
-    shovel(4, 'Shovel 4 (far)', 120, 430, { loadPasses: 2 }),
-  ],
-  dumps: [crusher(10, 'Crusher', 580, 265)],
-  routes: { '1->10': route(1400, 3), '2->10': route(2400, 4), '3->10': route(3600, 5), '4->10': route(4200, 6) },
-};
-export const C15: CaseSpec = {
-  id: 'C15', name: 'Stochastic cycle times (Erlang load + travel noise)', mine: c15Mine,
-  fleet: fleet(16, '793F', [1, 2, 3, 4]), shiftSec: SHIFT, noise: { travelCv: 0.35 },
+// ---- C08 THE BOSS: 12 shovels across 3 phases, 2 crushers (2-bay + 1-bay), 2 waste dumps, a stockpile ----
+const C08c = { x: 320, y: 300 };
+export const C08: CaseSpec = {
+  id: 'C08', name: 'Boss: 12 shovels, 3 phases, all node types + dynamics', shiftSec: SHIFT,
+  fleet: mixedOn([1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 9, 10, 11, 12], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
+  noise: { travelCv: 0.22 },
+  blendWindow: { min: 0.7, max: 0.95 },
+  constraints: { breaks: [{ startSec: 4 * 3600, endSec: 4.5 * 3600 }] },
+  mine: buildMine({
+    name: 'Large multi-phase pit (the boss)', center: C08c, portal: at(C08c, 250, -12),
+    shovels: [
+      shovel(1, 'Ore 1 (upper)', at(C08c, 155, 195)),
+      shovel(2, 'Ore 2 (upper, fails)', at(C08c, 165, 220), { breakdown: { mtbfSec: 6000, mttrSec: 1500 } }),
+      shovel(3, 'Ore 3 (mid)', at(C08c, 130, 165), { loadPasses: 3 }),
+      shovel(4, 'Ore 4 (mid)', at(C08c, 110, 138), { loadPasses: 3 }),
+      shovel(5, 'Ore 5 (lower)', at(C08c, 88, 118), { loadPasses: 2 }),
+      shovel(6, 'Ore 6 (lower)', at(C08c, 72, 92), { loadPasses: 2 }),
+      shovel(7, 'Ore 7 (deep)', at(C08c, 62, 58), { loadPasses: 2 }),
+      shovel(8, 'Ore 8 (deep)', at(C08c, 72, 26), { loadPasses: 2 }),
+      shovel(9, 'Waste 1 (upper)', at(C08c, 155, 300), { faceType: 'waste', grade: 0 }),
+      shovel(10, 'Waste 2 (mid)', at(C08c, 125, 330), { faceType: 'waste', grade: 0 }),
+      shovel(11, 'Waste 3 (lower)', at(C08c, 100, 352), { faceType: 'waste', grade: 0 }),
+      shovel(12, 'Waste 4 (deep)', at(C08c, 82, 15), { faceType: 'waste', grade: 0 }),
+    ],
+    dumps: [
+      crusher(10, 'Plant A (2 bays)', at(C08c, 360, -18), { bays: 2, dumpMeanSec: 155 }),
+      crusher(11, 'Plant B', at(C08c, 360, 40)),   // 1-bay
+      waste(20, 'Waste dump N', at(C08c, 340, 60)),
+      waste(21, 'Waste dump S', at(C08c, 350, 30)),
+      stock(30, 'Stockpile', at(C08c, 290, -8), { areaCapacityT: 10000, reclaimRateTph: 3000, rehandleAtQueue: 2, reclaimTargetId: 10 }),
+    ],
+    pitRoad: {
+      1: seg(900, 3, 3.5), 2: seg(1100, 3, 3.5), 3: seg(1600, 4, 3.5), 4: seg(2100, 5, 3.5),
+      5: seg(2700, 6, 4), 6: seg(3100, 6, 4), 7: seg(3600, 7, 4), 8: seg(4000, 7, 4),
+      9: seg(1000, 3), 10: seg(1500, 4), 11: seg(2000, 5), 12: seg(2600, 6, 4),
+    },
+    haul: { 10: seg(900, 2, 2), 11: seg(1200, 2, 2), 20: seg(900, 2, 2), 21: seg(800, 2, 2), 30: seg(700, 1, 2) },
+    adjacency: {
+      1: [10, 30], 2: [10, 30], 3: [10, 30], 4: [10, 30],
+      5: [11], 6: [11], 7: [11], 8: [11],
+      9: [20], 10: [20], 11: [21], 12: [21],
+    },
+    topo: { center: C08c, rimRx: 295, rimRy: 245, nBenches: 7, benchHeightM: 15, benchWidthM: 13, faceAngleDeg: 64, rampWidthM: 26,
+      shovelBench: { 1: 2, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 7, 9: 3, 10: 4, 11: 5, 12: 6 } },
+  }),
 };
 
-// C16 shovel breakdowns: 4-shovel asymmetric geometry; the NEAR shovel (the one a myopic policy
-// over-feeds) fails on a Poisson clock (MTBF 1.5 h, MTTR 0.5 h). A myopic policy keeps committing
-// trucks to a dying shovel; a look-ahead that samples failures can hedge onto the healthy ones.
-const c16Mine: MineSpec = {
-  name: 'Breakdown pit (near shovel fails on a Poisson clock)',
-  shovels: [
-    shovel(1, 'Shovel 1 (near, fails)', 120, 100, { breakdown: { mtbfSec: 5400, mttrSec: 1800 } }),
-    shovel(2, 'Shovel 2 (mid)', 120, 210),
-    shovel(3, 'Shovel 3 (far)', 120, 320),
-    shovel(4, 'Shovel 4 (far)', 120, 430),
-  ],
-  dumps: [crusher(10, 'Crusher', 580, 265)],
-  routes: { '1->10': route(1400, 3), '2->10': route(2400, 4), '3->10': route(3600, 5), '4->10': route(4200, 6) },
-};
-export const C16: CaseSpec = {
-  id: 'C16', name: 'Shovel breakdowns (Poisson failure + repair)', mine: c16Mine,
-  fleet: fleet(16, '793F', [1, 2, 3, 4]), shiftSec: SHIFT, noise: { travelCv: 0.12 },
-};
+export const CASES: CaseSpec[] = [C01, C02, C03, C04, C05, C06, C07, C08];
+export const caseById = (id: string): CaseSpec => CASES.find((c) => c.id === id) ?? C08;
 
-export const CASES: CaseSpec[] = [C01, C02, C03, C04, C05, C06, C07, C08, C09, C10, C11, C12, C13, C14, C15, C16];
-export const caseById = (id: string): CaseSpec => CASES.find((c) => c.id === id) ?? C01;
+// SIMPLE teaching cases (>= 4 shovels, >= 2 destinations, no stockpile required); every OTHER case is
+// complex/dynamic with an actively-cycled ore stockpile. Kept as a named set for the axis-coverage gate.
+export const SIMPLE_CASE_IDS = new Set(['C01', 'C02', 'C03']);

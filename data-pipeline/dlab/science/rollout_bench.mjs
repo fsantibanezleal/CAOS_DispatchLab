@@ -36,14 +36,17 @@ mkdirSync(OUT, { recursive: true });
 const BASE = shortestWait;
 const HEURS = [['greedy', greedy], ['shortestWait', shortestWait], ['minTruckWait', minTruckWait], ['minShovelWait', minShovelWait], ['fixed', fixed]];
 
-// the regimes where a look-ahead can defensibly help + the negative controls that MUST tie
-const TARGETS = ['C05', 'C06', 'C07', 'C10', 'C11', 'C15', 'C16'];
-const CONTROLS = ['C01', 'C04', 'C12'];
-const ALL_CASES = [...CONTROLS, ...TARGETS];
+// the round-2 corpus (the tie / positive / oracle controls now live as TEST fixtures, not user cases, so
+// there are no in-corpus tie controls here). All cases are look-ahead regimes; the simple routing cases sit
+// near the base, the complex/dynamic cases are where a horizon can defensibly help.
+const TARGETS = ['C03', 'C04', 'C05', 'C06', 'C07', 'C08'];
+const CONTROLS = [];
+const ALL_CASES = ['C01', 'C02', 'C03', 'C04', 'C05', 'C06', 'C07', 'C08'];
 
-// DISJOINT seed banks (no leakage): distillation trains on TRAIN, every reported number uses EVAL.
-const TRAIN_SEEDS = Array.from({ length: 16 }, (_, i) => 1000 + i * 7);
-const EVAL_SEEDS = Array.from({ length: 16 }, (_, i) => 5000 + i * 11);
+// DISJOINT seed banks (no leakage): distillation trains on TRAIN, every reported number uses EVAL. The boss
+// C08 rollout is expensive (~15s/seed), so the eval bank is 8 seeds (still a Monte-Carlo CI).
+const TRAIN_SEEDS = Array.from({ length: 8 }, (_, i) => 1000 + i * 7);
+const EVAL_SEEDS = Array.from({ length: 8 }, (_, i) => 5000 + i * 11);
 
 const OPT = (extra) => ({ ...DEFAULT_ROLLOUT, base: BASE, ...extra });
 const r1 = (x) => Math.round(x * 10) / 10;
@@ -114,13 +117,14 @@ const doc = {
   winThreshold: WIN_THRESHOLD, winCount, win: winCount >= WIN_THRESHOLD,
   honestVerdict: winCount >= WIN_THRESHOLD
     ? `rollout beats best-heuristic AND Hungarian outside the CI on ${winCount} target cases`
-    : 'NULL: the certainty-equivalent rollout does NOT beat myopic assignment under cycle-time uncertainty on this homogeneous-fleet corpus (base within a few % of the capacity oracle). The VALIDATED contribution is the exact deterministic policy-improvement bound: rollout >= base everywhere, with a real gain only on the asymmetric C05 (see deterministic block).',
-  deterministicGain: { C05: deterministic.C05, C11: deterministic.C11, C16: deterministic.C16 },
+    : 'NULL: the certainty-equivalent rollout does NOT beat myopic assignment under cycle-time uncertainty on this corpus (the base is already within a few % of the capacity oracle). The VALIDATED contribution is the exact deterministic policy-improvement bound: rollout >= base everywhere; the strict gain is demonstrated on the asymmetric positive-control fixture (frontend/test/fixtures.ts). See the deterministic block.',
+  deterministicGain: { C03: deterministic.C03, C05: deterministic.C05, C08: deterministic.C08 },
   cases,
 };
 writeFileSync(resolve(OUT, 'rollout.json'), JSON.stringify(doc));
 console.log(`rollout bench: ${ALL_CASES.length} cases x ${EVAL_SEEDS.length} eval seeds -> data/derived/bench/rollout.json`);
-console.log(`  win ${doc.win} (winCount ${winCount}/${WIN_THRESHOLD}); det C05 +${deterministic.C05.deltaPct}% C11 +${deterministic.C11.deltaPct}% C16 +${deterministic.C16.deltaPct}%`);
+console.log(`  win ${doc.win} (winCount ${winCount}/${WIN_THRESHOLD}); det C03 +${deterministic.C03.deltaPct}% C05 +${deterministic.C05.deltaPct}% C08 +${deterministic.C08.deltaPct}%`);
+if (!process.env.DISTILL) { console.log('  (skipping the distillation dataset; set DISTILL=1 to regenerate rollout-dataset.jsonl for torch retraining)'); process.exit(0); }
 
 // ---------- distillation dataset: (state, rollout-action) pairs over the DISJOINT train seeds ----------
 const rows = [];
