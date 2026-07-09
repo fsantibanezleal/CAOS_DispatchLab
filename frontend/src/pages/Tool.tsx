@@ -23,6 +23,8 @@ import { ParetoScatter } from '../viz/ParetoScatter';
 import { SweepChart } from '../viz/SweepChart';
 import { UPlotChart } from '../viz/UPlotChart';
 import { lineOpts } from '../viz/uplotKit';
+import { BarChart, type BarDatum } from '../viz/BarChart';
+import { PanelBoundary } from '../viz/PanelBoundary';
 
 const SPEEDS = [50, 200, 600, 1800]; // 50x = slow lane for close visual review
 const SWEEP_SEEDS = [3, 11, 19, 29, 41];
@@ -171,7 +173,7 @@ export default function Tool() {
         : (es ? 'Topografía del rajo, bancos, rampa espiral y flota en 3D (color = estado del camión); política actual' : 'Pit topography, benches, spiral ramp and the fleet in 3D (colour = truck state); current policy')}>
         {activeC.mine.minetopo
           ? <Underground3D c={activeC} result={result} t={playT} lang={lang} />
-          : <Pit3D c={activeC} result={result} t={playT} lang={lang} />}
+          : <Pit3D c={activeC} result={result} t={playT} lang={lang} playing={playing} />}
         <div className="dl-play" style={{ marginTop: '0.4rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <button className="chip on" onClick={() => setPlaying((p) => !p)}>{playing ? `❚❚ ${es ? 'Pausa' : 'Pause'}` : `▶ ${es ? 'Reproducir' : 'Play'}`}</button>
           <select className="dl-sel" value={speed} onChange={(e) => setSpeed(+e.target.value)} aria-label="speed">{SPEEDS.map((s) => <option key={s} value={s}>{s}×</option>)}</select>
@@ -202,14 +204,18 @@ export default function Tool() {
           const faces = realOK ? realReport?.sample?.provenance.geology?.faces : undefined;
           const faceOf = faces ? Object.fromEntries(faces.map((f) => [f.shovelId, f])) : null;
           return (<>
-            <div className="dl-bars">{result.shovels.map((s) => {
-              const f = faceOf?.[s.id];
-              return (
-                <div key={s.id} className="dl-bar-row"><div className="dl-bar-label">{s.name.split('(')[0].trim()}{f ? <span className="chip" style={{ marginLeft: 6, pointerEvents: 'none', fontSize: '0.7rem' }}>{es ? 'banco' : 'bench'} {f.bench} · {(f.grade * 100).toFixed(2)}% · {(f.oreFraction * 100).toFixed(0)}% {es ? 'min.' : 'ore'}</span> : null}</div>
-                  <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${s.util * 100}%`, background: 'var(--color-accent)' }} /></div><span className="dl-bar-num mono">{s.served} · {(s.util * 100).toFixed(0)}%</span></div>
-                </div>);
-            })}</div>
-            {faceOf && <p className="dl-hint small">{es ? 'Chip = geología del banco de cada pala en el pit exacto (oreblocks): banco · ley · fracción de mineral al corte económico.' : 'Chip = each shovel bench geology in the exact pit (oreblocks): bench · grade · ore fraction at the economic cutoff.'}</p>}
+            <BarChart
+              ariaLabel={es ? 'Utilización por pala' : 'Per-shovel utilization'}
+              unit="%" defaultBaseline="zero" valueFmt={(v) => v.toFixed(0)}
+              data={result.shovels.map<BarDatum>((s) => { const f = faceOf?.[s.id]; return {
+                key: String(s.id),
+                label: s.name.split('(')[0].trim() + (f ? ` · ${es ? 'banco' : 'bench'} ${f.bench} · ${(f.grade * 100).toFixed(2)}%` : ''),
+                value: s.util * 100, sub: `${s.served}`, color: 'var(--color-accent)',
+              }; })}
+              note={faceOf
+                ? (es ? 'Barra = utilización · nº = camiones servidos. Etiqueta = geología del banco (banco · ley) del pit exacto (oreblocks).' : 'Bar = utilization · number = trucks served. Label = bench geology (bench · grade) from the exact pit (oreblocks).')
+                : (es ? 'Barra = utilización de la pala · número = camiones servidos en la corrida.' : 'Bar = shovel utilization · number = trucks served this run.')}
+            />
           </>);
         })()}
       </Panel>) },
@@ -233,51 +239,46 @@ export default function Tool() {
       </Panel>) },
     { id: 'queue', label: es ? 'Colas' : 'Queues', content: (
       <Panel t={es ? 'Tiempo de espera en cola por pala (horas, esta corrida)' : 'Per-shovel queue wait (hours, this run)'}>
-        <div className="dl-bars">{result.shovels.map((s) => { const maxQ = Math.max(...result.shovels.map((x) => x.queueWaitSec)) || 1; return (
-          <div key={s.id} className="dl-bar-row"><div className="dl-bar-label">{s.name.split('(')[0].trim()}</div>
-            <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${(s.queueWaitSec / maxQ) * 100}%`, background: '#d29922' }} /></div><span className="dl-bar-num mono">{(s.queueWaitSec / 3600).toFixed(1)} h</span></div>
-          </div>); })}</div>
+        <BarChart
+          ariaLabel={es ? 'Espera en cola por pala' : 'Per-shovel queue wait'}
+          unit="h" defaultBaseline="zero" valueFmt={(v) => v.toFixed(1)}
+          data={result.shovels.map<BarDatum>((s) => ({ key: String(s.id), label: s.name.split('(')[0].trim(), value: s.queueWaitSec / 3600, color: '#d29922' }))}
+          note={es ? 'Cola por pala en esta corrida; cambia de política o caso y observa cómo se redistribuye la espera.' : 'Per-shovel queue this run; change policy or case and watch the wait redistribute.'}
+        />
       </Panel>) },
     { id: 'share', label: es ? 'Reparto de decisiones' : 'Decision share', content: (
       <Panel t={es ? 'Fracción de decisiones de despacho a cada pala (la política actual, esta corrida)' : 'Fraction of dispatch decisions to each shovel (current policy, this run)'}>
         {(() => { const cnt: Record<number, number> = {}; for (const d of decisions.current) { const id = d.ids[d.chosen]; cnt[id] = (cnt[id] || 0) + 1; } const tot = decisions.current.length || 1;
-          return <div className="dl-bars">{c.mine.shovels.map((s) => { const f = (cnt[s.id] || 0) / tot; return (
-            <div key={s.id} className="dl-bar-row"><div className="dl-bar-label">{s.name.split('(')[0].trim()}</div>
-              <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${f * 100}%`, background: 'var(--color-accent)' }} /></div><span className="dl-bar-num mono">{(f * 100).toFixed(0)}%</span></div>
-            </div>); })}</div>; })()}
-        <p className="dl-hint small">{es ? 'Una política que reparte desigual sobre-camiona la pala cercana; cambia de política o caso y observa el reparto.' : 'A policy that splits unevenly over-trucks the near shovel; change the policy or case and watch the split.'}</p>
+          return <BarChart
+            ariaLabel={es ? 'Reparto de decisiones por pala' : 'Decision share per shovel'}
+            unit="%" defaultBaseline="zero" valueFmt={(v) => v.toFixed(0)}
+            data={c.mine.shovels.map<BarDatum>((s) => ({ key: String(s.id), label: s.name.split('(')[0].trim(), value: ((cnt[s.id] || 0) / tot) * 100, sub: `(${cnt[s.id] || 0})`, color: 'var(--color-accent)' }))}
+            note={es ? 'Una política que reparte desigual sobre-camiona la pala cercana; cambia de política o caso y observa el reparto.' : 'A policy that splits unevenly over-trucks the near shovel; change the policy or case and watch the split.'}
+          />; })()}
       </Panel>) },
     { id: 'cycle', label: es ? 'Tiempo de ciclo' : 'Cycle time', content: (
       <Panel t={realOK
         ? (es ? 'Tiempo de ciclo MEDIDO por pala (mediana de carga vs viaje+descarga observados en el turno)' : 'MEASURED cycle time per shovel (median observed load vs haul+dump this shift)')
         : (es ? 'Tiempo de ciclo ideal por pala (carga vs viaje+descarga), de la cinemática rimpull/pendiente' : 'Ideal cycle time per shovel (load vs haul+dump), from the rimpull/grade kinematics')}>
-        <div className="dl-bars">{activeC.mine.shovels.map((s) => {
-          let tLoad: number, tCycle: number;
-          if (realOK && realReport?.sample) {
-            const emp = realReport.sample.empirical;
-            tLoad = emp.loadMeanSecByShovel[s.id] ?? 0;
-            const hauls = Object.entries(emp.fullTravelMedianSec).filter(([k]) => k.startsWith(`${s.id}->`)).map(([, v]) => v);
-            const rets = Object.entries(emp.emptyTravelMedianSec).filter(([k]) => k.endsWith(`->${s.id}`)).map(([, v]) => v);
-            const haul = hauls.length ? hauls.reduce((a, b) => a + b, 0) / hauls.length : 0;
-            const ret = rets.length ? rets.reduce((a, b) => a + b, 0) / rets.length : 0;
-            tCycle = tLoad + haul + emp.dumpMeanSec + ret;
-          } else {
-            const cy = shovelCycle(c, s.id); tLoad = cy.tLoad; tCycle = cy.tCycle;
-          }
-          const maxC = Math.max(...activeC.mine.shovels.map((x) => {
+        {(() => {
+          const cycleOf = (id: number): { tLoad: number; tCycle: number } => {
             if (realOK && realReport?.sample) {
               const emp = realReport.sample.empirical;
-              const hauls = Object.entries(emp.fullTravelMedianSec).filter(([k]) => k.startsWith(`${x.id}->`)).map(([, v]) => v);
-              const rets = Object.entries(emp.emptyTravelMedianSec).filter(([k]) => k.endsWith(`->${x.id}`)).map(([, v]) => v);
-              return (emp.loadMeanSecByShovel[x.id] ?? 0) + (hauls.length ? hauls.reduce((a, b) => a + b, 0) / hauls.length : 0) + emp.dumpMeanSec + (rets.length ? rets.reduce((a, b) => a + b, 0) / rets.length : 0);
+              const hauls = Object.entries(emp.fullTravelMedianSec).filter(([k]) => k.startsWith(`${id}->`)).map(([, v]) => v);
+              const rets = Object.entries(emp.emptyTravelMedianSec).filter(([k]) => k.endsWith(`->${id}`)).map(([, v]) => v);
+              const tLoad = emp.loadMeanSecByShovel[id] ?? 0;
+              const haul = hauls.length ? hauls.reduce((a, b) => a + b, 0) / hauls.length : 0;
+              const ret = rets.length ? rets.reduce((a, b) => a + b, 0) / rets.length : 0;
+              return { tLoad, tCycle: tLoad + haul + emp.dumpMeanSec + ret };
             }
-            return shovelCycle(c, x.id).tCycle;
-          })) || 1;
-          return (
-          <div key={s.id} className="dl-bar-row"><div className="dl-bar-label">{s.name.split('(')[0].trim()}</div>
-            <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${(tLoad / maxC) * 100}%`, background: '#3fb950' }} /><span className="dl-bar-fill" style={{ left: `${(tLoad / maxC) * 100}%`, width: `${((tCycle - tLoad) / maxC) * 100}%`, background: 'var(--color-accent)', position: 'absolute' }} /></div><span className="dl-bar-num mono">{(tCycle / 60).toFixed(1)} min</span></div>
-          </div>); })}</div>
-        <p className="dl-hint small">{es ? 'Verde = carga · azul = viaje+descarga. Las palas lejanas tienen ciclos más largos → menos viajes posibles por turno.' : 'Green = load · blue = haul+dump. Far shovels have longer cycles → fewer possible trips per shift.'}</p>
+            const cy = shovelCycle(c, id); return { tLoad: cy.tLoad, tCycle: cy.tCycle };
+          };
+          return <BarChart
+            ariaLabel={es ? 'Tiempo de ciclo por pala' : 'Per-shovel cycle time'}
+            unit="min" defaultBaseline="zero" valueFmt={(v) => v.toFixed(1)}
+            data={activeC.mine.shovels.map<BarDatum>((s) => { const cy = cycleOf(s.id); return { key: String(s.id), label: s.name.split('(')[0].trim(), value: cy.tCycle / 60, sub: es ? `carga ${(cy.tLoad / 60).toFixed(1)}` : `load ${(cy.tLoad / 60).toFixed(1)}`, color: 'var(--color-accent)' }; })}
+            note={es ? 'Total del ciclo (carga + viaje + descarga + retorno). Las palas lejanas tienen ciclos más largos → menos viajes posibles por turno.' : 'Total cycle (load + haul + dump + return). Far shovels have longer cycles → fewer possible trips per shift.'}
+          />; })()}
       </Panel>) },
   ];
   // real mode: the measured-shift tabs + the counterfactual dispatcher (#18); the multi-seed synthetic
@@ -300,9 +301,11 @@ export default function Tool() {
           </>
         )}
       </Panel>) };
-  const visibleTabs = realOK
+  const rawTabs = realOK
     ? [...tabs.filter((t) => ['pit3d', 'map', 'shovel', 'feed', 'queue', 'share', 'cycle'].includes(t.id)), cfTab]
     : tabs;
+  // wrap every panel in an error boundary so one failing view never blanks the whole app (#78)
+  const visibleTabs = rawTabs.map((t) => ({ ...t, content: <PanelBoundary label={typeof t.label === 'string' ? t.label : undefined}>{t.content}</PanelBoundary> }));
 
   return (
     <div className="page-body dl-layout">
@@ -421,15 +424,14 @@ function Panel({ t, children }: { t: string; children: ReactNode }) { return <di
 function KPI({ v, l }: { v: string; l: string }) { return <div className="dl-kpi"><div className="dl-kpi-v">{v}</div><div className="dl-kpi-l">{l}</div></div>; }
 
 function LearnedBars({ stats, es, tn }: { stats: ReturnType<typeof comparePolicies>; es: boolean; tn: (id: string) => string }) {
-  const maxT = Math.max(...stats.map((s) => s.hiT));
   const ord = [...stats].sort((a, b) => b.medTonnes - a.medTonnes);
   return (
-    <div className="dl-bars">{ord.map((s) => { const learned = s.id === 'rwr' || s.id === 'bcbest'; return (
-      <div key={s.id} className="dl-bar-row"><div className="dl-bar-label"><span className="dl-dot" style={{ background: POLICY_COLOR[s.id] }} /> {tn(s.id)}{learned ? ' ★' : ''}</div>
-        <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${(s.medTonnes / maxT) * 100}%`, background: POLICY_COLOR[s.id] }} /><span className="dl-bar-band" style={{ left: `${(s.loT / maxT) * 100}%`, width: `${((s.hiT - s.loT) / maxT) * 100}%` }} /></div><span className="dl-bar-num mono">{(s.medTonnes / 1000).toFixed(1)}k t</span></div>
-      </div>); })}
-      <p className="tw-note dl-note">{es ? '★ = política APRENDIDA. Honesto: igualan a las mejores heurísticas (sus maestras), el valor es una política aprendida única + rápida desde datos, no superarlas.' : '★ = LEARNED policy. Honest: they match the best heuristics (their teachers), the value is a single fast learned policy from data, not beating them.'}</p>
-    </div>
+    <BarChart
+      ariaLabel={es ? 'Toneladas medianas por política, aprendidas vs heurísticas' : 'Median tonnes per policy, learned vs heuristic'}
+      unit="t" defaultBaseline="fit" valueFmt={(v) => (v / 1000).toFixed(1) + 'k'}
+      data={ord.map<BarDatum>((s) => ({ key: s.id, label: tn(s.id), value: s.medTonnes, ci: [s.loT, s.hiT], color: POLICY_COLOR[s.id], mark: (s.id === 'rwr' || s.id === 'bcbest') ? '★' : undefined }))}
+      note={es ? '★ = política APRENDIDA. Barra = mediana; el bigote = banda entre semillas. En modo Fit las diferencias (~1-3%) se ven; las aprendidas igualan a sus maestras, no las superan.' : '★ = LEARNED policy. Bar = median; whisker = seed band. Fit mode makes the ~1-3% differences visible; the learned policies match their teachers, they do not beat them.'}
+    />
   );
 }
 
@@ -444,15 +446,19 @@ function RealDecisionInspector({ decisions, es }: { decisions: ReturnType<typeof
     return () => { a = false; };
   }, [feats]);
   if (!d) return null;
-  const argmax = scores ? scores.indexOf(Math.max(...scores)) : -1;
-  const maxS = scores ? Math.max(...scores) : 1, minS = scores ? Math.min(...scores) : 0;
+  // same defensive contract as DecisionInspector (#78): use the ONNX vector only when finite + aligned
+  const sv = scores && scores.length === d.state.shovels.length && scores.every((x) => Number.isFinite(x)) ? scores : null;
+  const argmax = sv ? sv.indexOf(Math.max(...sv)) : -1;
   return (
     <div style={{ marginTop: '0.8rem' }}>
       <div className="dl-panel-t">{es ? 'Inspector, la red (RWR, ONNX en vivo) sobre el punto de decisión REAL' : 'Inspector, the net (RWR, live ONNX) on the REAL decision point'}</div>
-      <div className="dl-bars">{d.state.shovels.map((v, k) => { const sc = scores ? scores[k] : 0; const w = scores ? (sc - minS) / (maxS - minS || 1) : 0; return (
-        <div key={v.id} className="dl-bar-row"><div className="dl-bar-label">{v.spec.name}{v.id === d.chosen ? ` · ${es ? 'despachador real eligió' : 'real dispatcher chose'}` : ''}{k === argmax ? ' · ★' : ''}</div>
-          <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${w * 100}%`, background: k === argmax ? '#f85149' : 'var(--color-accent)' }} /></div><span className="dl-bar-num mono">{scores ? sc.toFixed(2) : '…'}</span></div>
-        </div>); })}</div>
+      {sv ? (
+        <BarChart
+          ariaLabel={es ? 'Puntajes de la red sobre la decisión real' : 'Net scores on the real decision'}
+          defaultBaseline="fit" valueFmt={(x) => x.toFixed(2)}
+          data={d.state.shovels.map<BarDatum>((v, k) => ({ key: String(v.id), label: v.spec.name, value: sv[k], color: k === argmax ? '#f85149' : 'var(--color-accent)', mark: k === argmax ? '★' : undefined, sub: v.id === d.chosen ? (es ? '(real)' : '(real)') : undefined }))}
+        />
+      ) : <p className="dl-hint small">{es ? 'Calculando puntajes ONNX…' : 'Computing ONNX scores…'}</p>}
       <input className="range" type="range" min={0} max={decisions.length - 1} value={i} onChange={(e) => setI(+e.target.value)} style={{ width: '100%', marginTop: '0.5rem' }} />
       <p className="dl-hint small">{es ? 'Decisión' : 'Decision'} {i + 1}/{decisions.length} · t={(d.t / 3600).toFixed(2)} h · truck {d.truck} · ★ = {es ? 'argmax de la red' : 'argmax of the net'}</p>
     </div>
@@ -525,14 +531,20 @@ function DecisionInspector({ decisions, es }: { decisions: Decision[]; es: boole
   const d = decisions.length ? decisions[Math.min(i, decisions.length - 1)] : null;
   useEffect(() => { let a = true; setScores(null); if (d) onnxScore('dl-policy.onnx', d.feats).then((s) => { if (a) setScores(s); }).catch(() => { if (a) setScores(null); }); return () => { a = false; }; }, [d]);
   if (!d) return <Panel t="Decision inspector"><p className="dl-hint">{es ? 'No hay decisiones capturadas (caso de una sola pala).' : 'No captured decisions (single-shovel case).'}</p></Panel>;
-  const argmax = scores ? scores.indexOf(Math.max(...scores)) : -1;
-  const maxS = scores ? Math.max(...scores) : 1, minS = scores ? Math.min(...scores) : 0;
+  // Only trust the ONNX output when it is a finite-number array aligned with the shovel rows. The model
+  // has a fixed input width; a case whose shovel count differs returns a mismatched vector, indexing past
+  // it yielded undefined.toFixed and blanked the app (#78). Mismatch/NaN => render the loading state.
+  const sv = scores && scores.length === d.names.length && scores.every((x) => Number.isFinite(x)) ? scores : null;
+  const argmax = sv ? sv.indexOf(Math.max(...sv)) : -1;
   return (
     <Panel t={es ? 'Inspector de decisión, puntajes de la política APRENDIDA (RWR) vía onnxruntime-web, por pala' : 'Decision inspector, LEARNED (RWR) policy scores via onnxruntime-web, per shovel'}>
-      <div className="dl-bars">{d.names.map((nm, k) => { const sc = scores ? scores[k] : 0; const w = scores ? (sc - minS) / (maxS - minS || 1) : 0; return (
-        <div key={k} className="dl-bar-row"><div className="dl-bar-label">{nm}{k === d.chosen ? ` · ${es ? 'heurística eligió' : 'heuristic chose'}` : ''}{k === argmax ? ' · ★' : ''}</div>
-          <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${w * 100}%`, background: k === argmax ? '#f85149' : 'var(--color-accent)' }} /></div><span className="dl-bar-num mono">{scores ? sc.toFixed(2) : '…'}</span></div>
-        </div>); })}</div>
+      {sv ? (
+        <BarChart
+          ariaLabel={es ? 'Puntajes de la red por pala' : 'Per-shovel net scores'}
+          defaultBaseline="fit" valueFmt={(v) => v.toFixed(2)}
+          data={d.names.map<BarDatum>((nm, k) => ({ key: String(k), label: nm, value: sv[k], color: k === argmax ? '#f85149' : 'var(--color-accent)', mark: k === argmax ? '★' : undefined, sub: k === d.chosen ? (es ? '(heur.)' : '(heur.)') : undefined }))}
+        />
+      ) : <p className="dl-hint small">{es ? 'Calculando puntajes ONNX en el navegador…' : 'Computing ONNX scores in the browser…'}</p>}
       <input className="range" type="range" min={0} max={decisions.length - 1} value={i} onChange={(e) => setI(+e.target.value)} style={{ width: '100%', marginTop: '0.5rem' }} />
       <p className="dl-hint small">{es ? 'Decisión' : 'Decision'} {i + 1}/{decisions.length} · t={(d.t / 3600).toFixed(1)} h · ★ = {es ? 'pala elegida por la red (argmax). La inferencia ONNX corre EN VIVO en el navegador.' : 'shovel the net picks (argmax). The ONNX inference runs LIVE in the browser.'}</p>
     </Panel>

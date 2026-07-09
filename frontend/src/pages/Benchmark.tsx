@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { Refs, Tabs, useShellLang } from '@fasl-work/caos-app-shell';
 import { POLICY_COLOR } from '../sim/compare';
+import { BarChart, type BarDatum } from '../viz/BarChart';
 
 interface BenchPolicy { id: string; en: string; es: string; medTonnes: number; medWaitH: number; loT: number; hiT: number; loW: number; hiW: number; pareto: boolean; pctOfOracle?: number }
 interface SweepCheck { kneeN: number | null; mf1N: number | null; agree: boolean }
@@ -60,20 +61,14 @@ export default function Benchmark() {
 
 function Stat({ v, l }: { v: string; l: string }) { return <div className="tw-stat"><div className="tw-stat-v">{v}</div><div className="tw-stat-l">{l}</div></div>; }
 
-function Bars({ rows, max, es }: { rows: { id: string; en: string; es: string; med: number; lo: number; hi: number; mark?: string }[]; max: number; es: boolean }) {
+function Bars({ rows, es }: { rows: { id: string; en: string; es: string; med: number; lo: number; hi: number; mark?: string }[]; max: number; es: boolean }) {
   return (
-    <div className="dl-bars">{rows.map((s) => (
-      <div key={s.id} className="dl-bar-row">
-        <div className="dl-bar-label"><span className="dl-dot" style={{ background: POLICY_COLOR[s.id] ?? '#8b949e' }} /> {label(s, es)}{s.mark ?? ''}</div>
-        <div className="dl-bar-pair">
-          <div className="dl-bar">
-            <span className="dl-bar-fill" style={{ width: `${(s.med / max) * 100}%`, background: POLICY_COLOR[s.id] ?? '#8b949e' }} />
-            <span className="dl-bar-band" style={{ left: `${(s.lo / max) * 100}%`, width: `${((s.hi - s.lo) / max) * 100}%` }} />
-          </div>
-          <span className="dl-bar-num mono">{(s.med / 1000).toFixed(1)}k t</span>
-        </div>
-      </div>
-    ))}</div>
+    <BarChart
+      ariaLabel={es ? 'Toneladas medianas por política (agregado)' : 'Median tonnes per policy (aggregate)'}
+      unit="t" defaultBaseline="fit" valueFmt={(v) => (v / 1000).toFixed(1) + 'k'}
+      data={rows.map<BarDatum>((s) => ({ key: s.id, label: label(s, es), value: s.med, ci: [s.lo, s.hi], color: POLICY_COLOR[s.id] ?? '#8b949e', mark: s.mark?.trim() || undefined }))}
+      note={es ? 'Barra = mediana; bigote = banda entre semillas. Modo Fit para ver las diferencias pequeñas; From 0 para la escala absoluta.' : 'Bar = median; whisker = seed band. Fit mode surfaces the small gaps; From 0 for absolute scale.'}
+    />
   );
 }
 

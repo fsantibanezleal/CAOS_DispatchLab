@@ -80,7 +80,7 @@ function rampGeometry(topo: PitTopo): THREE.BufferGeometry {
 
 const toThree = (v: { x: number; y: number; z: number }) => new THREE.Vector3(v.x, v.z, -v.y);
 
-export function Pit3D({ c, result, t, lang }: { c: CaseSpec; result: SimResult; t: number; lang: 'en' | 'es' }) {
+export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; result: SimResult; t: number; lang: 'en' | 'es'; playing?: boolean }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const es = lang === 'es';
   const topo = useMemo(() => buildPitTopo(c.mine), [c]);
@@ -178,6 +178,26 @@ export function Pit3D({ c, result, t, lang }: { c: CaseSpec; result: SimResult; 
     { const g = new THREE.CylinderGeometry(10, 16, 10, 6); const m = new THREE.MeshStandardMaterial({ color: dark ? 0x539bf5 : 0x2f6feb, roughness: 0.5, flatShading: true }); const mesh = new THREE.Mesh(g, m); const p = toThree(portalV); mesh.position.set(p.x, p.y + 5, p.z); scene.add(mesh); disposables.push(g, m); }
     mkLabel(es ? 'salida del rajo' : 'pit exit', portalV, 26, 0.95);
 
+    // Initial camera: frame ALL the content (the pit + the external nodes reached via the portal),
+    // centered on the whole scene with a slightly-elevated overview, so nothing sits off-frame on load.
+    {
+      const box = new THREE.Box3();
+      const add = (v: { x: number; y: number; z: number }) => { const p = toThree(v); box.expandByPoint(new THREE.Vector3(p.x, p.y, p.z)); };
+      Object.values(topo.shovelPos3).forEach(add);
+      Object.values(topo.dumpPos3).forEach(add);
+      add(portalV);
+      const zb = topo.benches[topo.benches.length - 1].z;
+      add({ x: topo.spec.center.x - topo.spec.rimRx, y: topo.spec.center.y - topo.spec.rimRy, z: 0 });
+      add({ x: topo.spec.center.x + topo.spec.rimRx, y: topo.spec.center.y + topo.spec.rimRy, z: zb });
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const radius = Math.max(size.x, size.y, size.z, 1) * 0.5;
+      const fitDist = (radius / Math.sin((cam.fov * Math.PI) / 360)) * 1.18;   // vertical-fit + padding
+      cam.position.set(center.x, center.y + fitDist * 0.62, center.z + fitDist * 0.85);   // centered, a little superior
+      controls.target.copy(center);
+      controls.update();
+    }
+
     // trucks: one instanced mesh, positions updated per render from the trace at tRef
     const nT = c.fleet.trucks.length;
     const tg = new THREE.BoxGeometry(14, 9, 22);
@@ -253,6 +273,24 @@ export function Pit3D({ c, result, t, lang }: { c: CaseSpec; result: SimResult; 
 
   // playback tick → exactly one frame (paused ⇒ t unchanged ⇒ no work)
   useEffect(() => { sceneRef.current?.render(); }, [t]);
+
+  // while PLAYING, drive one render per animation frame. The per-tick effect above can miss the
+  // very first Play on a fresh mount (the scene-build effect and the [t] effect race, so the first
+  // ticks landed before sceneRef was live, the view stayed static until a tab switch remounted it).
+  // A rAF loop bound to `playing` is race-free. It stops on pause / hidden tab, so no CPU burns idle.
+  useEffect(() => {
+    if (!playing) return;
+    let raf = 0;
+    const loop = () => {
+      if (document.hidden) { raf = 0; return; }
+      sceneRef.current?.render();
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    const onVis = () => { if (!document.hidden && !raf) raf = requestAnimationFrame(loop); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { if (raf) cancelAnimationFrame(raf); document.removeEventListener('visibilitychange', onVis); };
+  }, [playing]);
 
   return (
     <div>

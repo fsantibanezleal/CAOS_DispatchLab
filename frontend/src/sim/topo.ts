@@ -174,8 +174,12 @@ export function buildPitTopo(mine: MineSpec): PitTopo {
     }
     // up the ramp: from the entry index back to the rim (index 0)
     const up = ramp.slice(0, iEntry + 1).reverse();
+    // Build a path for EVERY (shovel, dump) pair, not only authored haul routes. The route table
+    // gates DISPATCH (which shovel feeds which dump in the DES); the 3D geometry is purely positional
+    // (bench arc -> ramp -> portal/rim -> surface -> dump). An empty truck re-dispatched to a shovel
+    // that has no authored route to the dump it just left still needs a portal-routed return path,
+    // without one it fell back to a straight line that cut through the terrain and vanished (#74).
     for (const d of mine.dumps) {
-      if (!mine.routes[`${s.id}->${d.id}`]) continue;
       const dp = dumpPos3[d.id];
       // surface leg (rim exit → dump pad) subdivided ~50 m for uniform sampling
       const exit = up[up.length - 1] ?? benchArc[benchArc.length - 1];
