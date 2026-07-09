@@ -406,10 +406,18 @@ export default function Tool() {
         )}
         <div className="dl-diag">
           <div className="dl-diag-h">{es ? 'Diagnóstico' : 'Diagnosis'}</div>
+          {/* policy-DEPENDENT outcome first: these numbers change when you switch policy (the MF block below
+              is a fleet property and is the SAME for every policy, which is why it does not move) */}
+          <div className="dl-diag-pol" style={{ marginBottom: '0.5rem' }}>
+            <div className="small" style={{ opacity: 0.85 }}>{realOK ? (es ? 'Turno medido' : 'Measured shift') : <>{es ? 'Esta política' : 'This policy'}: <b>{tn(policyId)}</b></>}</div>
+            <div className="small mono"><b>{(tonnes / 1000).toFixed(1)}k t</b> · {es ? 'espera' : 'wait'} {truckWaitH.toFixed(1)} h · util {(meanUtil * 100).toFixed(0)}%</div>
+            {!realOK && <div className="small muted">{es ? 'cambia de política y estos números cambian; el reparto, las colas y el ciclo también' : 'switch policy and these numbers change; the share, queues and cycle move too'}</div>}
+          </div>
           <div className="dl-mfbar"><span className="dl-mfref" style={{ left: `${(1 / MAXMF) * 100}%` }} /><span className="dl-mfmark" style={{ left: `${Math.min(1, mf / MAXMF) * 100}%` }} /></div>
           <div className="small"><b className="mono">MF {mf.toFixed(2)}</b> · {balance === 'over' ? (es ? 'sobre-camionado' : 'over-trucked') : balance === 'under' ? (es ? 'sub-camionado' : 'under-trucked') : (es ? 'equilibrado' : 'balanced')}</div>
           <div className="small">{delta !== 0 ? <>{delta > 0 ? (es ? 'agregar' : 'add') : (es ? 'quitar' : 'remove')} <b>{Math.abs(delta)}</b> {es ? 'camiones para MF≈1' : 'trucks for MF≈1'}</> : <>✓ MF≈1</>}</div>
           <div className="small muted">{bottleneck === 'shovelBound' ? (es ? 'limitado por pala' : 'shovel-bound') : bottleneck === 'queueBound' ? (es ? 'limitado por cola' : 'queue-bound') : (es ? 'con holgura' : 'headroom')}</div>
+          <div className="small muted" style={{ marginTop: '0.2rem', fontStyle: 'italic' }}>{es ? 'MF es una propiedad de la FLOTA (analítica), igual para todas las políticas' : 'MF is a FLEET property (analytical), the same for every policy'}</div>
         </div>
         <p className="tw-note dl-note">{realOK
           ? (es ? 'Turno MEDIDO reproducido desde un cycle-log (contrato cyclelog/v1). La geometría del mapa es esquemática (los logs no traen coordenadas). NO es un sistema de despacho productivo.' : 'MEASURED shift replayed from a cycle log (cyclelog/v1 contract). Map geometry is schematic (logs carry no coordinates). NOT a production dispatch system.')
