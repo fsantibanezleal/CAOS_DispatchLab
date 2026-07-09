@@ -10,7 +10,15 @@ function lerpColor(a: [number, number, number], b: [number, number, number], t: 
   const c = a.map((x, i) => Math.round(x + (b[i] - x) * Math.max(0, Math.min(1, t))));
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
-const queueColor = (q: number) => lerpColor([63, 185, 80], [248, 81, 73], q / 5); // green → red over 0..5
+const queueColor = (q: number) => lerpColor([63, 185, 80], [248, 81, 73], q / 5); // green -> red over 0..5
+
+/** Stockpile level (tonnes) at playback time t, from the step series baked into the result. */
+function levelAt(series: { t: number; level: number }[] | undefined, t: number): number {
+  if (!series || series.length === 0) return 0;
+  let lvl = series[0].level;
+  for (const p of series) { if (p.t <= t) lvl = p.level; else break; }
+  return lvl;
+}
 
 export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult; t: number; lang: 'en' | 'es' }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -47,11 +55,19 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
     const border = cs.getPropertyValue('--color-border').trim() || '#30363d';
     const surface = cs.getPropertyValue('--color-surface').trim() || '#161b22';
 
-    // roads
+    // roads (haul: shovel -> dump, including rehandle shovel -> stockpile)
     g.strokeStyle = border; g.lineWidth = 7; g.lineCap = 'round';
     for (const s of c.mine.shovels) for (const d of c.mine.dumps) if (c.mine.routes[`${s.id}->${d.id}`]) {
       g.beginPath(); g.moveTo(sx(s.pos.x), sy(s.pos.y)); g.lineTo(sx(d.pos.x), sy(d.pos.y)); g.stroke();
     }
+    // reclaim conveyors (dashed): a stockpile feeds its target crusher (the SOURCE side of the buffer)
+    g.save(); g.setLineDash([6, 6]); g.strokeStyle = '#e3b341'; g.lineWidth = 2.5;
+    for (const sp of c.mine.dumps.filter((d) => d.kind === 'stockpile')) {
+      const tgt = c.mine.dumps.find((d) => d.id === (sp.reclaimTargetId ?? -1) && d.kind === 'crusher')
+        ?? c.mine.dumps.find((d) => d.kind === 'crusher');
+      if (tgt) { g.beginPath(); g.moveTo(sx(sp.pos.x), sy(sp.pos.y)); g.lineTo(sx(tgt.pos.x), sy(tgt.pos.y)); g.stroke(); }
+    }
+    g.restore();
 
     // live queue counts at time t
     const qShovel = new Map<number, number>(), qDump = new Map<number, number>();
@@ -66,32 +82,51 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
       truckDraw.push({ x: sx(active.x0 + (active.x1 - active.x0) * f), y: sy(active.y0 + (active.y1 - active.y0) * f), color: STATE_COLOR[active.state] });
     }
 
-    // shovels (squares), color by queue
+    // shovels (squares), fill by queue, OUTLINE by face type (ore = amber, waste = slate)
     for (const s of c.mine.shovels) {
       const q = qShovel.get(s.id) ?? 0; const x = sx(s.pos.x), y = sy(s.pos.y);
-      g.fillStyle = queueColor(q); g.strokeStyle = fg; g.lineWidth = 1.5;
+      const oreFace = s.faceType === 'ore';
+      g.fillStyle = queueColor(q); g.strokeStyle = oreFace ? '#e3b341' : '#8b949e'; g.lineWidth = 3;
       g.beginPath(); g.rect(x - 13, y - 13, 26, 26); g.fill(); g.stroke();
       g.fillStyle = fg; g.font = '600 11px ui-sans-serif, sans-serif'; g.textAlign = 'center';
       g.fillText(s.name.split('(')[0].trim(), x, y - 20);
       g.fillStyle = '#0d1117'; g.font = '700 12px ui-monospace, monospace'; g.fillText(String(q), x, y + 4);
     }
-    // dumps (diamonds)
+    // dumps: crusher (red diamond) + waste dump (slate diamond) + stockpile (amber pile with a FILL level)
     for (const d of c.mine.dumps) {
-      const q = qDump.get(d.id) ?? 0; const x = sx(d.pos.x), y = sy(d.pos.y);
-      g.fillStyle = queueColor(q); g.strokeStyle = fg; g.lineWidth = 1.5;
+      const x = sx(d.pos.x), y = sy(d.pos.y);
+      if (d.kind === 'stockpile') {
+        const cap = d.areaCapacityT ?? 1;
+        const lvl = levelAt(result.stockLevels?.[d.id], t);
+        const frac = Math.max(0, Math.min(1, lvl / cap));
+        const w = 34, h = 26;                                    // pile outline (trapezoid) + fill by level
+        g.strokeStyle = '#e3b341'; g.lineWidth = 2; g.fillStyle = surface;
+        g.beginPath(); g.moveTo(x - w / 2, y + h / 2); g.lineTo(x - w / 2 + 6, y - h / 2); g.lineTo(x + w / 2 - 6, y - h / 2); g.lineTo(x + w / 2, y + h / 2); g.closePath(); g.fill(); g.stroke();
+        g.save(); g.clip();
+        g.fillStyle = 'rgba(227,179,65,0.75)';
+        g.fillRect(x - w / 2, y + h / 2 - h * frac, w, h * frac);  // fill rises with the pile level
+        g.restore();
+        g.fillStyle = fg; g.font = '600 11px ui-sans-serif, sans-serif'; g.textAlign = 'center';
+        g.fillText(d.name, x, y - h / 2 - 6);
+        g.fillStyle = fg; g.font = '700 10px ui-monospace, monospace'; g.fillText(`${(frac * 100).toFixed(0)}%`, x, y + 4);
+        continue;
+      }
+      const q = qDump.get(d.id) ?? 0;
+      const isCr = d.kind === 'crusher';
+      g.fillStyle = queueColor(q); g.strokeStyle = isCr ? '#f85149' : '#8b949e'; g.lineWidth = 3;
       g.beginPath(); g.moveTo(x, y - 16); g.lineTo(x + 16, y); g.lineTo(x, y + 16); g.lineTo(x - 16, y); g.closePath(); g.fill(); g.stroke();
       g.fillStyle = fg; g.font = '600 11px ui-sans-serif, sans-serif'; g.textAlign = 'center';
-      g.fillText(d.name, x, y - 22);
+      g.fillText(d.name + (isCr && (d.bays ?? 1) > 1 ? ` (${d.bays})` : ''), x, y - 22);
       g.fillStyle = '#0d1117'; g.font = '700 12px ui-monospace, monospace'; g.fillText(String(q), x, y + 4);
     }
-    // trucks
+    // trucks: colored by leg state; loaded ore = amber, loaded waste = slate-brown, empty = blue
     for (const td of truckDraw) {
       g.fillStyle = td.color; g.strokeStyle = surface; g.lineWidth = 1;
       g.beginPath(); g.rect(td.x - 5, td.y - 4, 10, 8); g.fill(); g.stroke();
     }
     // legend
     g.textAlign = 'left'; g.font = '11px ui-sans-serif, sans-serif';
-    const leg = [[STATE_COLOR.haulFull, es ? 'cargado' : 'loaded'], [STATE_COLOR.haulEmpty, es ? 'vacío' : 'empty'], ['#8b949e', es ? 'en cola' : 'queued']];
+    const leg = [[STATE_COLOR.haulFull, es ? 'cargado' : 'loaded'], [STATE_COLOR.haulEmpty, es ? 'vacío' : 'empty'], ['#f85149', es ? 'chancador' : 'crusher'], ['#8b949e', es ? 'botadero' : 'waste'], ['#e3b341', es ? 'acopio' : 'stockpile']];
     let lx = pad;
     for (const [col, lbl] of leg) { g.fillStyle = col as string; g.fillRect(lx, ch - 16, 10, 8); g.fillStyle = dim; g.fillText(lbl as string, lx + 14, ch - 9); lx += 14 + g.measureText(lbl as string).width + 16; }
   }, [c, result, t, byTruck, bounds, es]);

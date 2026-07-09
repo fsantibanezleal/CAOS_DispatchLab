@@ -13,9 +13,9 @@ import { toTicks, toSec } from './des';
 import { Rng } from '../lib/rng';
 import { travelTimeSec } from './kinematics';
 import { feasibleShovels, inBreak, nearestFeasible } from './constraints';
-import { type CaseSpec, type Policy, type DispatchState, type ShovelView, type MineSpec } from './types';
+import { type CaseSpec, type Policy, type DispatchState, type ShovelView, type MineSpec, type DumpSpec } from './types';
 
-type EvType = 'loaded' | 'arriveDump' | 'dumped' | 'reDecide' | 'arriveShovel' | 'failure' | 'repair';
+type EvType = 'loaded' | 'arriveDump' | 'dumped' | 'reDecide' | 'arriveShovel' | 'failure' | 'repair' | 'reclaim';
 interface Ev { tick: number; prio: number; seq: number; type: EvType; t: number; n: number; }
 
 interface ShRT {
@@ -29,8 +29,9 @@ interface St {
   nowTick: number; seq: number;
   fel: Ev[];
   sh: Record<number, ShRT>;
-  dumpBusy: Record<number, boolean>;
+  dumpServers: Record<number, number>;   // BUSY bays per dump (c-server); 1-bay = single-server FIFO
   dumpQ: Record<number, number[]>;
+  stockLevel: Record<number, number>;    // stockpile tonnes stacked (rehandle raises, reclaim lowers)
   truckArr: Record<number, number>;
   pending: Record<number, { readyEta: number; atDumpId: number }>;   // trucks awaiting a decision (fleet view)
   tonnes: number; truckWaitSec: number;
@@ -40,6 +41,25 @@ interface St {
 }
 
 const rk = (s: number, d: number) => `${s}->${d}`;
+const RECLAIM_DT = 60;
+
+function nearestDumpRt(mine: MineSpec, shovelId: number, cand: DumpSpec[]): DumpSpec | undefined {
+  let best: DumpSpec | undefined, bestD = Infinity;
+  for (const d of cand) {
+    const r = mine.routes[rk(shovelId, d.id)];
+    if (!r) continue;
+    if (r.distM < bestD - 1e-9 || (Math.abs(r.distM - bestD) <= 1e-9 && (!best || d.id < best.id))) { best = d; bestD = r.distM; }
+  }
+  return best;
+}
+function nearestByPos(from: { x: number; y: number }, cand: DumpSpec[]): number | undefined {
+  let best: DumpSpec | undefined, bestD = Infinity;
+  for (const d of cand) {
+    const dist = Math.hypot(d.pos.x - from.x, d.pos.y - from.y);
+    if (dist < bestD - 1e-9 || (Math.abs(dist - bestD) <= 1e-9 && (!best || d.id < best.id))) { best = d; bestD = dist; }
+  }
+  return best?.id;
+}
 
 export interface RolloutObjective { tonnes: number; waitH: number; }
 
@@ -48,7 +68,10 @@ export class RolloutSim {
   private mine: MineSpec;
   private det: boolean;
   private travelCv: number;
-  private crusherId: number;
+  private crusherId: number;                    // the cap crusher (crusherMaxTph gates on this one)
+  private crushersList: DumpSpec[];
+  private stockpiles: DumpSpec[];
+  private stockTarget: Record<number, number>;  // stockpile id -> reclaim target crusher id (static)
   private st: St;
   private rng: Rng;
   private _feasible: ShovelView[] = [];
@@ -58,20 +81,28 @@ export class RolloutSim {
   constructor(c: CaseSpec, seed: number, opts: { deterministic?: boolean } = {}) {
     this.c = c; this.mine = c.mine; this.det = !!opts.deterministic;
     this.travelCv = c.noise?.travelCv ?? 0.08;
-    this.crusherId = (this.mine.dumps.find((d) => d.kind === 'crusher') ?? this.mine.dumps[0]).id;
+    this.crushersList = this.mine.dumps.filter((d) => d.kind === 'crusher');
+    this.stockpiles = this.mine.dumps.filter((d) => d.kind === 'stockpile');
+    this.crusherId = (this.crushersList[0] ?? this.mine.dumps[0]).id;
+    this.stockTarget = {};
+    for (const sp of this.stockpiles) {
+      this.stockTarget[sp.id] = sp.reclaimTargetId ?? nearestByPos(sp.pos, this.crushersList) ?? this.crusherId;
+    }
     this.rng = new Rng(seed);
     this.truckById = new Map(c.fleet.trucks.map((t) => [t.id, t]));
     const sh: Record<number, ShRT> = {};
     for (const s of this.mine.shovels) sh[s.id] = { id: s.id, queue: [], loading: false, serviceEndsAt: 0, inbound: 0, served: 0, queueWaitSec: 0, busySec: 0, idleSec: 0, lastChange: 0, down: false, repairEndsAt: 0 };
-    const dumpBusy: Record<number, boolean> = {}, dumpQ: Record<number, number[]> = {};
-    for (const d of this.mine.dumps) { dumpBusy[d.id] = false; dumpQ[d.id] = []; }
+    const dumpServers: Record<number, number> = {}, dumpQ: Record<number, number[]> = {}, stockLevel: Record<number, number> = {};
+    for (const d of this.mine.dumps) { dumpServers[d.id] = 0; dumpQ[d.id] = []; }
+    for (const sp of this.stockpiles) stockLevel[sp.id] = 0;
     this.st = {
-      nowTick: 0, seq: 0, fel: [], sh, dumpBusy, dumpQ, truckArr: {}, pending: {},
+      nowTick: 0, seq: 0, fel: [], sh, dumpServers, dumpQ, stockLevel, truckArr: {}, pending: {},
       tonnes: 0, truckWaitSec: 0, crusherTonnes: 0, crusherFeed: [{ t: 0, tonnes: 0 }],
       oreInFlightT: 0, invalidChoices: 0, decision: null,
     };
-    // arm breakdown clocks + initial dispatch (each truck heads to its start shovel)
+    // arm breakdown clocks + stockpile reclaimers + initial dispatch (each truck heads to its start shovel)
     for (const s of this.mine.shovels) if (s.breakdown) this.scheduleFailure(s.id);
+    for (const sp of this.stockpiles) this.schedule(RECLAIM_DT, 'reclaim', 0, sp.id, 0);
     for (const t of c.fleet.trucks) {
       const stagger = this.det ? 0 : this.rng.stream('travel').range(0, 30);
       this.schedule(stagger, 'arriveShovel', t.id, t.startShovel, 1);
@@ -82,9 +113,23 @@ export class RolloutSim {
   private get nowSec(): number { return toSec(this.st.nowTick); }
   private shovelSpec(id: number) { return this.mine.shovels.find((x) => x.id === id)!; }
   private dumpSpec(id: number) { return this.mine.dumps.find((x) => x.id === id)!; }
+  private baysOf(id: number) { return Math.max(1, this.dumpSpec(id).bays ?? 1); }
+  private isCrusher(id: number) { return this.dumpSpec(id).kind === 'crusher'; }
   private route(s: number, d: number) { return this.mine.routes[rk(s, d)] ?? { distM: 1500, gradePct: 0, rrPct: 3 }; }
-  private dumpFor(faceType: 'ore' | 'waste'): number {
-    return (this.mine.dumps.find((x) => x.accepts.includes(faceType)) ?? this.mine.dumps[0]).id;
+  /** Multi-destination routing (mirror of model.ts destFor): ore -> nearest crusher, rehandled onto a
+   *  stockpile when that crusher is backed up + the pile has room; waste -> nearest waste dump. */
+  private destFor(shovelId: number): number {
+    const spec = this.shovelSpec(shovelId);
+    const accept = this.mine.dumps.filter((d) => d.accepts.includes(spec.faceType));
+    const primary = (nearestDumpRt(this.mine, shovelId, accept) ?? accept[0] ?? this.mine.dumps[0]).id;
+    if (spec.faceType !== 'ore' || this.stockpiles.length === 0) return primary;
+    const cand = this.stockpiles.filter((sp) => (this.stockTarget[sp.id] === primary)
+      && this.mine.routes[rk(shovelId, sp.id)] && (this.st.stockLevel[sp.id] ?? 0) < (sp.areaCapacityT ?? Infinity));
+    const sp = nearestDumpRt(this.mine, shovelId, cand);
+    if (!sp) return primary;
+    const backedUp = (this.st.dumpServers[primary] ?? 0) >= this.baysOf(primary)
+      && (this.st.dumpQ[primary]?.length ?? 0) >= (sp.rehandleAtQueue ?? 3);
+    return backedUp ? sp.id : primary;
   }
   private tmul(): number { return this.det ? 1 : this.rng.stream('travel').lognormal(1, this.travelCv); }
 
@@ -132,8 +177,7 @@ export class RolloutSim {
     const s = this.st.sh[shovelId];
     this.markShovel(s, false); s.served++;
     this.tryStartShovel(s);
-    const spec = this.shovelSpec(shovelId);
-    const dumpId = this.dumpFor(spec.faceType);
+    const dumpId = this.destFor(shovelId);
     const rt = this.route(shovelId, dumpId);
     const truck = this.truckById.get(truckId)!;
     const tt = travelTimeSec(rt.distM, rt.gradePct, rt.rrPct, truck.spec, true) * this.tmul();
@@ -150,14 +194,21 @@ export class RolloutSim {
   }
 
   private tryStartDump(dumpId: number): void {
-    if (this.st.dumpBusy[dumpId]) return;
-    const q = this.st.dumpQ[dumpId]; if (q.length === 0) return;
-    const truckId = q.shift()!;
-    this.st.truckWaitSec += this.nowSec - (this.st.truckArr[truckId] ?? this.nowSec);
-    this.st.dumpBusy[dumpId] = true;
-    const d = this.dumpSpec(dumpId);
-    const dur = this.det ? d.dumpMeanSec : this.rng.stream('dump').lognormal(d.dumpMeanSec, 0.25);
-    this.schedule(dur, 'dumped', truckId, dumpId, 0);
+    const bays = this.baysOf(dumpId);
+    const q = this.st.dumpQ[dumpId];
+    while ((this.st.dumpServers[dumpId] ?? 0) < bays && q.length > 0) {
+      const truckId = q.shift()!;
+      this.st.truckWaitSec += this.nowSec - (this.st.truckArr[truckId] ?? this.nowSec);
+      this.st.dumpServers[dumpId] = (this.st.dumpServers[dumpId] ?? 0) + 1;
+      const d = this.dumpSpec(dumpId);
+      const dur = this.det ? d.dumpMeanSec : this.rng.stream('dump').lognormal(d.dumpMeanSec, 0.25);
+      this.schedule(dur, 'dumped', truckId, dumpId, 0);
+    }
+  }
+
+  private feedCrusher(add: number): void {
+    this.st.crusherTonnes += add;
+    this.st.crusherFeed.push({ t: this.nowSec, tonnes: this.st.crusherTonnes });
   }
 
   private onDumped(truckId: number, dumpId: number): void {
@@ -166,10 +217,22 @@ export class RolloutSim {
     if (this.c.constraints?.crusherMaxTph != null && dumpId === this.crusherId) {
       this.st.oreInFlightT = Math.max(0, this.st.oreInFlightT - truck.spec.payloadT);
     }
-    if (dumpId === this.crusherId) { this.st.crusherTonnes += truck.spec.payloadT; this.st.crusherFeed.push({ t: this.nowSec, tonnes: this.st.crusherTonnes }); }
-    this.st.dumpBusy[dumpId] = false;
+    if (this.isCrusher(dumpId)) this.feedCrusher(truck.spec.payloadT);
+    else if (this.dumpSpec(dumpId).kind === 'stockpile') {
+      const d = this.dumpSpec(dumpId);
+      this.st.stockLevel[dumpId] = Math.min((this.st.stockLevel[dumpId] ?? 0) + truck.spec.payloadT, d.areaCapacityT ?? Infinity);
+    }
+    this.st.dumpServers[dumpId] = Math.max(0, (this.st.dumpServers[dumpId] ?? 1) - 1);
     this.tryStartDump(dumpId);
     this.st.decision = { truckId, dumpId };   // a dispatch decision is now pending (driver resolves it)
+  }
+
+  private onReclaim(stockpileId: number): void {
+    const sp = this.dumpSpec(stockpileId);
+    const lvl = this.st.stockLevel[stockpileId] ?? 0;
+    const draw = Math.min(lvl, (sp.reclaimRateTph ?? 0) * (RECLAIM_DT / 3600));
+    if (draw > 0) { this.st.stockLevel[stockpileId] = lvl - draw; this.feedCrusher(draw); }
+    this.schedule(RECLAIM_DT, 'reclaim', 0, stockpileId, 0);
   }
 
   private trailingTph(): number {
@@ -257,6 +320,7 @@ export class RolloutSim {
       case 'arriveShovel': this.arriveShovel(e.t, e.n); break;
       case 'failure': this.onFailure(e.n); break;
       case 'repair': this.onRepair(e.n); break;
+      case 'reclaim': this.onReclaim(e.n); break;
     }
   }
 
@@ -322,6 +386,7 @@ export class RolloutSim {
     // (in a class method, private members of any RolloutSim instance are accessible)
     s.c = this.c; s.mine = this.mine; s.det = overrideDet ?? this.det;
     s.travelCv = this.travelCv; s.crusherId = this.crusherId; s.truckById = this.truckById;
+    s.crushersList = this.crushersList; s.stockpiles = this.stockpiles; s.stockTarget = this.stockTarget;
     s.st = structuredClone(this.st); s.rng = this.rng.clone();
     s._feasible = []; s._state = null;
     return s;

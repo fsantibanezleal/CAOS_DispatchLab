@@ -10,7 +10,7 @@
 // Monte-Carlo 95% CI; the deterministic block carries the EXACT policy-improvement bound (rollout >= base).
 //
 // HONEST RESULT (measured here, not asserted): on the DETERMINISTIC model the rollout is provably >= its base
-// and delivers a real gain only on the asymmetric C05 (~6%); on the homogeneous cases it TIES. Under cycle-time
+// and delivers a real gain only on the asymmetric C05 (~1%, +872 t after the 2-bay retune); on the homogeneous cases it TIES. Under cycle-time
 // uncertainty the certainty-equivalent rollout does NOT beat myopic assignment (the base is already within a
 // few % of the capacity oracle, and the deterministic look-ahead gain is fragile to noise). The WIN condition
 // (beat BOTH best-heuristic AND Hungarian outside the CI on >=3 stochastic/asymmetric cases) is NOT met; the
