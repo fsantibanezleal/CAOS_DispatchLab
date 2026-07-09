@@ -7,6 +7,7 @@
 import { Sim } from './des';
 import { Rng } from '../lib/rng';
 import { haulTimeSec } from './haul';
+import { SECURITY_M, MEETING_S, speedLimitedSec } from './traffic';
 import { analyticalMatchFactor } from './matchfactor';
 import { feasibleShovels, inBreak, nearestFeasible } from './constraints';
 import { type CaseSpec, type Policy, type SimResult, type ShovelView, type DispatchState, type MineSpec, type DumpSpec, type Leg } from './types';
@@ -99,15 +100,20 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   // travel time rises above free-flow). Truck bunching: Soofastaei et al. 2016. Keyed per DIRECTED road
   // (loaded shovel->dump and empty dump->shovel are separate corridors). Headway = security distance /
   // the leg's average speed, so it scales with the road (short/fast legs pack tighter than long/slow ones).
-  const SECURITY_M = 60;                          // minimum spacing between consecutive trucks on a haul road
   const roadLastArrival = new Map<string, number>();
-  const carFollow = (dirKey: string, departSec: number, freeFlowTt: number, distM: number): number => {
-    const headway = distM > 0 ? SECURITY_M * (freeFlowTt / distM) : 0;   // = SECURITY_M / avg leg speed
-    const freeArrival = departSec + freeFlowTt;
+  const carFollow = (dirKey: string, oppKey: string, departSec: number, freeFlowTt: number, distM: number): number => {
+    // (1) SPEED LIMIT: no truck exceeds the posted road limit, however capable its rimpull.
+    const limitedTt = speedLimitedSec(freeFlowTt, distM);
+    // (2) CAR-FOLLOWING: FIFO + security-distance headway (same direction, no overtaking, bunching).
+    const headway = distM > 0 ? SECURITY_M * (limitedTt / distM) : 0;   // = SECURITY_M / avg leg speed
     const prev = roadLastArrival.get(dirKey);
-    const arrival = prev == null ? freeArrival : Math.max(freeArrival, prev + headway);
+    let arrival = prev == null ? departSec + limitedTt : Math.max(departSec + limitedTt, prev + headway);
+    // (3) TWO-WAY MEETING: if opposing traffic on this road is still arriving after we set off, we meet
+    // it on a single-lane section and slow at the passing bay.
+    const opp = roadLastArrival.get(oppKey);
+    if (opp != null && opp > departSec) arrival += MEETING_S;
     roadLastArrival.set(dirKey, arrival);
-    return arrival - departSec;                   // effective travel time (>= free-flow when bunched)
+    return arrival - departSec;                   // effective tt (>= free-flow when limited/bunched/meeting)
   };
   const truckArr = new Map<number, number>();    // truck id → time it joined its current shovel queue
   // OR tier (#22): trucks that will ask for a dispatch decision soon (at/near a dump), the
@@ -233,7 +239,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     const dumpId = destFor(s);
     const freeTt = haulTimeSec(mine, s.id, dumpId, truck.spec, true) * tmul();
     const distM = mine.routes[rk(s.id, dumpId)]?.distM ?? 0;
-    const tt = carFollow(`L:${s.id}->${dumpId}`, now, freeTt, distM);   // loaded corridor, no overtaking
+    const tt = carFollow(`L:${s.id}->${dumpId}`, `E:${dumpId}->${s.id}`, now, freeTt, distM);   // loaded; opp = empties returning
     const sp = posOf('shovel', s.id), dp = posOf('dump', dumpId);
     stay(truckId, sp, arr, now, 'atShovel', s.id);
     move(truckId, sp, dp, now, now + tt, 'haulFull', dumpId, s.spec.faceType);
@@ -363,7 +369,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     target.inbound++;
     const freeTt = haulTimeSec(mine, target.id, dumpId, truck.spec, false) * tmul();
     const distM = mine.routes[rk(target.id, dumpId)]?.distM ?? 0;
-    const tt = carFollow(`E:${dumpId}->${target.id}`, now, freeTt, distM);   // empty corridor, no overtaking
+    const tt = carFollow(`E:${dumpId}->${target.id}`, `L:${target.id}->${dumpId}`, now, freeTt, distM);   // empty; opp = loaded outbound
     const dp = posOf('dump', dumpId), sp = posOf('shovel', target.id);
     stay(truckId, dp, arr, now, 'atDump', dumpId);
     move(truckId, dp, sp, now, now + tt, 'haulEmpty', target.id);

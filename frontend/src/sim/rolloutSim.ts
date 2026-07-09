@@ -43,7 +43,7 @@ interface St {
 
 const rk = (s: number, d: number) => `${s}->${d}`;
 const RECLAIM_DT = 60;
-const SECURITY_M = 60;   // MUST match model.ts: minimum spacing between consecutive trucks on a haul road
+import { SECURITY_M, MEETING_S, speedLimitedSec } from './traffic';
 
 function nearestDumpRt(mine: MineSpec, shovelId: number, cand: DumpSpec[]): DumpSpec | undefined {
   let best: DumpSpec | undefined, bestD = Infinity;
@@ -182,18 +182,20 @@ export class RolloutSim {
     const truck = this.truckById.get(truckId)!;
     const freeTt = haulTimeSec(this.mine, shovelId, dumpId, truck.spec, true) * this.tmul();
     const distM = this.mine.routes[rk(shovelId, dumpId)]?.distM ?? 0;
-    const tt = this.carFollow(`L:${shovelId}->${dumpId}`, freeTt, distM);
+    const tt = this.carFollow(`L:${shovelId}->${dumpId}`, `E:${dumpId}->${shovelId}`, freeTt, distM);
     this.schedule(tt, 'arriveDump', truckId, dumpId, 1);
   }
 
-  // haul-road car-following (#87), MUST mirror model.ts exactly: same-direction trucks hold FIFO order +
-  // a security-distance headway so they bunch and never overtake. Effective tt >= free-flow when bunched.
-  private carFollow(dirKey: string, freeFlowTt: number, distM: number): number {
+  // haul-road traffic (#87), MUST mirror model.ts exactly: posted speed limit + FIFO security-distance
+  // headway (no overtaking, bunching) + two-way meeting slowdown. Effective tt >= free-flow.
+  private carFollow(dirKey: string, oppKey: string, freeFlowTt: number, distM: number): number {
     const depart = this.nowSec;
-    const headway = distM > 0 ? SECURITY_M * (freeFlowTt / distM) : 0;
-    const freeArrival = depart + freeFlowTt;
+    const limitedTt = speedLimitedSec(freeFlowTt, distM);
+    const headway = distM > 0 ? SECURITY_M * (limitedTt / distM) : 0;
     const prev = this.st.roadLastArrival[dirKey];
-    const arrival = prev == null ? freeArrival : Math.max(freeArrival, prev + headway);
+    let arrival = prev == null ? depart + limitedTt : Math.max(depart + limitedTt, prev + headway);
+    const opp = this.st.roadLastArrival[oppKey];
+    if (opp != null && opp > depart) arrival += MEETING_S;
     this.st.roadLastArrival[dirKey] = arrival;
     return arrival - depart;
   }
@@ -290,7 +292,7 @@ export class RolloutSim {
     target.inbound++;
     const freeTt = haulTimeSec(this.mine, target.id, dumpId, truck.spec, false) * this.tmul();
     const distM = this.mine.routes[rk(target.id, dumpId)]?.distM ?? 0;
-    const tt = this.carFollow(`E:${dumpId}->${target.id}`, freeTt, distM);
+    const tt = this.carFollow(`E:${dumpId}->${target.id}`, `L:${target.id}->${dumpId}`, freeTt, distM);
     this.schedule(tt, 'arriveShovel', truckId, target.id, 1);
   }
 

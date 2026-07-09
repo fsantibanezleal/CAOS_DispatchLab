@@ -273,9 +273,9 @@ export const C07: CaseSpec = {
       shovel(8, 'Waste 2', at(C07c, 135, 335), { faceType: 'waste', grade: 0 }),
     ],
     dumps: [
-      crusher(10, 'Crusher (2 bays, slow)', at(C07c, 300, -6), { bays: 2, dumpMeanSec: 110 }),
+      crusher(10, 'Crusher (2 bays, slow)', at(C07c, 300, -6), { bays: 2, dumpMeanSec: 128 }),
       waste(20, 'Waste dump', at(C07c, 285, 70)),
-      stock(30, 'Stockpile', at(C07c, 240, 30), { areaCapacityT: 11000, reclaimRateTph: 3600, rehandleAtQueue: 2, reclaimTargetId: 10 }),
+      stock(30, 'Stockpile', at(C07c, 240, 30), { areaCapacityT: 11000, reclaimRateTph: 3600, rehandleAtQueue: 1, reclaimTargetId: 10 }),
     ],
     pitRoad: { 1: seg(700, 3, 3.5), 2: seg(1000, 3, 3.5), 3: seg(1300, 4, 3.5), 4: seg(800, 3, 3.5), 5: seg(1100, 3, 3.5), 6: seg(1400, 4, 3.5), 7: seg(700, 3), 8: seg(1000, 3) },
     haul: { 10: seg(800, 2, 2), 20: seg(700, 2, 2), 30: seg(600, 1, 2) },
@@ -313,11 +313,11 @@ export const C08: CaseSpec = {
       shovel(12, 'Waste 4 (deep)', at(C08c, 82, 15), { faceType: 'waste', grade: 0 }),
     ],
     dumps: [
-      crusher(10, 'Plant A (2 bays)', at(C08c, 360, -18), { bays: 2, dumpMeanSec: 155 }),
+      crusher(10, 'Plant A (2 bays)', at(C08c, 360, -18), { bays: 2, dumpMeanSec: 172 }),
       crusher(11, 'Plant B', at(C08c, 360, 40)),   // 1-bay
       waste(20, 'Waste dump N', at(C08c, 340, 60)),
       waste(21, 'Waste dump S', at(C08c, 350, 30)),
-      stock(30, 'Stockpile', at(C08c, 290, -8), { areaCapacityT: 10000, reclaimRateTph: 3000, rehandleAtQueue: 2, reclaimTargetId: 10 }),
+      stock(30, 'Stockpile', at(C08c, 290, -8), { areaCapacityT: 10000, reclaimRateTph: 3000, rehandleAtQueue: 1, reclaimTargetId: 10 }),
     ],
     pitRoad: {
       1: seg(900, 3, 3.5), 2: seg(1100, 3, 3.5), 3: seg(1600, 4, 3.5), 4: seg(2100, 5, 3.5),
