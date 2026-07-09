@@ -3,10 +3,10 @@
   "name": "ug-truck-direct shift (minqueue)",
   "schema": "dispatchlab.cyclelog/v1",
   "kind": "structure-real",
-  "source": "Generated with minehaulsim 0.11.0 (pypi.org/project/minehaulsim, Apache-2.0): deterministic DES on a constrained road network (rimpull speed-by-grade, direction zones, emergent bunching), seeded parametric mine generator.",
+  "source": "Generated with minehaulsim 0.12.0 (pypi.org/project/minehaulsim, Apache-2.0): deterministic DES on a constrained road network (rimpull speed-by-grade, direction zones, emergent bunching), seeded parametric mine generator.",
   "generator": {
     "package": "minehaulsim",
-    "version": "0.11.0",
+    "version": "0.12.0",
     "scenario_seed": 808,
     "sim_seed": 7,
     "dispatcher": "minqueue",

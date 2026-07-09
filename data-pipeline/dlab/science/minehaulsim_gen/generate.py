@@ -13,7 +13,7 @@ for policy comparison; deep single-lane spiral, dual-ramp one-way circulation, 2
 Every sample: cyclelog CSV (validated with the SAME rules the app's ingest applies, the
 minehaulsim port is faithful) + provenance JSON + topo JSON.
 
-Run (inside .venv-pipeline, which has minehaulsim==0.10.0 pinned):
+Run (inside .venv-pipeline, which has minehaulsim==0.12.0 pinned):
     python -m dlab.science.minehaulsim_gen.generate
 """
 from __future__ import annotations
@@ -30,7 +30,7 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[3]
 OUT = REPO / "data" / "examples" / "real"
 
-MINEHAULSIM_VERSION = "0.11.0"
+MINEHAULSIM_VERSION = "0.12.0"
 SHIFT_MIN = 480.0
 SIM_SEED = 7
 

@@ -177,8 +177,9 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
     const portalV = topo.ramp[0] ?? { x: topo.spec.center.x, y: topo.spec.center.y, z: 0 };
     { const g = new THREE.CylinderGeometry(10, 16, 10, 6); const m = new THREE.MeshStandardMaterial({ color: dark ? 0x539bf5 : 0x2f6feb, roughness: 0.5, flatShading: true }); const mesh = new THREE.Mesh(g, m); const p = toThree(portalV); mesh.position.set(p.x, p.y + 5, p.z); scene.add(mesh); disposables.push(g, m); }
     mkLabel(es ? 'salida del rajo' : 'pit exit', portalV, 26, 0.95);
-    // surface road network (#87): draw the shared TRUNK + curved SPURS so hauls follow visible real
-    // roads outside the pit, not straight magic lines. Trucks already travel these via topo.paths.
+    // Road network. Structure-real samples (minehaulsim >= 0.12) ship the REAL network as roads/v1, draw
+    // those exact segment polylines. Synthetic cases draw the derived shared TRUNK + curved SPURS. Either
+    // way hauls follow visible roads, never straight magic lines (#87, #28).
     {
       const roadM = new THREE.LineBasicMaterial({ color: dark ? 0xc89b6a : 0x6b512f, transparent: true, opacity: 0.95 });
       const drawRoad = (pts: { x: number; y: number; z: number }[]) => {
@@ -186,12 +187,21 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
         const g = new THREE.BufferGeometry().setFromPoints(v);
         scene.add(new THREE.Line(g, roadM)); disposables.push(g);
       };
-      drawRoad(topo.roads.trunk);
-      for (const d of c.mine.dumps) if (topo.roads.spurs[d.id]) drawRoad(topo.roads.spurs[d.id]);
-      disposables.push(roadM);
-      const jm = new THREE.Mesh(new THREE.CylinderGeometry(6, 8, 5, 6), new THREE.MeshStandardMaterial({ color: dark ? 0x8a6d47 : 0x6b512f, roughness: 0.7, flatShading: true }));
-      const jp = toThree(topo.roads.junction); jm.position.set(jp.x, jp.y + 2.5, jp.z);
-      scene.add(jm); disposables.push(jm.geometry, jm.material as THREE.Material);
+      if (topo.realRoads) {
+        // minehaulsim's ACTUAL roads: each segment polyline is in the sample's own metre frame (same frame
+        // as center/rim), so it renders directly through toThree over the pit shell.
+        for (const seg of topo.realRoads.segments) {
+          drawRoad(seg.polyline.map((p) => ({ x: p[0], y: p[1], z: p[2] })));
+        }
+        disposables.push(roadM);
+      } else {
+        drawRoad(topo.roads.trunk);
+        for (const d of c.mine.dumps) if (topo.roads.spurs[d.id]) drawRoad(topo.roads.spurs[d.id]);
+        disposables.push(roadM);
+        const jm = new THREE.Mesh(new THREE.CylinderGeometry(6, 8, 5, 6), new THREE.MeshStandardMaterial({ color: dark ? 0x8a6d47 : 0x6b512f, roughness: 0.7, flatShading: true }));
+        const jp = toThree(topo.roads.junction); jm.position.set(jp.x, jp.y + 2.5, jp.z);
+        scene.add(jm); disposables.push(jm.geometry, jm.material as THREE.Material);
+      }
     }
 
     // Initial camera: frame ALL the content (the pit + the external nodes reached via the portal),
