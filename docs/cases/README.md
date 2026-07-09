@@ -1,14 +1,17 @@
 # Cases, taxonomy & coverage matrix
 
-`data-pipeline/dlab/cases/dispatch_cases.py` defines 12 cases across 4 categories. The App shows one selected case;
-Experiments/Benchmark show cross-case summaries by category. Each case mirrors the SPA's `src/sim/cases.ts`. All
-results are deterministic DES-simulation outputs, NOT a real plant.
+`data-pipeline/dlab/cases/dispatch_cases.py` defines 16 multi-source / multi-destination cases across 6
+categories. The corpus floor is >= 4 shovels (the only sub-4 cases are the labelled controls C01-C03 + the
+1x1 oracle C12); ore routes to a crusher, waste to a waste dump; C07 runs two crushers; C13/C14 add crusher
+receiving bays + a stockpile (rehandle + reclaim); C11/C14 run a mixed 793F+930E fleet. The App shows one
+selected case; Experiments/Benchmark show cross-case summaries by category. Each case mirrors the SPA's
+`src/sim/cases.ts`. All results are deterministic DES-simulation outputs, NOT a real plant.
 
 ## Deep pages
 
-1. [The synthetic case corpus](01_synthetic-case-corpus.md), the 12 cases in full (config, asserted expected
-   band, validation anchor) grouped by the four axes, and why the corpus is control-heavy (C01/C04 tie, C05
-   Pareto, C12 oracle).
+1. [The synthetic case corpus](01_synthetic-case-corpus.md), the 16 cases in full (config, asserted expected
+   band, validation anchor) grouped by category, the multi-source / multi-destination network model, and why
+   the corpus is control-heavy (C01/C04 tie, C05 positive, C12 oracle).
 2. [The real-sample lane](02_real-sample-lane.md), the `Synthetic | Real sample` Source selector: the
    `cyclelog/v1` contract, the `minehaulsim` structure-real samples (+ geology via oreblocks), the legacy
    OpenMines Huolinhe samples, the counterfactual re-decision, and the honest structure-real boundary.
@@ -19,10 +22,12 @@ The quick-reference taxonomy table follows.
 
 | Category | Case ids | What they exercise |
 |---|---|---|
-| **single-shovel match-factor (the MF sweep)** | C01 (MF≈1), C02 (over-trucked MF≈2), C03 (under-trucked MF≈0.5) | the match-factor regime: balanced → all policies tie; over → shovel-bound saturation; under → shovel idle |
-| **multi-shovel dispatch (the policy decision)** | C04 (2-shovel symmetric), C05 (2-shovel asymmetric), C06 (3-shovel), C07 (4-shovel) | where dispatch matters: a genuine Pareto trade-off (C05), and the multi-way learned decision (C06/C07) |
-| **geometry & constraints (the #22 physics axes)** | C08 (deep, long 8% ramps), C09 (shallow, short flat), C10 (crusher-limited, baked `crusherMaxTph`), C11 (mixed 793F+930E fleet) | which resource BINDS and why: rimpull-dominated cycles (truck-bound) vs service-dominated (shovel-bound); the plant as the ceiling (committed-in-flight gating, never overshoot); heterogeneous-fleet bunching. Expected bands are ASSERTED in `frontend/test/cases23.test.ts`, not assumed |
-| **oracle control (closed-form check)** | C12 (1×1 oracle) | throughput = floor(shift/cycle)·payload EXACTLY, the determinism check |
+| **single-shovel match-factor (the MF sweep)** | C01 (MF~1), C02 (over-trucked MF~2), C03 (under-trucked MF~0.5) | the match-factor regime: balanced -> all policies tie; over -> shovel-bound saturation; under -> shovel idle |
+| **multi-shovel dispatch (the policy decision)** | C04 (4-shovel symmetric, tie control), C05 (4-shovel asymmetric, positive control), C06 (ore + waste, 2 destinations), C07 (two crushers) | where dispatch matters: the tie/positive controls, multi-destination routing, and the nearest-plant decision |
+| **geometry & constraints (the #22 physics axes)** | C08 (deep, long 8% ramps), C09 (shallow, short flat), C10 (crusher-limited, baked `crusherMaxTph`), C11 (mixed 793F+930E fleet) | which resource BINDS and why: rimpull-dominated cycles (truck-bound) vs service-dominated (shovel-bound); the plant as the ceiling on the FEED (committed-in-flight gating); heterogeneous-fleet bunching. Bands ASSERTED in `frontend/test/cases23.test.ts` |
+| **multi-source / multi-destination network (bays, stockpiles, the boss)** | C13 (2-bay crusher + stockpile rehandle + waste dump), C14 (boss: 6 shovels, 2 phases, 3 dumps, mixed fleet) | crusher receiving bays; the stockpile as a SINK that becomes a SOURCE (rehandle + reclaim); the full network |
+| **oracle control (closed-form check)** | C12 (1x1 oracle) | throughput = floor(shift/cycle).payload EXACTLY, the determinism check |
+| **stochastic regime (rollout look-ahead)** | C15 (Erlang load + travel noise), C16 (Poisson shovel breakdown) | the regimes where myopic assignment is genuinely suboptimal and the Monte-Carlo rollout is evaluated |
 
 ## The controls
 

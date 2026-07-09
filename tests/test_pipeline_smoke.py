@@ -15,7 +15,7 @@ def test_case_deterministic_same_seed():
 
 def test_run_all_writes_index():
     entries = pipeline.run_all(seed=42)
-    assert len(entries) == len(registry.list_cases()) == 14   # 5 categories (#23 + the stochastic rollout pair C15/C16)
+    assert len(entries) == len(registry.list_cases()) == 16   # 6 categories (MF sweep / multi / geom / network / oracle / stochastic)
     idx = json.loads((pipeline.MANIFESTS / "index.json").read_text(encoding="utf-8"))
     assert idx["n_cases"] == len(entries)
     assert idx["schema"].startswith("dispatchlab.index/")

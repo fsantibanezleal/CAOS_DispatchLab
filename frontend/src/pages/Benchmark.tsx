@@ -247,8 +247,8 @@ function RolloutTab({ roll, es }: { roll: RollDoc; es: boolean }) {
             <td className="mono">{d.deltaPct > 0 ? '+' : ''}{d.deltaPct.toFixed(2)}%</td><td>{d.atLeastBase ? '✓' : '✗'}</td></tr>
         ); })}</tbody></table>
       <p className="tw-note">{es
-        ? 'El rollout nunca es peor que su base (garantía). Ganancia REAL solo en el caso asimétrico C05 (~6%): ahí la mirada de horizonte evita comprometer camiones a la pala lejana que hambrea a la cercana. Los controles C01/C04/C12 empatan exactamente (una victoria ahí sería una fuga).'
-        : 'The rollout is never worse than its base (guarantee). REAL gain only on the asymmetric C05 (~6%): there the horizon view avoids committing trucks to the far shovel that starves the near one. The controls C01/C04/C12 tie exactly (a win there would be a leak).'}</p>
+        ? 'El rollout nunca es peor que su base (garantía). Ganancia REAL solo en el caso asimétrico C05 (~1%, +872 t): ahí la mirada de horizonte evita comprometer camiones a la pala lejana que hambrea a la cercana. Los controles C01/C04/C12 empatan exactamente (una victoria ahí sería una fuga).'
+        : 'The rollout is never worse than its base (guarantee). REAL gain only on the asymmetric C05 (~1%, +872 t): there the horizon view avoids committing trucks to the far shovel that starves the near one. The controls C01/C04/C12 tie exactly (a win there would be a leak).'}</p>
 
       <h3>{es ? 'Bajo incertidumbre de tiempos de ciclo (IC Monte-Carlo)' : 'Under cycle-time uncertainty (Monte-Carlo CIs)'}</h3>
       <table><thead><tr><th>{es ? 'Caso' : 'Case'}</th><th>{es ? 'rol' : 'role'}</th><th>{es ? 'mejor heur.' : 'best heur.'}</th><th>rollout Δ vs best</th><th>rollout Δ vs Hung.</th><th>{es ? 'veredicto' : 'verdict'}</th></tr></thead>

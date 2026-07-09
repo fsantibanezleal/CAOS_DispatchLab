@@ -25,17 +25,19 @@ test('C08 long steep ramps cost real cycle time vs C09 (same fleet size would ov
     `deep ${perTruckDeep.toFixed(0)} t/truck should be well under shallow ${perTruckShallow.toFixed(0)}`);
 });
 
-test('C10 the crusher cap is the ceiling: tonnes land in the cap band, not the fleet band', () => {
+test('C10 the crusher cap is the ceiling: the PLANT FEED is capped, not the fleet (waste keeps moving)', () => {
   const c = caseById('C10');
   const r = runSimulation(c, policyById('greedy').fn, 7);
-  const capBand = 2600 * 8;                                // cap tph × shift hours
-  // committed-in-flight gating keeps the ceiling a CEILING (the initial pre-assigned wave is
-  // allowed: +10%); the conservative commitment accounting may under-deliver, never overshoot
-  assert.ok(r.tonnes <= capBand * 1.10, `${r.tonnes} should be capped near ${capBand}`);
-  assert.ok(r.tonnes >= capBand * 0.55, `${r.tonnes} should not collapse below the cap band`);
-  // and the UNCAPPED twin proves the fleet could do more
+  const feed = r.crusherFeed[r.crusherFeed.length - 1].tonnes;   // ore delivered TO the crusher
+  const capBand = 2600 * 8;                                       // cap tph × shift hours
+  // committed-in-flight gating keeps the plant-feed ceiling a CEILING (initial pre-assigned wave: +10%);
+  // total mined tonnes (ore feed + waste to its own dump) is LARGER, the cap only gates the crusher.
+  assert.ok(feed <= capBand * 1.10, `${feed} crusher feed should be capped near ${capBand}`);
+  assert.ok(feed >= capBand * 0.55, `${feed} should not collapse below the cap band`);
+  // and the UNCAPPED twin proves the fleet could feed the plant far more
   const free = runSimulation({ ...c, constraints: undefined }, policyById('greedy').fn, 7);
-  assert.ok(free.tonnes > r.tonnes * 1.1, `uncapped ${free.tonnes} vs capped ${r.tonnes}`);
+  const freeFeed = free.crusherFeed[free.crusherFeed.length - 1].tonnes;
+  assert.ok(freeFeed > feed * 1.1, `uncapped feed ${freeFeed} vs capped ${feed}`);
 });
 
 test('C11 mixed fleet: both truck classes complete cycles (payloads 218 and 290 both land)', () => {
@@ -68,7 +70,7 @@ test('C15/C16 stochastic cases respect the capacity oracle (deterministic upper 
 
 // ---- the forkable rollout model is the SAME physics as the live DES, not a rigged surrogate ----
 test('RolloutSim == model.ts EXACTLY on the deterministic corpus (parity)', () => {
-  for (const id of ['C01', 'C04', 'C05', 'C06', 'C07', 'C11', 'C12', 'C15', 'C16']) {
+  for (const id of ['C01', 'C04', 'C05', 'C06', 'C07', 'C11', 'C12', 'C13', 'C14', 'C15', 'C16']) {
     const c = caseById(id);
     for (const pid of ['greedy', 'shortestWait']) {
       const m = runSimulation(c, policyById(pid).fn, 7, { deterministic: true }).tonnes;
@@ -83,7 +85,7 @@ const detOpt = { ...DEFAULT_ROLLOUT, base: shortestWait, deterministic: true };
 const baseTonnes = (id: string) => new RolloutSim(caseById(id), 7, { deterministic: true }).runWithPolicy(shortestWait, caseById(id).shiftSec).tonnes;
 
 test('rollout is NEVER worse than its base on the deterministic model (policy-improvement bound)', () => {
-  for (const id of ['C01', 'C04', 'C05', 'C06', 'C07', 'C11', 'C12', 'C15', 'C16']) {
+  for (const id of ['C01', 'C04', 'C05', 'C06', 'C07', 'C11', 'C12', 'C13', 'C14', 'C15', 'C16']) {
     const r = runRollout(caseById(id), 7, detOpt).tonnes;
     assert.ok(r >= baseTonnes(id) - 1e-6, `${id}: rollout ${r} < base ${baseTonnes(id)}`);
   }

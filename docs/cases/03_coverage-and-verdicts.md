@@ -8,16 +8,20 @@ whole corpus rather than a cherry-picked case.
 
 | Axis | Cases | What is exercised | Does dispatch matter? |
 |---|---|---|---|
-| Match factor (fleet sizing) | C01, C02, C03 | balanced / over-trucked / under-trucked | No (fix the fleet, not the policy) |
-| Multi-shovel assignment | C04, C05, C06, C07 | 2 to 4 shovels, symmetric and asymmetric | **Yes** (the core dispatch decision) |
+| Match factor (fleet sizing) | C01, C02, C03 | balanced / over-trucked / under-trucked (single-shovel controls) | No (fix the fleet, not the policy) |
+| Multi-shovel assignment | C04, C05 | 4 shovels, symmetric (tie) and strongly asymmetric (positive) | **Yes** (the core dispatch decision) |
+| Multi-destination routing | C06, C07 | ore vs waste (crusher + waste dump); two crushers (nearest-plant) | **Yes** (which dump, not just which shovel) |
 | Road geometry (what binds) | C08, C09 | truck-bound vs shovel-bound (deep vs shallow) | Marginally (geometry dominates) |
-| Plant constraint | C10 | crusher cap as the ceiling | Yes (avoid overshoot; feed smoothing) |
-| Fleet heterogeneity | C11 | mixed 793F + 930E, bunching | Yes (assignment interacts with speed classes) |
+| Plant constraint | C10 | crusher cap as the ceiling on the plant FEED | Yes (avoid overshoot; feed smoothing) |
+| Fleet heterogeneity | C11, C14 | mixed 793F + 930E, bunching | Yes (assignment interacts with speed classes) |
+| Buffers & bays | C13, C14 | crusher receiving bays (1-2); stockpile rehandle + reclaim | Yes (rehandle vs starve the plant) |
+| Full network (the boss) | C14 | 6 shovels, 2 phases, 3 dumps, all primitives at once | Yes (the recognizably real pit) |
 | Determinism | C12 | closed-form 1x1 oracle | N/A (correctness anchor) |
 
-The matrix is deliberately spread so that the "dispatch matters" cases (C05-C07, C10, C11) are surrounded by
-cases where it should NOT matter (C01, C04, C08/C09), which is what lets the App state honestly *when* a
-policy choice is worth making.
+The matrix is deliberately spread so that the "dispatch matters" cases (C05-C07, C10, C11, C13, C14) are
+surrounded by cases where it should NOT matter (C01, C04, C08/C09), which is what lets the App state honestly
+*when* a policy choice is worth making. The **axis-coverage gate** (`frontend/test/axisCoverage.test.ts`)
+fails the build if any primitive is left uncovered.
 
 ## The verdict system
 

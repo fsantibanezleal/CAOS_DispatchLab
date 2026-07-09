@@ -24,6 +24,18 @@ export interface DumpSpec {
   kind: 'crusher' | 'waste' | 'stockpile';
   dumpMeanSec: number;       // spot + dump time
   accepts: ('ore' | 'waste')[];
+  /** Receiving BAYS: a c-server. A crusher with 2 bays serves 2 trucks in parallel (double-side tip).
+   *  Absent = 1 (single-server FIFO, identical to the legacy behaviour). */
+  bays?: number;
+  /** Stockpile-only. A stockpile is a SINK that becomes a SOURCE: ore trucks REHANDLE onto it when the
+   *  crusher is backed up (all bays busy + a queue), and a reclaimer draws it down at `reclaimRateTph` to
+   *  feed its target crusher when the pit cannot. `areaCapacityT` is the finite stacking capacity (tonnes);
+   *  a full stockpile stops accepting rehandle. `rehandleAtQueue` is the crusher queue length that triggers
+   *  diversion (default 3). `reclaimTargetId` is the crusher the reclaimer feeds (default: nearest crusher). */
+  areaCapacityT?: number;
+  reclaimRateTph?: number;
+  rehandleAtQueue?: number;
+  reclaimTargetId?: number;
 }
 
 /** Loaded-direction route (shovel → dump): distance, grade %, rolling resistance %. Empty return negates grade. */
@@ -109,7 +121,7 @@ export type Policy = (s: DispatchState) => number;  // → chosen shovel id
 
 // ---- animation trace (optional), straight-line legs the pit map interpolates over the playback clock ----
 export type LegState = 'haulFull' | 'haulEmpty' | 'atShovel' | 'atDump';
-export interface Leg { truck: number; x0: number; y0: number; x1: number; y1: number; t0: number; t1: number; state: LegState; node: number; }
+export interface Leg { truck: number; x0: number; y0: number; x1: number; y1: number; t0: number; t1: number; state: LegState; node: number; mat?: 'ore' | 'waste'; }
 
 export interface ShovelKpi { id: number; name: string; served: number; queueWaitSec: number; busySec: number; idleSec: number; util: number; }
 export interface SimResult {
@@ -118,7 +130,11 @@ export interface SimResult {
   truckWaitSec: number;
   shovels: ShovelKpi[];
   meanShovelUtil: number;
-  crusherFeed: { t: number; tonnes: number }[];   // cumulative tonnes at the ore crusher
+  crusherFeed: { t: number; tonnes: number }[];   // cumulative tonnes at the ORE plant(s) (all crushers aggregated)
+  /** Per-crusher cumulative feed (one series per crusher-kind dump), the independent plant KPIs. */
+  crusherFeeds?: Record<number, { t: number; tonnes: number }[]>;
+  /** Per-stockpile level over the shift (tonnes stacked); rises on rehandle, falls on reclaim. */
+  stockLevels?: Record<number, { t: number; level: number }[]>;
   matchFactor: number;
   trace?: Leg[];                                   // present only when run with { trace: true }
   /** #22: times a policy returned a constraint-infeasible shovel (re-assigned + counted). */
