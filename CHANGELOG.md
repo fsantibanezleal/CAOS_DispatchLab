@@ -1,6 +1,11 @@
 # Changelog
 
 ## [0.15.000], 2026-07-07
+### Note
+- C05 was retuned to a 4-shovel, 2-bay plant as part of the realistic corpus, so the rollout's real
+  deterministic gain on C05 is now +1.05% (+872 t), not the ~6% of the single-crusher C05 in v0.14.000.
+  The Benchmark prose and the code comment were corrected to match the regenerated `bench/rollout.json`.
+
 
 ### Fixed, the synthetic case corpus was a toy (multi-source / multi-destination network) (#67)
 Every case used to be shovels -> ONE crusher -> back, with no stockpiles, no waste dumps, no multi-destination
