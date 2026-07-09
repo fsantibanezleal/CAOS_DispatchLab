@@ -31,7 +31,12 @@ const SWEEP_SEEDS = [3, 11, 19, 29, 41];
 const CMP_SEEDS = [3, 7, 11, 17, 23, 29, 37, 42, 59, 71];
 // #22: the demo operational-constraint set (applies to ANY synthetic case; the DES enforces it
 // for EVERY policy, the feasible set is filtered before the policy sees the state)
-const DEMO_CONSTRAINTS = { maxQueuePerShovel: 3, breaks: [{ startSec: 4 * 3600, endSec: 4.5 * 3600 }] } as const;
+// The demo set is a BINDING, policy-DISCRIMINATING stress test, not a soft cap everyone satisfies by
+// construction. Queue is tightened to 2 (forces rerouting) and a crusher throughput ceiling is added,
+// computed per case at 75% of that case's own unconstrained ore rate so it ALWAYS bites (ore shovels
+// pause when the trailing feed hits the cap, so the dispatcher must balance ore against waste, a
+// look-ahead policy manages the commitment better than a myopic one). See demoCrusherTph below.
+const DEMO_CONSTRAINTS = { maxQueuePerShovel: 2, breaks: [{ startSec: 4 * 3600, endSec: 4.5 * 3600 }], crusherFrac: 0.75 } as const;
 const fmt = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 0 });
 
 interface Decision { feats: number[][]; ids: number[]; names: string[]; chosen: number; t: number }
@@ -88,12 +93,31 @@ export default function Tool() {
   const cfAgree = useMemo(() => (cfDecisions.length ? agreement(cfDecisions, allPolicies, es) : []), [cfDecisions, allPolicies, es]);
 
   const [consOn, setConsOn] = useState(false);
+  // reference ore throughput of the UNCONSTRAINED case (greedy), used to size a crusher ceiling that binds.
+  const demoCrusherTph = useMemo(() => {
+    const base = caseById(caseId);
+    const run = runSimulation(base, policyById('greedy').fn, seed, { trace: false });
+    const feed = run.crusherFeed;
+    const totalOre = feed.length ? feed[feed.length - 1].tonnes : 0;
+    const hours = base.shiftSec / 3600;
+    const oreTph = hours > 0 ? totalOre / hours : 0;
+    if (!(oreTph > 0)) return undefined;
+    const cap = Math.round((oreTph * DEMO_CONSTRAINTS.crusherFrac) / 10) * 10;   // round to 10 t/h
+    // never loosen a case's own (tighter) baked ceiling
+    return Math.min(cap, base.constraints?.crusherMaxTph ?? Infinity);
+  }, [caseId, seed]);
   const c = useMemo<CaseSpec>(() => {
     const base = caseById(caseId);
     if (!consOn) return base;
-    // the demo set MERGES over any baked case constraints (never overwrites a case's own break/blend)
-    return { ...base, constraints: { ...base.constraints, maxQueuePerShovel: DEMO_CONSTRAINTS.maxQueuePerShovel, breaks: [...DEMO_CONSTRAINTS.breaks] } };
-  }, [caseId, consOn]);
+    // the demo set MERGES over any baked case constraints (never overwrites a case's own break/blend);
+    // the crusher ceiling is the discriminating constraint, tightened to bite on this case.
+    return { ...base, constraints: {
+      ...base.constraints,
+      maxQueuePerShovel: DEMO_CONSTRAINTS.maxQueuePerShovel,
+      breaks: [...DEMO_CONSTRAINTS.breaks],
+      ...(demoCrusherTph != null && Number.isFinite(demoCrusherTph) ? { crusherMaxTph: demoCrusherTph } : {}),
+    } };
+  }, [caseId, consOn, demoCrusherTph]);
   const pol = useMemo(() => allPolicies.find((p) => p.id === policyId) ?? policyById(policyId), [allPolicies, policyId]);
   const decisions = useRef<Decision[]>([]);
   const synResult = useMemo(() => {
