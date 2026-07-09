@@ -16,7 +16,7 @@
 // therefore reports "% of oracle" on medians and tests allow a 2% noise margin per seed. The gap
 // between the best policy and the oracle is the price of congestion + myopia, exactly what the
 // Benchmark wants to show. (Refs: White & Olson 1986; Alarie & Gamache 2002.)
-import { travelTimeSec } from './kinematics';
+import { haulTimeSec } from './haul';
 import { type CaseSpec } from './types';
 
 export interface OracleBound {
@@ -44,10 +44,10 @@ export function capacityOracle(c: CaseSpec): OracleBound {
     let minCycle = Infinity;
     for (const s of c.mine.shovels) {
       for (const d of dumpsFor(s.faceType)) {
-        const rt = c.mine.routes[rk(s.id, d.id)];
-        if (!rt) continue;
-        const full = travelTimeSec(rt.distM, rt.gradePct, rt.rrPct, t.spec, true);
-        const empty = travelTimeSec(rt.distM, -rt.gradePct, rt.rrPct, t.spec, false);
+        if (!c.mine.routes[rk(s.id, d.id)]) continue;
+        // portal-aware leg time (shovel<->portal + portal<->destination), or legacy single segment
+        const full = haulTimeSec(c.mine, s.id, d.id, t.spec, true);
+        const empty = haulTimeSec(c.mine, s.id, d.id, t.spec, false);
         const cycle = s.loadMeanSec + s.spotMeanSec + full + d.dumpMeanSec + empty;
         if (cycle < minCycle) minCycle = cycle;
       }

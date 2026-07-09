@@ -20,6 +20,27 @@ function levelAt(series: { t: number; level: number }[] | undefined, t: number):
   return lvl;
 }
 
+/** The haul POLYLINE for a leg: shovel -> portal -> destination (loaded), or its reverse (empty), so the
+ *  truck sprite travels on the drawn pit roads through the portal, never a straight shovel->dump line. When
+ *  the mine has no portal (a replayed real sample) it is the legacy straight segment. */
+function legPoly(c: CaseSpec, l: Leg): { x: number; y: number }[] {
+  const p = c.mine.portal;
+  const a = { x: l.x0, y: l.y0 }, b = { x: l.x1, y: l.y1 };
+  return p ? [a, p, b] : [a, b];
+}
+/** Position at fraction f in [0,1] of the polyline's arc length (constant spatial speed; always on a road). */
+function posAlong(pts: { x: number; y: number }[], f: number): { x: number; y: number } {
+  const seg: number[] = []; let total = 0;
+  for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y); seg.push(d); total += d; }
+  if (total <= 0) return pts[0];
+  let target = Math.max(0, Math.min(1, f)) * total;
+  for (let i = 0; i < seg.length; i++) {
+    if (target <= seg[i] || i === seg.length - 1) { const t = seg[i] ? target / seg[i] : 0; return { x: pts[i].x + (pts[i + 1].x - pts[i].x) * t, y: pts[i].y + (pts[i + 1].y - pts[i].y) * t }; }
+    target -= seg[i];
+  }
+  return pts[pts.length - 1];
+}
+
 export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult; t: number; lang: 'en' | 'es' }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [hover, setHover] = useState<{ px: number; py: number; label: string } | null>(null);
@@ -33,7 +54,7 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
     return m;
   }, [result]);
 
-  const nodes = useMemo(() => [...c.mine.shovels.map((s) => s.pos), ...c.mine.dumps.map((d) => d.pos)], [c]);
+  const nodes = useMemo(() => [...c.mine.shovels.map((s) => s.pos), ...c.mine.dumps.map((d) => d.pos), ...(c.mine.portal ? [c.mine.portal] : [])], [c]);
   const bounds = useMemo(() => {
     const xs = nodes.map((n) => n.x), ys = nodes.map((n) => n.y);
     return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
@@ -55,10 +76,25 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
     const border = cs.getPropertyValue('--color-border').trim() || '#30363d';
     const surface = cs.getPropertyValue('--color-surface').trim() || '#161b22';
 
-    // roads (haul: shovel -> dump, including rehandle shovel -> stockpile)
-    g.strokeStyle = border; g.lineWidth = 7; g.lineCap = 'round';
-    for (const s of c.mine.shovels) for (const d of c.mine.dumps) if (c.mine.routes[`${s.id}->${d.id}`]) {
-      g.beginPath(); g.moveTo(sx(s.pos.x), sy(s.pos.y)); g.lineTo(sx(d.pos.x), sy(d.pos.y)); g.stroke();
+    // roads. Portal mines: internal pit roads (shovel -> portal) + a direct surface haul (portal -> each
+    // destination). Every haul, loaded or empty, runs on these through the single pit exit. Legacy mines
+    // (real samples) keep the straight shovel -> dump roads.
+    const portal = c.mine.portal;
+    g.strokeStyle = border; g.lineCap = 'round';
+    if (portal) {
+      const usedDumps = new Set<number>();
+      for (const key of Object.keys(c.mine.routes)) usedDumps.add(Number(key.split('->')[1]));
+      // internal pit roads (thicker, the ramp network to the exit)
+      g.lineWidth = 6;
+      for (const s of c.mine.shovels) { g.beginPath(); g.moveTo(sx(s.pos.x), sy(s.pos.y)); g.lineTo(sx(portal.x), sy(portal.y)); g.stroke(); }
+      // direct surface hauls (portal -> destination)
+      g.lineWidth = 8;
+      for (const d of c.mine.dumps) if (usedDumps.has(d.id)) { g.beginPath(); g.moveTo(sx(portal.x), sy(portal.y)); g.lineTo(sx(d.pos.x), sy(d.pos.y)); g.stroke(); }
+    } else {
+      g.lineWidth = 7;
+      for (const s of c.mine.shovels) for (const d of c.mine.dumps) if (c.mine.routes[`${s.id}->${d.id}`]) {
+        g.beginPath(); g.moveTo(sx(s.pos.x), sy(s.pos.y)); g.lineTo(sx(d.pos.x), sy(d.pos.y)); g.stroke();
+      }
     }
     // reclaim conveyors (dashed): a stockpile feeds its target crusher (the SOURCE side of the buffer)
     g.save(); g.setLineDash([6, 6]); g.strokeStyle = '#e3b341'; g.lineWidth = 2.5;
@@ -79,7 +115,10 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
       if (active.state === 'atShovel') qShovel.set(active.node, (qShovel.get(active.node) ?? 0) + 1);
       if (active.state === 'atDump') qDump.set(active.node, (qDump.get(active.node) ?? 0) + 1);
       const f = active.t1 > active.t0 ? (t - active.t0) / (active.t1 - active.t0) : 0;
-      truckDraw.push({ x: sx(active.x0 + (active.x1 - active.x0) * f), y: sy(active.y0 + (active.y1 - active.y0) * f), color: STATE_COLOR[active.state] });
+      // haul legs travel the pit-road polyline through the portal; queued/serving legs sit at their node
+      const p = (active.state === 'haulFull' || active.state === 'haulEmpty')
+        ? posAlong(legPoly(c, active), f) : { x: active.x0, y: active.y0 };
+      truckDraw.push({ x: sx(p.x), y: sy(p.y), color: STATE_COLOR[active.state] });
     }
 
     // shovels (squares), fill by queue, OUTLINE by face type (ore = amber, waste = slate)
@@ -118,6 +157,15 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
       g.fillStyle = fg; g.font = '600 11px ui-sans-serif, sans-serif'; g.textAlign = 'center';
       g.fillText(d.name + (isCr && (d.bays ?? 1) > 1 ? ` (${d.bays})` : ''), x, y - 22);
       g.fillStyle = '#0d1117'; g.font = '700 12px ui-monospace, monospace'; g.fillText(String(q), x, y + 4);
+    }
+    // pit PORTAL / exit: the single node all hauls pass through (drawn as a gateway chevron + label)
+    if (portal) {
+      const px = sx(portal.x), py = sy(portal.y);
+      g.fillStyle = surface; g.strokeStyle = fg; g.lineWidth = 2;
+      g.beginPath(); g.arc(px, py, 9, 0, Math.PI * 2); g.fill(); g.stroke();
+      g.beginPath(); g.moveTo(px - 4, py - 4); g.lineTo(px + 4, py); g.lineTo(px - 4, py + 4); g.stroke();
+      g.fillStyle = dim; g.font = '600 10px ui-sans-serif, sans-serif'; g.textAlign = 'center';
+      g.fillText(es ? 'salida del rajo' : 'pit exit', px, py + 20);
     }
     // trucks: colored by leg state; loaded ore = amber, loaded waste = slate-brown, empty = blue
     for (const td of truckDraw) {

@@ -36,7 +36,7 @@ interface Decision { feats: number[][]; ids: number[]; names: string[]; chosen: 
 
 export default function Tool() {
   const lang = useShellLang(); const es = lang === 'es';
-  const [caseId, setCaseId] = useState('C06');
+  const [caseId, setCaseId] = useState('C08');   // default = the showcase boss (all node types + dynamics)
   const [policyId, setPolicyId] = useState('greedy');
   const [seed, setSeed] = useState(7);
   const [playing, setPlaying] = useState(false); // default PAUSED (no-autoplay rule: an unattended page must not burn CPU)
@@ -89,7 +89,7 @@ export default function Tool() {
   const c = useMemo<CaseSpec>(() => {
     const base = caseById(caseId);
     if (!consOn) return base;
-    // the demo set MERGES over any baked case constraints (never overwrites e.g. C10's cap)
+    // the demo set MERGES over any baked case constraints (never overwrites a case's own break/blend)
     return { ...base, constraints: { ...base.constraints, maxQueuePerShovel: DEMO_CONSTRAINTS.maxQueuePerShovel, breaks: [...DEMO_CONSTRAINTS.breaks] } };
   }, [caseId, consOn]);
   const pol = useMemo(() => allPolicies.find((p) => p.id === policyId) ?? policyById(policyId), [allPolicies, policyId]);
@@ -367,7 +367,7 @@ export default function Tool() {
           </div>
         )}
         {/* operational constraints (#22): enforced by the DES for EVERY policy, the chips show
-            the EFFECTIVE set (baked case constraints like C10's crusher cap + the demo toggle).
+            the EFFECTIVE set (a case's own baked constraints + the demo toggle).
             In real mode they do not apply (the replay reproduces the logged shift), so say that
             in one line instead of a greyed-out interactive-looking block (#47). */}
         {source === 'synthetic' ? (
@@ -479,7 +479,7 @@ function RolloutInspector({ c, seed, es }: { c: CaseSpec; seed: number; es: bool
       } finally { setBusy(false); }
     }, 20);
   };
-  if (!multi) return <Panel t={es ? 'Inspector de rollout' : 'Rollout inspector'}><p className="dl-hint">{es ? 'El rollout necesita una decisión multi-pala (elige C05/C06/C07/C11/C15/C16).' : 'The rollout needs a multi-shovel decision (pick C05/C06/C07/C11/C15/C16).'}</p></Panel>;
+  if (!multi) return <Panel t={es ? 'Inspector de rollout' : 'Rollout inspector'}><p className="dl-hint">{es ? 'El rollout necesita una decisión multi-pala (cualquier caso complejo, C04-C08).' : 'The rollout needs a multi-shovel decision (any complex case, C04-C08).'}</p></Panel>;
   const cands = res?.candidates ?? [];
   const maxT = cands.length ? Math.max(...cands.flatMap((x) => x.samples.map((s) => s.tonnes))) : 1;
   const minT = cands.length ? Math.min(...cands.flatMap((x) => x.samples.map((s) => s.tonnes))) : 0;
