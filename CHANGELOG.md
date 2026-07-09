@@ -1,5 +1,50 @@
 # Changelog
 
+## [0.16.000], 2026-07-09
+### Changed, domain-correct multi-source corpus rebuild (#67 round 2)
+The v0.15 corpus met the letter but not the spirit (too many 1-source / single-destination tiles, dead
+stockpiles that sat at 0 %, empty trucks that appeared to vanish). The corpus was rebuilt from scratch to
+Felipe's exact design and a domain-correct material-flow model.
+
+- **The corpus is now 8 cases (was 16)**: 3 SIMPLE teaching cases (C01-C03: >= 4 shovels, >= 2 destinations,
+  routing + match factor + the two-plant decision) and 5 COMPLEX/DYNAMIC cases (C04-C08: >= 6 shovels scaling
+  to 12, an intermediate ore STOCKPILE that is ACTIVELY cycled, multiple plants + waste dumps, plus
+  breakdowns / stochastic cycle times / blend windows / shift breaks / phases). C08 is the 12-shovel, 3-phase
+  showcase (the default case). All 1-source tiles were removed.
+- **Material-flow model**: the only loaded legs are shovel(ore)->crusher, shovel(ore)->stockpile (rehandle),
+  shovel(waste)->waste dump; the only empty move is delivery-point -> a SAME-LANE shovel; stockpile->plant is
+  the RECLAIMER (a non-truck conveyor). Invalid paths (stockpile->dump, dump->*, plant->*, truck
+  stockpile->plant) are never authored and are rejected by a topology test.
+- **Pit portal + internal road network**: every pit has a single EXIT/PORTAL; a haul is a polyline
+  (shovel -> internal pit roads -> portal -> a direct surface haul -> destination, reversed for the empty
+  return). The DES leg time is the sum of the two rimpull segments (`sim/haul.ts`). The portal + internal-road
+  layout is authored per pit (deep pit = long steep ramps to a deep portal; plane pit = short flat roads), so
+  each case is a visually DISTINCT open-pit section.
+- **Active stockpiles**: the crusher is tuned to be the binding bottleneck so ore trucks constantly rehandle
+  and the reclaimer draws the pile down. Each stockpile-bearing case fills to >= 30 % of capacity AND draws
+  back down in the baked trace (CI-asserted).
+
+### Fixed, the vanishing empty truck (#67 round 2)
+- `posOf()` in `sim/model.ts` no longer silently returns `{0,0}` for an unresolved node id; it THROWS (a dev
+  guard), so an off-road / origin truck can never ship.
+- Empty returns are **material-lane scoped**: an ore hauler returns only to an ore face, a waste hauler only to
+  a waste face, so every empty leg runs on a drawn loaded road (its reverse). Single-material cases are
+  unaffected (the lane is every shovel), so the tie / oracle / parity anchors stay byte-identical.
+- PitMap + Pit3D draw the internal pit roads + the portal + the direct surface hauls, and interpolate each
+  truck along its polyline; the empty (blue) truck visibly travels destination -> portal -> shovel on roads.
+
+### Added / changed, engine + tests
+- `sim/haul.ts`: one portal-aware `haulTimeSec` used by `model.ts`, `rolloutSim.ts` and the capacity oracle
+  (identical physics everywhere). Byte-parity between the live and forkable engines is preserved.
+- The axis-coverage gate was extended: a low-source / single-destination / dead-stockpile / off-road /
+  invalid-path corpus FAILS the build. The 1x1 oracle + the tie / positive controls moved to test fixtures
+  (`frontend/test/fixtures.ts`) so the determinism anchors survive without a 1-source user tile.
+- Docs (`docs/cases/01`), Methodology / Introduction / Experiments prose, and the Python case registry updated
+  to the new corpus + the material-flow model.
+- The learned-policy ONNX (`dl-policy` / `dl-bcbest` / `dl-rollout`) were NOT retrained (the corpus-agnostic
+  per-shovel nets still apply); `case-results.json`, the synthetic + rollout benchmarks, traces, manifests and
+  the index were regenerated over the new corpus.
+
 ## [0.15.000], 2026-07-07
 ### Note
 - C05 was retuned to a 4-shovel, 2-bay plant as part of the realistic corpus, so the rollout's real

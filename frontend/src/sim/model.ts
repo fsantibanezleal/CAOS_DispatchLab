@@ -6,7 +6,7 @@
 // accumulated as the events fire. Determinism comes from des.ts (integer-tick clock + (time,priority,seq)).
 import { Sim } from './des';
 import { Rng } from '../lib/rng';
-import { travelTimeSec } from './kinematics';
+import { haulTimeSec } from './haul';
 import { analyticalMatchFactor } from './matchfactor';
 import { feasibleShovels, inBreak, nearestFeasible } from './constraints';
 import { type CaseSpec, type Policy, type SimResult, type ShovelView, type DispatchState, type MineSpec, type DumpSpec, type Leg } from './types';
@@ -57,7 +57,10 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   const trace: Leg[] | undefined = opts.trace ? [] : undefined;
   const posOf = (kind: 'shovel' | 'dump', id: number) => {
     const n = kind === 'shovel' ? mine.shovels.find((x) => x.id === id) : mine.dumps.find((x) => x.id === id);
-    return n ? n.pos : { x: 0, y: 0 };
+    // HARD dev guard (#67 round 2): a node id that fails to resolve is a BUG, never a silent {0,0} that
+    // interpolates a truck to the top-left origin ("disappearing to nothing"). Throw so it can't ship.
+    if (!n) throw new Error(`posOf: unresolved ${kind} id=${id} in case ${c.id} (roads/legs must reference real nodes)`);
+    return n.pos;
   };
   const move = (truck: number, from: { x: number; y: number }, to: { x: number; y: number }, t0: number, t1: number, state: Leg['state'], node: number, mat?: 'ore' | 'waste') => {
     if (trace) trace.push({ truck, x0: from.x, y0: from.y, x1: to.x, y1: to.y, t0, t1, state, node, mat });
@@ -114,7 +117,6 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   };
 
   const truckById = new Map(c.fleet.trucks.map((t) => [t.id, t]));
-  const route = (s: number, d: number) => mine.routes[rk(s, d)] ?? { distM: 1500, gradePct: 0, rrPct: 3 };
 
   // ---- destination routing (multi-destination) ----
   // Ore -> nearest crusher; waste -> nearest waste dump. When the target crusher is backed up (all bays
@@ -152,10 +154,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
       return { id: spec.id, spec, queueLen: r.queue.length, loading: r.loading, inbound: r.inbound, freeInSec, loadMeanSec: spec.loadMeanSec };
     });
     const fromDump = atDumpId ?? capCrusher.id;
-    const travelEmptySec = (toShovelId: number) => {
-      const rt = route(toShovelId, fromDump);
-      return travelTimeSec(rt.distM, -rt.gradePct, rt.rrPct, truck.spec, false);
-    };
+    const travelEmptySec = (toShovelId: number) => haulTimeSec(mine, toShovelId, fromDump, truck.spec, false);
     // OR tier (#22): the deciding truck + every truck pending a decision, with cross-truck ETAs
     const fleet = [
       { id: truckId, readyInSec: 0, atDumpId: fromDump },
@@ -166,8 +165,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     const etaEmptySecFor = (tid: number, toShovelId: number) => {
       const tr = truckById.get(tid) ?? truck;
       const from = tid === truckId ? fromDump : (pendingDecision.get(tid)?.atDumpId ?? fromDump);
-      const rt = route(toShovelId, from);
-      return travelTimeSec(rt.distM, -rt.gradePct, rt.rrPct, tr.spec, false);
+      return haulTimeSec(mine, toShovelId, from, tr.spec, false);
     };
     return { now, truck, atDumpId, shovels, travelEmptySec, fleet, etaEmptySecFor };
   };
@@ -217,8 +215,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     tryStartShovel(s);
     const truck = truckById.get(truckId)!;
     const dumpId = destFor(s);
-    const rt = route(s.id, dumpId);
-    const tt = travelTimeSec(rt.distM, rt.gradePct, rt.rrPct, truck.spec, true) * tmul();
+    const tt = haulTimeSec(mine, s.id, dumpId, truck.spec, true) * tmul();
     const sp = posOf('shovel', s.id), dp = posOf('dump', dumpId);
     stay(truckId, sp, arr, now, 'atShovel', s.id);
     move(truckId, sp, dp, now, now + tt, 'haulFull', dumpId, s.spec.faceType);
@@ -310,9 +307,17 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     }
     const state = buildState(truckId, dumpId, now);
     const truck = truckById.get(truckId)!;
-    const feasible = feasibleShovels(state.shovels, cons, { now, truck, crusherTphTrailing: trailingTph(now) });
+    const feasibleAll = feasibleShovels(state.shovels, cons, { now, truck, crusherTphTrailing: trailingTph(now) });
+    // material-lane empty-return (#67 round 2): the ONLY empty move is delivery-point -> a SHOVEL of the SAME
+    // material lane (crusher/stockpile -> an ore face; waste dump -> a waste face). This keeps every empty leg
+    // ON a DRAWN loaded road (its reverse) instead of interpolating across empty space, and it is domain-true
+    // (an ore hauler stays in the ore lane). Single-material cases are unaffected (the lane is every shovel),
+    // so the tie / oracle / parity controls stay byte-identical.
+    const lane: 'ore' | 'waste' = dumpById.get(dumpId)?.kind === 'waste' ? 'waste' : 'ore';
+    const feasible = feasibleAll.filter((v) => v.spec.faceType === lane);
     if (feasible.length === 0) {
-      // everything capped/incompatible right now: hold briefly and re-ask (counted as wait)
+      // no same-lane feasible shovel right now (all capped / in a break): HOLD and re-ask (never cross lanes
+      // onto an off-road empty leg). Counted as wait.
       truckWaitSec += 60;
       sim.schedule(60, () => decide(truckId, dumpId), 2);
       return;
@@ -338,8 +343,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     const arr = truckArr.get(truckId) ?? now;
     const target = sh.get(chosen) ?? sh.get(mine.shovels[0].id)!;
     target.inbound++;
-    const rt = route(target.id, dumpId);
-    const tt = travelTimeSec(rt.distM, -rt.gradePct, rt.rrPct, truck.spec, false) * tmul();
+    const tt = haulTimeSec(mine, target.id, dumpId, truck.spec, false) * tmul();
     const dp = posOf('dump', dumpId), sp = posOf('shovel', target.id);
     stay(truckId, dp, arr, now, 'atDump', dumpId);
     move(truckId, dp, sp, now, now + tt, 'haulEmpty', target.id);

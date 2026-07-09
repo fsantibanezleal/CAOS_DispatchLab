@@ -71,7 +71,15 @@ export interface MineSpec {
   name: string;
   shovels: ShovelSpec[];
   dumps: DumpSpec[];
-  routes: Record<string, Route>;  // key `${shovelId}->${dumpId}`
+  routes: Record<string, Route>;  // key `${shovelId}->${dumpId}` (adjacency + ranking; combined distance)
+  /** Pit PORTAL / exit node (#67 round 2). When present, every haul between the pit and an external facility
+   *  passes through this single portal: a LOADED truck runs shovel -> internal pit road(s) -> portal -> a
+   *  DIRECT surface haul -> destination; an EMPTY truck runs destination -> portal -> internal roads -> shovel.
+   *  The DES leg time is the SUM of the two rimpull segments (`pitRoad` + `portalHaul`), never a single
+   *  straight shovel->destination line. Absent (e.g. replayed real samples) = legacy single-segment route. */
+  portal?: NodePos;
+  pitRoad?: Record<number, Route>;    // shovelId -> internal leg (shovel <-> portal); carries the ramp grade
+  portalHaul?: Record<number, Route>; // dumpId    -> surface leg (portal <-> destination); flatter
   topo?: PitTopoSpec;             // optional pit topography (3D view); derived default if absent
   minetopo?: MineTopo;            // underground topography (#21); the 3D renders it when present
 }

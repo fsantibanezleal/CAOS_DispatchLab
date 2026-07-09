@@ -11,7 +11,7 @@
 // DOI 10.1023/A:1009634810396).
 import { toTicks, toSec } from './des';
 import { Rng } from '../lib/rng';
-import { travelTimeSec } from './kinematics';
+import { haulTimeSec } from './haul';
 import { feasibleShovels, inBreak, nearestFeasible } from './constraints';
 import { type CaseSpec, type Policy, type DispatchState, type ShovelView, type MineSpec, type DumpSpec } from './types';
 
@@ -115,7 +115,6 @@ export class RolloutSim {
   private dumpSpec(id: number) { return this.mine.dumps.find((x) => x.id === id)!; }
   private baysOf(id: number) { return Math.max(1, this.dumpSpec(id).bays ?? 1); }
   private isCrusher(id: number) { return this.dumpSpec(id).kind === 'crusher'; }
-  private route(s: number, d: number) { return this.mine.routes[rk(s, d)] ?? { distM: 1500, gradePct: 0, rrPct: 3 }; }
   /** Multi-destination routing (mirror of model.ts destFor): ore -> nearest crusher, rehandled onto a
    *  stockpile when that crusher is backed up + the pile has room; waste -> nearest waste dump. */
   private destFor(shovelId: number): number {
@@ -178,9 +177,8 @@ export class RolloutSim {
     this.markShovel(s, false); s.served++;
     this.tryStartShovel(s);
     const dumpId = this.destFor(shovelId);
-    const rt = this.route(shovelId, dumpId);
     const truck = this.truckById.get(truckId)!;
-    const tt = travelTimeSec(rt.distM, rt.gradePct, rt.rrPct, truck.spec, true) * this.tmul();
+    const tt = haulTimeSec(this.mine, shovelId, dumpId, truck.spec, true) * this.tmul();
     this.schedule(tt, 'arriveDump', truckId, dumpId, 1);
   }
 
@@ -252,10 +250,7 @@ export class RolloutSim {
       return { id: spec.id, spec, queueLen: r.queue.length, loading: r.loading, inbound: r.inbound, freeInSec, loadMeanSec: spec.loadMeanSec };
     });
     const fromDump = atDumpId;
-    const travelEmptySec = (toShovelId: number) => {
-      const rt = this.route(toShovelId, fromDump);
-      return travelTimeSec(rt.distM, -rt.gradePct, rt.rrPct, truck.spec, false);
-    };
+    const travelEmptySec = (toShovelId: number) => haulTimeSec(this.mine, toShovelId, fromDump, truck.spec, false);
     const fleet = [
       { id: truckId, readyInSec: 0, atDumpId: fromDump },
       ...Object.entries(this.st.pending).filter(([id]) => Number(id) !== truckId)
@@ -264,8 +259,7 @@ export class RolloutSim {
     const etaEmptySecFor = (tid: number, toShovelId: number) => {
       const tr = this.truckById.get(tid) ?? truck;
       const from = tid === truckId ? fromDump : (this.st.pending[tid]?.atDumpId ?? fromDump);
-      const rt = this.route(toShovelId, from);
-      return travelTimeSec(rt.distM, -rt.gradePct, rt.rrPct, tr.spec, false);
+      return haulTimeSec(this.mine, toShovelId, from, tr.spec, false);
     };
     return { now: this.nowSec, truck, atDumpId, shovels, travelEmptySec, fleet, etaEmptySecFor };
   }
@@ -278,8 +272,7 @@ export class RolloutSim {
     }
     const target = this.st.sh[chosen] ?? this.st.sh[this.mine.shovels[0].id];
     target.inbound++;
-    const rt = this.route(target.id, dumpId);
-    const tt = travelTimeSec(rt.distM, -rt.gradePct, rt.rrPct, truck.spec, false) * this.tmul();
+    const tt = haulTimeSec(this.mine, target.id, dumpId, truck.spec, false) * this.tmul();
     this.schedule(tt, 'arriveShovel', truckId, target.id, 1);
   }
 
@@ -336,7 +329,11 @@ export class RolloutSim {
     if (resumeAt != null) { this.st.truckWaitSec += resumeAt - now; this.schedule(resumeAt - now, 'reDecide', dec.truckId, dec.dumpId, 2); this.st.decision = null; return 'held'; }
     const state = this.buildDispatchState(dec.truckId, dec.dumpId);
     const truck = this.truckById.get(dec.truckId)!;
-    const feasible = feasibleShovels(state.shovels, cons, { now, truck, crusherTphTrailing: this.trailingTph() });
+    const feasibleAll = feasibleShovels(state.shovels, cons, { now, truck, crusherTphTrailing: this.trailingTph() });
+    // material-lane empty-return (#67 round 2): mirror of model.ts decide() so the two engines stay byte-parity.
+    // The empty move is delivery-point -> a SHOVEL of the same lane (crusher/stockpile -> ore; waste -> waste).
+    const lane: 'ore' | 'waste' = this.dumpSpec(dec.dumpId).kind === 'waste' ? 'waste' : 'ore';
+    const feasible = feasibleAll.filter((v) => v.spec.faceType === lane);
     if (feasible.length === 0) { this.st.truckWaitSec += 60; this.schedule(60, 'reDecide', dec.truckId, dec.dumpId, 2); this.st.decision = null; return 'held'; }
     this._feasible = feasible;
     this._state = { ...state, shovels: feasible };

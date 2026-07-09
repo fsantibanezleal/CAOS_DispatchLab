@@ -172,6 +172,12 @@ export function Pit3D({ c, result, t, lang }: { c: CaseSpec; result: SimResult; 
       mkLabel(isCr ? (es ? 'chancador' : 'crusher') : (es ? 'botadero' : 'waste dump'), topo.dumpPos3[d.id], 52, 1.1);
     }
 
+    // pit PORTAL / exit: the ramp rim exit (ramp[0]) is the single node every haul funnels through,
+    // shovel -> bench -> ramp -> PORTAL -> surface haul -> destination, and the reverse for the empty return.
+    const portalV = topo.ramp[0] ?? { x: topo.spec.center.x, y: topo.spec.center.y, z: 0 };
+    { const g = new THREE.CylinderGeometry(10, 16, 10, 6); const m = new THREE.MeshStandardMaterial({ color: dark ? 0x539bf5 : 0x2f6feb, roughness: 0.5, flatShading: true }); const mesh = new THREE.Mesh(g, m); const p = toThree(portalV); mesh.position.set(p.x, p.y + 5, p.z); scene.add(mesh); disposables.push(g, m); }
+    mkLabel(es ? 'salida del rajo' : 'pit exit', portalV, 26, 0.95);
+
     // trucks: one instanced mesh, positions updated per render from the trace at tRef
     const nT = c.fleet.trucks.length;
     const tg = new THREE.BoxGeometry(14, 9, 22);

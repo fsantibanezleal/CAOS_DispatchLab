@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dlab"
-version = "0.15.0"
+version = "0.16.0"
 description = "DispatchLab, truck-shovel dispatch (deterministic DES + 5 classical policies + OR/Hungarian + 2 learned ONNX policies + a Monte-Carlo rollout dispatcher) as a staged offline pipeline with two data contracts (ADR-0057)."
 readme = "README.md"
 requires-python = ">=3.11"

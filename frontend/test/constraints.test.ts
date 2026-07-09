@@ -38,7 +38,8 @@ test('compatibility restricts a truck model to its allowed shovels', () => {
 });
 
 test('a shift break delays decisions (tonnes drop, wait grows)', () => {
-  const c = caseById('C06');
+  // C06 already bakes a mid-shift break, so isolate the effect from its constraint-free form
+  const c = withCons(caseById('C06'), undefined);
   const base = runSimulation(c, policyById('greedy').fn, 7);
   const broken = runSimulation(withCons(c, { breaks: [{ startSec: 3600, endSec: 5400 }] }),
     policyById('greedy').fn, 7);
@@ -57,7 +58,7 @@ test('a policy returning an infeasible id is re-assigned and counted', () => {
 });
 
 test('constraints default to a no-op (results unchanged without them)', () => {
-  const c = caseById('C06');
+  const c = withCons(caseById('C06'), undefined);   // C06 bakes constraints; compare its constraint-free form
   const a = runSimulation(c, policyById('shortestWait').fn, 11);
   const b = runSimulation(withCons(c, undefined), policyById('shortestWait').fn, 11);
   assert.equal(a.tonnes, b.tonnes);
