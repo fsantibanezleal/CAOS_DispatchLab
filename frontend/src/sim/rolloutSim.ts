@@ -37,11 +37,13 @@ interface St {
   tonnes: number; truckWaitSec: number;
   crusherTonnes: number; crusherFeed: { t: number; tonnes: number }[];
   oreInFlightT: number; invalidChoices: number;
+  roadLastArrival: Record<string, number>;   // directed-road car-following state (#87), see carFollow()
   decision: { truckId: number; dumpId: number } | null;              // the decision awaiting commit()
 }
 
 const rk = (s: number, d: number) => `${s}->${d}`;
 const RECLAIM_DT = 60;
+const SECURITY_M = 60;   // MUST match model.ts: minimum spacing between consecutive trucks on a haul road
 
 function nearestDumpRt(mine: MineSpec, shovelId: number, cand: DumpSpec[]): DumpSpec | undefined {
   let best: DumpSpec | undefined, bestD = Infinity;
@@ -98,7 +100,7 @@ export class RolloutSim {
     this.st = {
       nowTick: 0, seq: 0, fel: [], sh, dumpServers, dumpQ, stockLevel, truckArr: {}, pending: {},
       tonnes: 0, truckWaitSec: 0, crusherTonnes: 0, crusherFeed: [{ t: 0, tonnes: 0 }],
-      oreInFlightT: 0, invalidChoices: 0, decision: null,
+      oreInFlightT: 0, invalidChoices: 0, roadLastArrival: {}, decision: null,
     };
     // arm breakdown clocks + stockpile reclaimers + initial dispatch (each truck heads to its start shovel)
     for (const s of this.mine.shovels) if (s.breakdown) this.scheduleFailure(s.id);
@@ -178,8 +180,22 @@ export class RolloutSim {
     this.tryStartShovel(s);
     const dumpId = this.destFor(shovelId);
     const truck = this.truckById.get(truckId)!;
-    const tt = haulTimeSec(this.mine, shovelId, dumpId, truck.spec, true) * this.tmul();
+    const freeTt = haulTimeSec(this.mine, shovelId, dumpId, truck.spec, true) * this.tmul();
+    const distM = this.mine.routes[rk(shovelId, dumpId)]?.distM ?? 0;
+    const tt = this.carFollow(`L:${shovelId}->${dumpId}`, freeTt, distM);
     this.schedule(tt, 'arriveDump', truckId, dumpId, 1);
+  }
+
+  // haul-road car-following (#87), MUST mirror model.ts exactly: same-direction trucks hold FIFO order +
+  // a security-distance headway so they bunch and never overtake. Effective tt >= free-flow when bunched.
+  private carFollow(dirKey: string, freeFlowTt: number, distM: number): number {
+    const depart = this.nowSec;
+    const headway = distM > 0 ? SECURITY_M * (freeFlowTt / distM) : 0;
+    const freeArrival = depart + freeFlowTt;
+    const prev = this.st.roadLastArrival[dirKey];
+    const arrival = prev == null ? freeArrival : Math.max(freeArrival, prev + headway);
+    this.st.roadLastArrival[dirKey] = arrival;
+    return arrival - depart;
   }
 
   private arriveDump(truckId: number, dumpId: number): void {
@@ -272,7 +288,9 @@ export class RolloutSim {
     }
     const target = this.st.sh[chosen] ?? this.st.sh[this.mine.shovels[0].id];
     target.inbound++;
-    const tt = haulTimeSec(this.mine, target.id, dumpId, truck.spec, false) * this.tmul();
+    const freeTt = haulTimeSec(this.mine, target.id, dumpId, truck.spec, false) * this.tmul();
+    const distM = this.mine.routes[rk(target.id, dumpId)]?.distM ?? 0;
+    const tt = this.carFollow(`E:${dumpId}->${target.id}`, freeTt, distM);
     this.schedule(tt, 'arriveShovel', truckId, target.id, 1);
   }
 
