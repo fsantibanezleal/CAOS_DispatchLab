@@ -33,6 +33,40 @@ export const architecture: ArchitectureConfig = {
         'El match factor analítico la ancla y un oráculo 1x1 de forma cerrada (un fixture de test) fija el determinismo.',
     },
     {
+      id: 'roads',
+      en: 'Haul-road network & traffic',
+      es: 'Red de caminos y tráfico',
+      svg: 'svg/tech/06-haul-road-traffic.svg',
+      body_en:
+        'Trucks travel a real road network, not straight magic lines. Every haul leaves the pit through a single ' +
+        'PORTAL onto a shared surface TRUNK to a junction, then a curved SPUR to its destination (crusher, waste ' +
+        'dump or stockpile); the empty return reverses it. The 2D map and the 3D view both draw and travel these roads.\n\n' +
+        'Travel time EMERGES from traffic, it is not a fixed rimpull value. Per directed road: (1) a posted SPEED LIMIT ' +
+        'caps every truck; (2) FIFO CAR-FOLLOWING with a security-distance headway, so a fast truck caught behind a slow ' +
+        'one is held and bunches, never overtaking; (3) a passing-bay MEETING slowdown on opposing traffic. The live ' +
+        'engine (model.ts) and the forkable rollout sim (rolloutSim.ts) apply these identically, checked by a ' +
+        'byte-for-byte parity test, and the capacity oracle respects the same speed limit so it stays a valid bound.\n\n' +
+        'The full-fidelity model (direction zones, per-section capacity, per-segment rimpull/retarder curves) lives in ' +
+        'the minehaulsim PyPI package; its samples ship the REAL network as topo.json roads/v1, which the app renders and ' +
+        'can mirror. So the synthetic cases carry a faithful per-road approximation and the structure-real samples carry ' +
+        'minehaulsim’s exact roads.',
+      body_es:
+        'Los camiones recorren una red de caminos real, no líneas rectas mágicas. Cada acarreo sale del rajo por un ' +
+        'PORTAL único a un TRONCO de superficie compartido hasta un empalme, y luego un RAMAL curvo a su destino ' +
+        '(chancador, botadero o acopio); el retorno vacío lo invierte. El mapa 2D y la vista 3D dibujan y recorren estos ' +
+        'caminos.\n\n' +
+        'El tiempo de viaje EMERGE del tráfico, no es un valor de rimpull fijo. Por camino dirigido: (1) un LÍMITE DE ' +
+        'VELOCIDAD posteado acota a todo camión; (2) SEGUIMIENTO FIFO con distancia de seguridad, un camión rápido ' +
+        'atrapado tras uno lento se retiene y forma pelotón, sin adelantar; (3) una demora de CRUCE en la berma ante ' +
+        'tráfico opuesto. El motor en vivo (model.ts) y el simulador de rollout (rolloutSim.ts) los aplican idénticos, ' +
+        'verificado por un test de paridad byte a byte, y el oráculo de capacidad respeta el mismo límite para seguir ' +
+        'siendo cota válida.\n\n' +
+        'El modelo de fidelidad plena (zonas de dirección, capacidad por tramo, curvas rimpull/retardador por segmento) ' +
+        'vive en el paquete minehaulsim (PyPI); sus muestras traen la red REAL como topo.json roads/v1, que la app ' +
+        'renderiza y puede reflejar. Así los casos sintéticos llevan una aproximación fiel por camino y las muestras ' +
+        'estructura-real llevan los caminos exactos de minehaulsim.',
+    },
+    {
       id: 'lanes',
       en: 'Lanes, web / offline / compute',
       es: 'Carriles, web / offline / cómputo',

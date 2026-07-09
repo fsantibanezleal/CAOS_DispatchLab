@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { runSimulation } from '../src/sim/model';
+import { speedLimitedSec } from '../src/sim/traffic';
 import { analyticalMatchFactor } from '../src/sim/matchfactor';
 import { travelTimeSec, TRUCKS } from '../src/sim/kinematics';
 import { C01, CASES } from '../src/sim/cases';
@@ -25,7 +26,9 @@ test('different seed -> different stochastic trace (but same order of magnitude)
 test('1x1 oracle fixture: deterministic throughput = closed-form floor(.)*payload', () => {
   const res = runSimulation(ORACLE_1x1, greedy, 7, { deterministic: true });
   const t = TRUCKS['793F'];
-  const hf = travelTimeSec(1800, 0, 2, t, true), he = travelTimeSec(1800, 0, 2, t, false);
+  // one truck => no bunching/meeting; only the posted speed limit clamps the free-flow leg times (#87).
+  const hf = speedLimitedSec(travelTimeSec(1800, 0, 2, t, true), 1800);
+  const he = speedLimitedSec(travelTimeSec(1800, 0, 2, t, false), 1800);
   const tLoad = 0 + 150, cycle = tLoad + hf + 60 + he, t1 = tLoad + hf + 60;
   const dumps = Math.floor((ORACLE_1x1.shiftSec - t1) / cycle) + 1;
   assert.equal(res.tonnes, dumps * t.payloadT);

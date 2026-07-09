@@ -17,6 +17,7 @@
 // between the best policy and the oracle is the price of congestion + myopia, exactly what the
 // Benchmark wants to show. (Refs: White & Olson 1986; Alarie & Gamache 2002.)
 import { haulTimeSec } from './haul';
+import { speedLimitedSec } from './traffic';
 import { type CaseSpec } from './types';
 
 export interface OracleBound {
@@ -44,10 +45,13 @@ export function capacityOracle(c: CaseSpec): OracleBound {
     let minCycle = Infinity;
     for (const s of c.mine.shovels) {
       for (const d of dumpsFor(s.faceType)) {
-        if (!c.mine.routes[rk(s.id, d.id)]) continue;
-        // portal-aware leg time (shovel<->portal + portal<->destination), or legacy single segment
-        const full = haulTimeSec(c.mine, s.id, d.id, t.spec, true);
-        const empty = haulTimeSec(c.mine, s.id, d.id, t.spec, false);
+        const route = c.mine.routes[rk(s.id, d.id)];
+        if (!route) continue;
+        // portal-aware leg time (shovel<->portal + portal<->destination), or legacy single segment;
+        // clamped by the posted road speed limit so the bound stays valid under the traffic model (#87).
+        const distM = route.distM;
+        const full = speedLimitedSec(haulTimeSec(c.mine, s.id, d.id, t.spec, true), distM);
+        const empty = speedLimitedSec(haulTimeSec(c.mine, s.id, d.id, t.spec, false), distM);
         const cycle = s.loadMeanSec + s.spotMeanSec + full + d.dumpMeanSec + empty;
         if (cycle < minCycle) minCycle = cycle;
       }

@@ -10,6 +10,7 @@ export default function Methodology() {
     { id: 'pol', label: es ? 'Políticas de despacho' : 'Dispatch policies', content: <Pol es={es} /> },
     { id: 'or', label: es ? 'Tier OR + restricciones' : 'OR tier + constraints', content: <Or es={es} /> },
     { id: 'mf', label: es ? 'Match factor + colas' : 'Match factor + queueing', content: <Mf es={es} /> },
+    { id: 'traffic', label: es ? 'Tráfico en la ruta' : 'Haul-road traffic', content: <Traffic es={es} /> },
     { id: 'learned', label: es ? 'Tier aprendido' : 'Learned tier', content: <Learned es={es} /> },
     { id: 'rollout', label: es ? 'Look-ahead y rollout' : 'Look-ahead & rollout', content: <Rollout es={es} /> },
   ];
@@ -97,6 +98,34 @@ function Mf({ es }: { es: boolean }) {
     </svg>
     <p>{es ? <>MF ≈ 1 equilibrado; &gt; 1 sobre-camionado (los camiones hacen cola); &lt; 1 sub-camionado (las palas quedan ociosas). La producción satura al cruzar MF=1, la pestaña «Validación MF» del banco muestra que la rodilla medida cae en MF=1. La fórmula clásica supone flota homogénea (Morgan & Peterson); la corrección heterogénea es de Burt & Caccetta. <InlineMath tex={String.raw`t_{\text{cycle}}`} /> incluye carga + viaje + descarga + retorno.</> : <>MF ≈ 1 balanced; &gt; 1 over-trucked (trucks queue); &lt; 1 under-trucked (shovels idle). Throughput saturates as MF crosses 1, the bench\'s "MF validation" tab shows the measured knee lands at MF=1. The classic formula assumes a homogeneous fleet (Morgan & Peterson); the heterogeneous correction is Burt & Caccetta. <InlineMath tex={String.raw`t_{\text{cycle}}`} /> includes load + haul + dump + return.</>}</p>
     <Refs ids={['morgan1968', 'burt2007']} label="Refs" />
+  </>);
+}
+
+function Traffic({ es }: { es: boolean }) {
+  return (<>
+    <p>{es
+      ? 'Los camiones no son masas puntuales que se cruzan: viajan sobre una RED DE CAMINOS restringida. El tiempo de viaje EMERGE del tráfico, no es un valor de rimpull fijo. Tres reglas por tramo dirigido (Soofastaei et al. 2016 sobre el bunching):'
+      : 'Trucks are not point-masses that pass through each other: they travel a CONSTRAINED road network, and travel time EMERGES from traffic, it is not a fixed rimpull value. Three rules per directed road (truck bunching: Soofastaei et al. 2016):'}</p>
+    <ul>
+      <li>{es ? <><b>Límite de velocidad:</b> ningún camión supera la velocidad posteada del camino, por capaz que sea su rimpull.</> : <><b>Speed limit:</b> no truck exceeds the road{"’"}s posted speed, however capable its rimpull.</>}</li>
+      <li>{es ? <><b>Seguimiento (misma dirección):</b> orden FIFO + distancia de seguridad; un camión rápido atrapado tras uno lento se retiene (bunching), no adelanta.</> : <><b>Car-following (same direction):</b> FIFO order + a security distance; a fast truck caught behind a slow one is held (bunching), it does not overtake.</>}</li>
+      <li>{es ? <><b>Cruce de dos vías:</b> al encontrar tráfico opuesto en un tramo de una sola pista, el camión frena en la berma de cruce.</> : <><b>Two-way meeting:</b> meeting opposing traffic on a single-lane section, a truck slows at the passing bay.</>}</li>
+    </ul>
+    <p>{es ? 'La llegada al final del tramo respeta el líder y el límite:' : 'The arrival at the section end respects the leader and the limit:'}</p>
+    <Equation tex={String.raw`t_{\text{arr}} = \max\!\Big(t_{\text{dep}} + \tfrac{d}{\min(v_{\text{rimpull}},\, v_{\text{limit}})},\; t_{\text{arr}}^{\text{leader}} + h\Big) + \mathbb{1}[\text{meeting}]\,\tau_{m}`} />
+    <p className="dl-note small">{es ? 'con h = distancia de seguridad / velocidad media del tramo, y τ_m la demora en la berma de cruce. El orden se conserva (sin adelantamientos) y el bunching aumenta el tiempo de ciclo por sobre el flujo libre.' : 'with h = security distance / the section\'s average speed, and τ_m the passing-bay delay. Order is preserved (no overtaking) and bunching raises the cycle time above free flow.'}</p>
+    <svg viewBox="0 0 560 120" width="100%" style={sv} role="img" aria-label={es ? 'bunching en la ruta' : 'road bunching'}>
+      {AR('tr-a')}
+      <line x1="30" y1="60" x2="530" y2="60" stroke="var(--color-fg-subtle)" strokeWidth="1.5" />
+      <text x="30" y="30" fill="var(--color-fg-subtle)">{es ? 'pala' : 'shovel'}</text>
+      <text x="530" y="30" textAnchor="end" fill="var(--color-fg-subtle)">{es ? 'destino →' : 'destination →'}</text>
+      {[300, 342, 384].map((x, i) => (<g key={i}><rect x={x} y={50} width="26" height="18" rx="2" fill={i === 0 ? '#d29922' : 'var(--color-accent)'} /></g>))}
+      <rect x={110} y={50} width="26" height="18" rx="2" fill="var(--color-accent)" />
+      <text x={342} y={44} textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="10">{es ? 'pelotón (bunching)' : 'bunched platoon'}</text>
+      <line x1={300} y1={78} x2={410} y2={78} stroke="var(--color-fg)" strokeDasharray="3 3" /><text x={355} y={92} textAnchor="middle" fill="var(--color-fg-subtle)" fontSize="10">h</text>
+    </svg>
+    <p className="dl-note small">{es ? 'La fidelidad completa (zonas de dirección, capacidad por tramo, curvas de rimpull/retardador por segmento) vive en el paquete minehaulsim; la app refleja el modelo por camino y consume la red real (roads/v1) en las muestras estructura-real.' : 'The full fidelity (direction zones, per-section capacity, per-segment rimpull/retarder curves) lives in the minehaulsim package; the app reflects the per-road model and consumes the real network (roads/v1) on the structure-real samples.'}</p>
+    <Refs ids={['soofastaei2016', 'catHandbook']} label="Refs" />
   </>);
 }
 
