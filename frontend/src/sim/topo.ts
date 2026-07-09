@@ -24,6 +24,12 @@ export interface PitTopo {
   dumpPos3: Record<number, Vec3>;     // dumps at rim elevation (z=0)
   paths: Record<string, Path3D>;      // `${shovelId}->${dumpId}`, the LOADED direction (shovel → dump)
   roads: { portal: Vec3; junction: Vec3; trunk: Vec3[]; spurs: Record<number, Vec3[]> };  // surface network (#87)
+  realRoads: RealRoads | null;  // minehaulsim.roads/v1 from a structure-real sample, when present (#28)
+}
+
+/** The subset of minehaulsim.roads/v1 the 3D view draws: segment polylines in the sample's own metre frame. */
+export interface RealRoads {
+  segments: { polyline: [number, number, number][]; speedLimitKmh: number }[];
 }
 
 const DEG = Math.PI / 180;
@@ -213,5 +219,12 @@ export function buildPitTopo(mine: MineSpec): PitTopo {
     }
   }
 
-  return { spec, benches: rings, ramp, shovelPos3, dumpPos3, paths, roads: { portal: portalPt, junction, trunk, spurs } };
+  // structure-real samples (minehaulsim >= 0.12) ship the REAL road network as roads/v1: expose its segment
+  // polylines (in the sample's own metre frame, same frame as center/rim) so the 3D view draws minehaulsim's
+  // actual roads instead of the derived trunk+spur approximation (#28).
+  const rv1 = mine.topo?.roads;
+  const realRoads: RealRoads | null = rv1 && rv1.schema === 'minehaulsim.roads/v1'
+    ? { segments: rv1.segments.map((s) => ({ polyline: s.polyline, speedLimitKmh: s.speedLimitKmh })) }
+    : null;
+  return { spec, benches: rings, ramp, shovelPos3, dumpPos3, paths, roads: { portal: portalPt, junction, trunk, spurs }, realRoads };
 }

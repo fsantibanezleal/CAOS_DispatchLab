@@ -55,6 +55,16 @@ export interface PitTopoSpec {
   rampWidthM?: number;          // spiral ramp width (default 25)
   shovelBench: Record<number, number>; // shovelId -> bench index (1..nBenches; deeper = larger)
   // dumps (crusher/waste) sit at the rim (z=0) at their case position
+  roads?: RoadsV1;              // minehaulsim.roads/v1 (structure-real samples, minehaulsim >= 0.12): the REAL network
+}
+
+/** `minehaulsim.roads/v1`: the real constrained road network shipped in a structure-real sample's topo.json,
+ *  so the 3D view can render minehaulsim's actual roads + mirror the segment traffic model (CAOS_MINEHAUL #28). */
+export interface RoadsV1 {
+  schema: 'minehaulsim.roads/v1';
+  nodes: { id: number; kind: string; pos: [number, number, number] }[];
+  segments: { id: number; a: number; b: number; polyline: [number, number, number][]; oneWay: boolean; speedLimitKmh: number; rollingResistancePct?: number; zoneId: number | null }[];
+  traffic: { headwayM?: number; headwayS?: number };
 }
 
 // minehaulsim.minetopo/v1, the underground topography contract (#21): levels, decline
