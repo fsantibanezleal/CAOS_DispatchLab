@@ -276,7 +276,7 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
 
   // while PLAYING, drive one render per animation frame. The per-tick effect above can miss the
   // very first Play on a fresh mount (the scene-build effect and the [t] effect race, so the first
-  // ticks landed before sceneRef was live — the view stayed static until a tab switch remounted it).
+  // ticks landed before sceneRef was live, the view stayed static until a tab switch remounted it).
   // A rAF loop bound to `playing` is race-free. It stops on pause / hidden tab, so no CPU burns idle.
   useEffect(() => {
     if (!playing) return;
