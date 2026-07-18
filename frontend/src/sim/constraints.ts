@@ -1,6 +1,6 @@
 // Operational dispatch constraints (#22 P3), the physics real dispatch runs under. They are
-// DATA on the case (additive, optional); the DES enforces them BEFORE the policy sees the state:
-// infeasible shovels are filtered out of the ShovelView set, so EVERY policy respects them by
+// data on the case (additive, optional); the DES enforces them before the policy sees the state:
+// infeasible shovels are filtered out of the ShovelView set, so every policy respects them by
 // construction. A policy that still returns an infeasible id gets re-assigned to the nearest
 // feasible choice and the event is counted (surfaced in the UI as invalid choices).
 import { type DispatchState, type ShovelView, type TruckUnit } from './types';
@@ -12,7 +12,7 @@ export interface OperationalConstraints {
   maxQueuePerShovel?: number;
   /** crusher acceptance cap [t/h] over the trailing hour; when exceeded, ore shovels pause. */
   crusherMaxTph?: number;
-  /** shift breaks: no dispatch decisions START inside these windows [startSec, endSec). */
+  /** shift breaks: no dispatch decisions start inside these windows [startSec, endSec). */
   breaks?: { startSec: number; endSec: number }[];
 }
 

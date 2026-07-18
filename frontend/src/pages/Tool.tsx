@@ -29,11 +29,11 @@ import { PanelBoundary } from '../viz/PanelBoundary';
 const SPEEDS = [50, 200, 600, 1800]; // 50x = slow lane for close visual review
 const SWEEP_SEEDS = [3, 11, 19, 29, 41];
 const CMP_SEEDS = [3, 7, 11, 17, 23, 29, 37, 42, 59, 71];
-// #22: the demo operational-constraint set (applies to ANY synthetic case; the DES enforces it
-// for EVERY policy, the feasible set is filtered before the policy sees the state)
-// The demo set is a BINDING, policy-DISCRIMINATING stress test, not a soft cap everyone satisfies by
+// #22: the demo operational-constraint set (applies to any synthetic case; the DES enforces it
+// for every policy, the feasible set is filtered before the policy sees the state)
+// The demo set is a binding, policy-discriminating stress test, not a soft cap everyone satisfies by
 // construction. Queue is tightened to 2 (forces rerouting) and a crusher throughput ceiling is added,
-// computed per case at 75% of that case's own unconstrained ore rate so it ALWAYS bites (ore shovels
+// computed per case at 75% of that case's own unconstrained ore rate so it always bites (ore shovels
 // pause when the trailing feed hits the cap, so the dispatcher must balance ore against waste, a
 // look-ahead policy manages the commitment better than a myopic one). See demoCrusherTph below.
 const DEMO_CONSTRAINTS = { maxQueuePerShovel: 2, breaks: [{ startSec: 4 * 3600, endSec: 4.5 * 3600 }], crusherFrac: 0.75 } as const;
@@ -46,14 +46,14 @@ export default function Tool() {
   const [caseId, setCaseId] = useState('C08');   // default = the showcase boss (all node types + dynamics)
   const [policyId, setPolicyId] = useState('greedy');
   const [seed, setSeed] = useState(7);
-  const [playing, setPlaying] = useState(false); // default PAUSED (no-autoplay rule: an unattended page must not burn CPU)
+  const [playing, setPlaying] = useState(false); // default paused (no-autoplay rule: an unattended page must not burn CPU)
   const [speed, setSpeed] = useState(600);
   const [playT, setPlayT] = useState(0);
   const [learned, setLearned] = useState<PolicyDef[]>([]);
   useEffect(() => { loadLearnedPolicies().then(setLearned).catch(() => {}); }, []);
   const allPolicies = useMemo(() => [...POLICIES, ...learned], [learned]);
 
-  // ---- SOURCE selector (#14): Synthetic scenario | Real cycle-log sample ----
+  // ---- source selector (#14): Synthetic scenario | Real cycle-log sample ----
   const [source, setSource] = useState<'synthetic' | 'real'>('synthetic');
   const [samples, setSamples] = useState<SampleMeta[]>([]);
   const [sampleId, setSampleId] = useState('');
@@ -73,7 +73,7 @@ export default function Tool() {
       .catch((e: unknown) => setRealErr(String(e)));
   };
   const realOK = source === 'real' && !!realReport?.ok;
-  // sample FAMILIES (#47): the flat mhs-*/openmines-* list was unreadable, group behind mini-tabs
+  // sample families (#47): the flat mhs-*/openmines-* list was unreadable, group behind mini-tabs
   const famOf = (id: string) => (id.startsWith('mhs-ug') ? 'ug' : id.startsWith('mhs-pit') ? 'pit' : 'legacy');
   const FAMS = [
     { key: 'pit', en: 'open-pit', es: 'rajo' },
@@ -93,7 +93,7 @@ export default function Tool() {
   const cfAgree = useMemo(() => (cfDecisions.length ? agreement(cfDecisions, allPolicies, es) : []), [cfDecisions, allPolicies, es]);
 
   const [consOn, setConsOn] = useState(false);
-  // reference ore throughput of the UNCONSTRAINED case (greedy), used to size a crusher ceiling that binds.
+  // reference ore throughput of the unconstrained case (greedy), used to size a crusher ceiling that binds.
   const demoCrusherTph = useMemo(() => {
     const base = caseById(caseId);
     const run = runSimulation(base, policyById('greedy').fn, seed, { trace: false });
@@ -109,7 +109,7 @@ export default function Tool() {
   const c = useMemo<CaseSpec>(() => {
     const base = caseById(caseId);
     if (!consOn) return base;
-    // the demo set MERGES over any baked case constraints (never overwrites a case's own break/blend);
+    // the demo set merges over any baked case constraints (never overwrites a case's own break/blend);
     // the crusher ceiling is the discriminating constraint, tightened to bite on this case.
     return { ...base, constraints: {
       ...base.constraints,
@@ -136,7 +136,7 @@ export default function Tool() {
   }, [c, pol, seed]);
   const mfSyn = useMemo(() => analyticalMatchFactor(c), [c]);
 
-  // ---- the unified run every tab reads: branched ONCE on source ----
+  // ---- the unified run every tab reads: branched once on source ----
   const activeC: CaseSpec = useMemo(() => {
     if (!realOK || !realReport?.sample) return c;
     const s = realReport.sample;
@@ -223,7 +223,7 @@ export default function Tool() {
     { id: 'shovel', label: es ? 'Por pala' : 'Per-shovel', content: (
       <Panel t={es ? 'Cargas y utilización por pala' : 'Per-shovel loads & utilisation'}>
         {(() => {
-          // #50: when the sample carries oreblocks geology, show each shovel's FACE grade + bench +
+          // #50: when the sample carries oreblocks geology, show each shovel's face grade + bench +
           // ore fraction (from the exact ultimate pit), joined by shovel node id.
           const faces = realOK ? realReport?.sample?.provenance.geology?.faces : undefined;
           const faceOf = faces ? Object.fromEntries(faces.map((f) => [f.shovelId, f])) : null;
@@ -245,13 +245,13 @@ export default function Tool() {
       </Panel>) },
     { id: 'feed', label: es ? 'Aliment. chancador' : 'Crusher feed', content: <Panel t={es ? 'Alimentación al chancador, toneladas acumuladas vs hora' : 'Crusher feed, cumulative tonnes vs shift hour'}><UPlotChart data={feed} build={buildFeed} height={200} /></Panel> },
     { id: 'compare', label: es ? 'Comparar políticas' : 'Compare policies', content: (
-      <Panel t={es ? 'Pareto: toneladas (↑) vs espera (←), heurísticas + APRENDIDAS, banda de semillas' : 'Pareto: tonnes (↑) vs wait (←), heuristics + LEARNED, seed bands'}>
+      <Panel t={es ? 'Pareto: toneladas (↑) vs espera (←), heurísticas + aprendidas, banda de semillas' : 'Pareto: tonnes (↑) vs wait (←), heuristics + learned, seed bands'}>
         <ParetoScatter stats={cmp} front={front} lang={lang} />
         <p className="dl-hint small">{es ? 'En la frontera' : 'On the frontier'}: <b>{cmp.filter((s) => front.has(s.id)).map((s) => tn(s.id)).join(', ')}</b> · {CMP_SEEDS.length} {es ? 'semillas' : 'seeds'}</p>
-        <p className="tw-note dl-note"><b>{tn(tie.leader)}</b> {tie.tied.length === 0 ? (es ? 'lidera más allá de la banda' : 'leads beyond the band') : <>{es ? 'empata (en la banda) con' : 'ties (within the band) with'} <b>{tie.tied.map(tn).join(', ')}</b></>}. {es ? 'Las políticas APRENDIDAS son competitivas, honesto, sin victoria fabricada.' : 'The LEARNED policies are competitive, honest, no fabricated win.'}</p>
+        <p className="tw-note dl-note"><b>{tn(tie.leader)}</b> {tie.tied.length === 0 ? (es ? 'lidera más allá de la banda' : 'leads beyond the band') : <>{es ? 'empata (en la banda) con' : 'ties (within the band) with'} <b>{tie.tied.map(tn).join(', ')}</b></>}. {es ? 'Las políticas aprendidas son competitivas, honesto, sin victoria fabricada.' : 'The learned policies are competitive, honest, no fabricated win.'}</p>
       </Panel>) },
     { id: 'bench', label: es ? 'Aprendida vs heurística' : 'Learned vs heuristic', content: (
-      <Panel t={es ? 'Toneladas medianas, políticas APRENDIDAS vs heurísticas (mismo caso + semillas)' : 'Median tonnes, LEARNED vs heuristic policies (same case + seeds)'}>
+      <Panel t={es ? 'Toneladas medianas, políticas aprendidas vs heurísticas (mismo caso + semillas)' : 'Median tonnes, learned vs heuristic policies (same case + seeds)'}>
         <LearnedBars stats={cmp} es={es} tn={tn} />
       </Panel>) },
     { id: 'inspect', label: es ? 'Inspector de decisión' : 'Decision inspector', content: <DecisionInspector decisions={decisions.current} es={es} /> },
@@ -267,7 +267,7 @@ export default function Tool() {
           ariaLabel={es ? 'Espera en cola por pala' : 'Per-shovel queue wait'}
           unit="h" defaultBaseline="zero" valueFmt={(v) => v.toFixed(1)}
           data={result.shovels.map<BarDatum>((s) => ({ key: String(s.id), label: s.name.split('(')[0].trim(), value: s.queueWaitSec / 3600, color: '#d29922' }))}
-          note={es ? 'Cola por pala en esta corrida; cambia de política o caso y observa cómo se redistribuye la espera.' : 'Per-shovel queue this run; change policy or case and watch the wait redistribute.'}
+          note={es ? 'Cola por pala en esta corrida; al cambiar de política o caso, la espera se redistribuye.' : 'Per-shovel queue this run; change policy or case and watch the wait redistribute.'}
         />
       </Panel>) },
     { id: 'share', label: es ? 'Reparto de decisiones' : 'Decision share', content: (
@@ -277,12 +277,12 @@ export default function Tool() {
             ariaLabel={es ? 'Reparto de decisiones por pala' : 'Decision share per shovel'}
             unit="%" defaultBaseline="zero" valueFmt={(v) => v.toFixed(0)}
             data={c.mine.shovels.map<BarDatum>((s) => ({ key: String(s.id), label: s.name.split('(')[0].trim(), value: ((cnt[s.id] || 0) / tot) * 100, sub: `(${cnt[s.id] || 0})`, color: 'var(--color-accent)' }))}
-            note={es ? 'Una política que reparte desigual sobre-camiona la pala cercana; cambia de política o caso y observa el reparto.' : 'A policy that splits unevenly over-trucks the near shovel; change the policy or case and watch the split.'}
+            note={es ? 'Una política que reparte desigual sobre-camiona la pala cercana; al cambiar de política o caso, el reparto se ajusta.' : 'A policy that splits unevenly over-trucks the near shovel; change the policy or case and watch the split.'}
           />; })()}
       </Panel>) },
     { id: 'cycle', label: es ? 'Tiempo de ciclo' : 'Cycle time', content: (
       <Panel t={realOK
-        ? (es ? 'Tiempo de ciclo MEDIDO por pala (mediana de carga vs viaje+descarga observados en el turno)' : 'MEASURED cycle time per shovel (median observed load vs haul+dump this shift)')
+        ? (es ? 'Tiempo de ciclo medido por pala (mediana de carga vs viaje+descarga observados en el turno)' : 'Measured cycle time per shovel (median observed load vs haul+dump this shift)')
         : (es ? 'Tiempo de ciclo ideal por pala (carga vs viaje+descarga), de la cinemática rimpull/pendiente' : 'Ideal cycle time per shovel (load vs haul+dump), from the rimpull/grade kinematics')}>
         {(() => {
           const cycleOf = (id: number): { tLoad: number; tCycle: number } => {
@@ -309,7 +309,7 @@ export default function Tool() {
   // comparisons + MF sweep stay synthetic-only (their aggregate versions land in Benchmark, #19)
   const cfTab = {
     id: 'counterfactual', label: es ? 'Despacho contrafactual' : 'Counterfactual dispatch', content: (
-      <Panel t={es ? 'Re-decidir el turno REAL bajo cada política, acuerdo con el despachador real en cada punto de decisión' : 'Re-deciding the REAL shift under each policy, agreement with the real dispatcher at each decision point'}>
+      <Panel t={es ? 'Re-decidir el turno real bajo cada política, acuerdo con el despachador real en cada punto de decisión' : 'Re-deciding the real shift under each policy, agreement with the real dispatcher at each decision point'}>
         {cfDecisions.length === 0 ? (
           <p className="dl-hint">{es ? 'Esta muestra no tiene puntos de decisión (ningún ciclo return→load completo).' : 'This sample has no decision points (no complete return→load cycle).'}</p>
         ) : (
@@ -319,8 +319,8 @@ export default function Tool() {
                 <div className="dl-bar-pair"><div className="dl-bar"><span className="dl-bar-fill" style={{ width: `${r.pct}%`, background: POLICY_COLOR[r.id] ?? 'var(--color-accent)' }} /></div><span className="dl-bar-num mono">{r.agree}/{r.n} · {r.pct.toFixed(0)}%</span></div>
               </div>))}</div>
             <p className="dl-hint small">{es
-              ? `Estado reconstruido DESDE el log en cada dump-complete real (colas/inbound/cargando; estimación p10 declarada). Acuerdo en la DECISIÓN, no toneladas contrafactuales (eso exige re-simulación calibrada y va en Benchmark). ${cfDecisions.length} puntos de decisión.`
-              : `State reconstructed FROM the log at every real dump-complete (queues/inbound/loading; stated p10 estimate). DECISION agreement, not counterfactual tonnes (that needs a calibrated re-simulation and lands in Benchmark). ${cfDecisions.length} decision points.`}</p>
+              ? `Estado reconstruido desde el log en cada dump-complete real (colas/inbound/cargando; estimación p10 declarada). Acuerdo en la decisión, no toneladas contrafactuales (eso exige re-simulación calibrada y va en Benchmark). ${cfDecisions.length} puntos de decisión.`
+              : `State reconstructed from the log at every real dump-complete (queues/inbound/loading; stated p10 estimate). Decision agreement, not counterfactual tonnes (that needs a calibrated re-simulation and lands in Benchmark). ${cfDecisions.length} decision points.`}</p>
             <RealDecisionInspector decisions={cfDecisions} es={es} />
           </>
         )}
@@ -334,7 +334,7 @@ export default function Tool() {
   return (
     <div className="page-body dl-layout">
       <aside className="dl-controls">
-        {/* FIRST-LEVEL SOURCE selector (#14): the workbench runs on a synthetic scenario OR a real cycle-log */}
+        {/* first-level source selector (#14): the workbench runs on a synthetic scenario or a real cycle-log */}
         <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Fuente' : 'Source'}</span>
           <div className="dl-chips">
             <button className={`chip ${source === 'synthetic' ? 'on' : ''}`} onClick={() => { setSource('synthetic'); setPlayT(0); }}>{es ? 'Sintética' : 'Synthetic'}</button>
@@ -356,10 +356,10 @@ export default function Tool() {
               <button key={s.id} className={`chip ${sampleId === s.id ? 'on' : ''}`} onClick={() => setSampleId(s.id)} title={s.name}>{sampleLabel(s.id)}</button>
             ))}</div>
             <label className="dl-hint" style={{ display: 'block', marginTop: '0.3rem' }}>
-              {es ? 'o trae tu propio log (CSV cyclelog/v1): ' : 'or bring your own log (cyclelog/v1 CSV): '}
+              {es ? 'o cargar un log propio (CSV cyclelog/v1): ' : 'or bring your own log (cyclelog/v1 CSV): '}
               <input type="file" accept=".csv" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUserFile(f); }} />
             </label>
-            {realErr && <span className="dl-hint" style={{ color: '#f85149' }}>{es ? 'RECHAZADO por el contrato: ' : 'REJECTED by the contract: '}{realErr}</span>}
+            {realErr && <span className="dl-hint" style={{ color: '#f85149' }}>{es ? 'Rechazado por el contrato: ' : 'Rejected by the contract: '}{realErr}</span>}
             {realOK && realReport?.sample && (
               <>
                 {realReport.flags.length > 0 && <div className="small" style={{ color: '#d29922', marginTop: '0.3rem' }}>⚑ {realReport.flags.join(' · ')}</div>}
@@ -379,7 +379,7 @@ export default function Tool() {
             )}
           </div>
         )}
-        {/* SCENARIO knobs, author the synthetic case; in real mode the case is READ from the sample,
+        {/* scenario knobs, author the synthetic case; in real mode the case is read from the sample,
             so the authoring grid hides entirely instead of rendering locked-but-clickable-looking (#47) */}
         {source === 'synthetic' ? (
           <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Caso' : 'Case'}</span>
@@ -393,8 +393,8 @@ export default function Tool() {
               : (es ? 'se lee de la muestra al cargarla' : 'read from the sample once it loads')}</span>
           </div>
         )}
-        {/* operational constraints (#22): enforced by the DES for EVERY policy, the chips show
-            the EFFECTIVE set (a case's own baked constraints + the demo toggle).
+        {/* operational constraints (#22): enforced by the DES for every policy, the chips show
+            the effective set (a case's own baked constraints + the demo toggle).
             In real mode they do not apply (the replay reproduces the logged shift), so say that
             in one line instead of a greyed-out interactive-looking block (#47). */}
         {source === 'synthetic' ? (
@@ -407,8 +407,8 @@ export default function Tool() {
             {!c.constraints && <span className="chip" style={{ pointerEvents: 'none', opacity: 0.6 }}>{es ? 'sin restricciones' : 'unconstrained'}</span>}
           </div>
           {c.constraints && <span className="dl-hint">{es
-            ? `El DES filtra el conjunto factible ANTES de cada política, todas la respetan por construcción. Elecciones inválidas: ${synResult.invalidChoices ?? 0}.`
-            : `The DES filters the feasible set BEFORE every policy, all of them comply by construction. Invalid choices: ${synResult.invalidChoices ?? 0}.`}</span>}
+            ? `El DES filtra el conjunto factible antes de cada política, todas cumplen por construcción. Elecciones inválidas: ${synResult.invalidChoices ?? 0}.`
+            : `The DES filters the feasible set before every policy, all of them comply by construction. Invalid choices: ${synResult.invalidChoices ?? 0}.`}</span>}
         </div>
         ) : (
           <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Restricciones operativas' : 'Operational constraints'}</span>
@@ -418,7 +418,7 @@ export default function Tool() {
         {source === 'synthetic' ? (
         <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Política' : 'Policy'}</span>
           <div className="dl-chips">{allPolicies.map((p) => <button key={p.id} className={`chip ${policyId === p.id ? 'on' : ''} ${p.tier === 'learned' ? 'dl-learned-chip' : ''}`} onClick={() => setPolicyId(p.id)} title={es ? p.es : p.en}>{(es ? p.es : p.en).replace('Learned, ', '').replace('Aprendida, ', '').split(' (')[0]}</button>)}</div>
-          {pol.tier === 'learned' && <span className="dl-hint" style={{ color: '#f85149' }}>{es ? 'política APRENDIDA (red entrenada offline)' : 'LEARNED policy (net trained offline)'}</span>}
+          {pol.tier === 'learned' && <span className="dl-hint" style={{ color: '#f85149' }}>{es ? 'política aprendida (red entrenada offline)' : 'learned policy (net trained offline)'}</span>}
         </div>
         ) : (
           <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Política' : 'Policy'}</span>
@@ -430,22 +430,22 @@ export default function Tool() {
         )}
         <div className="dl-diag">
           <div className="dl-diag-h">{es ? 'Diagnóstico' : 'Diagnosis'}</div>
-          {/* policy-DEPENDENT outcome first: these numbers change when you switch policy (the MF block below
-              is a fleet property and is the SAME for every policy, which is why it does not move) */}
+          {/* policy-dependent outcome first: these numbers change when the policy switches (the MF block below
+              is a fleet property and is the same for every policy, which is why it does not move) */}
           <div className="dl-diag-pol" style={{ marginBottom: '0.5rem' }}>
             <div className="small" style={{ opacity: 0.85 }}>{realOK ? (es ? 'Turno medido' : 'Measured shift') : <>{es ? 'Esta política' : 'This policy'}: <b>{tn(policyId)}</b></>}</div>
             <div className="small mono"><b>{(tonnes / 1000).toFixed(1)}k t</b> · {es ? 'espera' : 'wait'} {truckWaitH.toFixed(1)} h · util {(meanUtil * 100).toFixed(0)}%</div>
-            {!realOK && <div className="small muted">{es ? 'cambia de política y estos números cambian; el reparto, las colas y el ciclo también' : 'switch policy and these numbers change; the share, queues and cycle move too'}</div>}
+            {!realOK && <div className="small muted">{es ? 'al cambiar de política estos números cambian; el reparto, las colas y el ciclo también' : 'switch policy and these numbers change; the share, queues and cycle move too'}</div>}
           </div>
           <div className="dl-mfbar"><span className="dl-mfref" style={{ left: `${(1 / MAXMF) * 100}%` }} /><span className="dl-mfmark" style={{ left: `${Math.min(1, mf / MAXMF) * 100}%` }} /></div>
           <div className="small"><b className="mono">MF {mf.toFixed(2)}</b> · {balance === 'over' ? (es ? 'sobre-camionado' : 'over-trucked') : balance === 'under' ? (es ? 'sub-camionado' : 'under-trucked') : (es ? 'equilibrado' : 'balanced')}</div>
           <div className="small">{delta !== 0 ? <>{delta > 0 ? (es ? 'agregar' : 'add') : (es ? 'quitar' : 'remove')} <b>{Math.abs(delta)}</b> {es ? 'camiones para MF≈1' : 'trucks for MF≈1'}</> : <>✓ MF≈1</>}</div>
           <div className="small muted">{bottleneck === 'shovelBound' ? (es ? 'limitado por pala' : 'shovel-bound') : bottleneck === 'queueBound' ? (es ? 'limitado por cola' : 'queue-bound') : (es ? 'con holgura' : 'headroom')}</div>
-          <div className="small muted" style={{ marginTop: '0.2rem', fontStyle: 'italic' }}>{es ? 'MF es una propiedad de la FLOTA (analítica), igual para todas las políticas' : 'MF is a FLEET property (analytical), the same for every policy'}</div>
+          <div className="small muted" style={{ marginTop: '0.2rem', fontStyle: 'italic' }}>{es ? 'MF es una propiedad de la flota (analítica), igual para todas las políticas' : 'MF is a fleet property (analytical), the same for every policy'}</div>
         </div>
         <p className="tw-note dl-note">{realOK
-          ? (es ? 'Turno MEDIDO reproducido desde un cycle-log (contrato cyclelog/v1). La geometría del mapa es esquemática (los logs no traen coordenadas). NO es un sistema de despacho productivo.' : 'MEASURED shift replayed from a cycle log (cyclelog/v1 contract). Map geometry is schematic (logs carry no coordinates). NOT a production dispatch system.')
-          : (es ? 'Rajo sintético físicamente fundado (validado vs match-factor + oráculo); políticas aprendidas entrenadas offline, inferencia ONNX viva. NO es un sistema de despacho productivo.' : 'Synthetic physics-grounded pit (validated vs match-factor + oracle); learned policies trained offline, live ONNX inference. NOT a production dispatch system.')}</p>
+          ? (es ? 'Turno medido reproducido desde un cycle-log (contrato cyclelog/v1). La geometría del mapa es esquemática (los logs no traen coordenadas). No es un sistema de despacho productivo.' : 'Measured shift replayed from a cycle log (cyclelog/v1 contract). Map geometry is schematic (logs carry no coordinates). Not a production dispatch system.')
+          : (es ? 'Rajo sintético físicamente fundado (validado vs match-factor + oráculo); políticas aprendidas entrenadas offline, inferencia ONNX viva. No es un sistema de despacho productivo.' : 'Synthetic physics-grounded pit (validated vs match-factor + oracle); learned policies trained offline, live ONNX inference. Not a production dispatch system.')}</p>
       </aside>
       <div className="dl-main"><Tabs tabs={visibleTabs} ariaLabel="methods" /></div>
     </div>
@@ -462,7 +462,7 @@ function LearnedBars({ stats, es, tn }: { stats: ReturnType<typeof comparePolici
       ariaLabel={es ? 'Toneladas medianas por política, aprendidas vs heurísticas' : 'Median tonnes per policy, learned vs heuristic'}
       unit="t" defaultBaseline="fit" valueFmt={(v) => (v / 1000).toFixed(1) + 'k'}
       data={ord.map<BarDatum>((s) => ({ key: s.id, label: tn(s.id), value: s.medTonnes, ci: [s.loT, s.hiT], color: POLICY_COLOR[s.id], mark: (s.id === 'rwr' || s.id === 'bcbest') ? '★' : undefined }))}
-      note={es ? '★ = política APRENDIDA. Barra = mediana; el bigote = banda entre semillas. En modo Fit las diferencias (~1-3%) se ven; las aprendidas igualan a sus maestras, no las superan.' : '★ = LEARNED policy. Bar = median; whisker = seed band. Fit mode makes the ~1-3% differences visible; the learned policies match their teachers, they do not beat them.'}
+      note={es ? '★ = política aprendida. Barra = mediana; el bigote = banda entre semillas. En modo Fit las diferencias (~1-3%) se ven; las aprendidas igualan a sus maestras, no las superan.' : '★ = learned policy. Bar = median; whisker = seed band. Fit mode makes the ~1-3% differences visible; the learned policies match their teachers, they do not beat them.'}
     />
   );
 }
@@ -483,7 +483,7 @@ function RealDecisionInspector({ decisions, es }: { decisions: ReturnType<typeof
   const argmax = sv ? sv.indexOf(Math.max(...sv)) : -1;
   return (
     <div style={{ marginTop: '0.8rem' }}>
-      <div className="dl-panel-t">{es ? 'Inspector, la red (RWR, ONNX en vivo) sobre el punto de decisión REAL' : 'Inspector, the net (RWR, live ONNX) on the REAL decision point'}</div>
+      <div className="dl-panel-t">{es ? 'Inspector, la red (RWR, ONNX en vivo) sobre el punto de decisión real' : 'Inspector, the net (RWR, live ONNX) on the real decision point'}</div>
       {sv ? (
         <BarChart
           ariaLabel={es ? 'Puntajes de la red sobre la decisión real' : 'Net scores on the real decision'}
@@ -508,7 +508,7 @@ function RolloutInspector({ c, seed, es }: { c: CaseSpec; seed: number; es: bool
   const compute = () => {
     if (!multi) return;
     setBusy(true);
-    // yield to the paint so the "computing" state shows, then run the BOUNDED rollout (one decision,
+    // yield to the paint so the "computing" state shows, then run the bounded rollout (one decision,
     // shovels x K short forks). Never on a timer, only on this explicit click.
     setTimeout(() => {
       try {
@@ -530,7 +530,7 @@ function RolloutInspector({ c, seed, es }: { c: CaseSpec; seed: number; es: bool
       </div>
       {res == null ? (
         <p className="dl-hint small" style={{ marginTop: '0.5rem' }}>{es
-          ? 'Pulsa Calcular: para cada pala candidata, el DES se bifurca, se aplica la pala y se simula el resto del turno K veces con la política base; se elige el mejor objetivo esperado. Nada corre solo (sin bomba de cómputo).'
+          ? 'Al pulsar Calcular: para cada pala candidata, el DES se bifurca, se aplica la pala y se simula el resto del turno K veces con la política base; se elige el mejor objetivo esperado. Nada corre solo (sin bomba de cómputo).'
           : 'Press Compute: for each candidate shovel, the DES forks, the shovel is applied, and the rest of the shift is simulated K times under the base policy; the best expected objective is chosen. Nothing runs on its own (no compute-bomb).'}</p>
       ) : cands.length === 0 ? (
         <p className="dl-hint small" style={{ marginTop: '0.5rem' }}>{es ? 'No hay una decisión en ese índice (turno más corto).' : 'No decision at that index (shorter shift).'}</p>
@@ -550,8 +550,8 @@ function RolloutInspector({ c, seed, es }: { c: CaseSpec; seed: number; es: bool
               </div>
             </div>); })}</div>
         <p className="dl-hint small">{es
-          ? `Decisión #${res.decisionIndex} · t=${(res.nowSec / 3600).toFixed(1)} h · camión ${res.truckId} · K=${res.K} futuros/candidato · ★ = elegido por el rollout · ▷ = elección de la base (shortest-wait). Los puntos son los K futuros simulados (la dispersión Monte-Carlo). En vivo la política desplegada es la DESTILACIÓN (dl-rollout.onnx); esto muestra la búsqueda real.`
-          : `Decision #${res.decisionIndex} · t=${(res.nowSec / 3600).toFixed(1)} h · truck ${res.truckId} · K=${res.K} futures/candidate · ★ = rollout's choice · ▷ = base choice (shortest-wait). Dots are the K simulated futures (the Monte-Carlo spread). Live, the deployed policy is the DISTILLATION (dl-rollout.onnx); this shows the real search.`}</p>
+          ? `Decisión #${res.decisionIndex} · t=${(res.nowSec / 3600).toFixed(1)} h · camión ${res.truckId} · K=${res.K} futuros/candidato · ★ = elegido por el rollout · ▷ = elección de la base (shortest-wait). Los puntos son los K futuros simulados (la dispersión Monte-Carlo). En vivo la política desplegada es la destilación (dl-rollout.onnx); esto muestra la búsqueda real.`
+          : `Decision #${res.decisionIndex} · t=${(res.nowSec / 3600).toFixed(1)} h · truck ${res.truckId} · K=${res.K} futures/candidate · ★ = rollout's choice · ▷ = base choice (shortest-wait). Dots are the K simulated futures (the Monte-Carlo spread). Live, the deployed policy is the distillation (dl-rollout.onnx); this shows the real search.`}</p>
       </>)}
     </Panel>
   );
@@ -569,7 +569,7 @@ function DecisionInspector({ decisions, es }: { decisions: Decision[]; es: boole
   const sv = scores && scores.length === d.names.length && scores.every((x) => Number.isFinite(x)) ? scores : null;
   const argmax = sv ? sv.indexOf(Math.max(...sv)) : -1;
   return (
-    <Panel t={es ? 'Inspector de decisión, puntajes de la política APRENDIDA (RWR) vía onnxruntime-web, por pala' : 'Decision inspector, LEARNED (RWR) policy scores via onnxruntime-web, per shovel'}>
+    <Panel t={es ? 'Inspector de decisión, puntajes de la política aprendida (RWR) vía onnxruntime-web, por pala' : 'Decision inspector, learned (RWR) policy scores via onnxruntime-web, per shovel'}>
       {sv ? (
         <BarChart
           ariaLabel={es ? 'Puntajes de la red por pala' : 'Per-shovel net scores'}
@@ -578,7 +578,7 @@ function DecisionInspector({ decisions, es }: { decisions: Decision[]; es: boole
         />
       ) : <p className="dl-hint small">{es ? 'Calculando puntajes ONNX en el navegador…' : 'Computing ONNX scores in the browser…'}</p>}
       <input className="range" type="range" min={0} max={decisions.length - 1} value={i} onChange={(e) => setI(+e.target.value)} style={{ width: '100%', marginTop: '0.5rem' }} />
-      <p className="dl-hint small">{es ? 'Decisión' : 'Decision'} {i + 1}/{decisions.length} · t={(d.t / 3600).toFixed(1)} h · ★ = {es ? 'pala elegida por la red (argmax). La inferencia ONNX corre EN VIVO en el navegador.' : 'shovel the net picks (argmax). The ONNX inference runs LIVE in the browser.'}</p>
+      <p className="dl-hint small">{es ? 'Decisión' : 'Decision'} {i + 1}/{decisions.length} · t={(d.t / 3600).toFixed(1)} h · ★ = {es ? 'pala elegida por la red (argmax). La inferencia ONNX corre en vivo en el navegador.' : 'shovel the net picks (argmax). The ONNX inference runs live in the browser.'}</p>
     </Panel>
   );
 }

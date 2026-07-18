@@ -1,7 +1,7 @@
 // In-app Architecture / "How it works" modal config (ADR-0058) for DispatchLab.
 // Passed to <AppShell config={{ ...config, architecture }}>. The ⓘ header button
 // (provided by @fasl-work/caos-app-shell >= 0.1.2) opens the modal. Each tab pairs
-// one hand-authored THEMED SVG (frontend/public/svg/tech/, shell CSS-var tokens →
+// one hand-authored themed SVG (frontend/public/svg/tech/, shell CSS-var tokens →
 // repaints with the active theme, fetched + inlined) with a bilingual ES/EN body.
 import type { ArchitectureConfig } from '@fasl-work/caos-app-shell';
 
@@ -15,8 +15,8 @@ export const architecture: ArchitectureConfig = {
       body_en:
         'DispatchLab is an open-pit haulage product: given N trucks, M shovels and different haul roads, it simulates a ' +
         'shift under a dispatch policy and shows the throughput (tons), the match factor and the truck-wait, answering ' +
-        '"which truck→shovel assignment maximises tons and minimises queueing?". You pick a case, a fleet and a policy ' +
-        'and the whole shift re-runs live.\n\n' +
+        '"which truck→shovel assignment maximises tons and minimises queueing?". Picking a case, a fleet and a policy ' +
+        're-runs the whole shift live.\n\n' +
         'It is a real system, not a demo. A centisecond discrete-event simulation (frontend/src/sim/) re-runs on every ' +
         'control; truck travel is physical (speed by grade, rolling resistance and load); shovels load on a real cycle ' +
         'and queues form at both ends. Heuristic policies compete with a learned dispatch NN and a behaviour-clone of ' +
@@ -24,8 +24,8 @@ export const architecture: ArchitectureConfig = {
       body_es:
         'DispatchLab es un producto de transporte en rajo abierto: dados N camiones, M palas y distintos caminos de ' +
         'acarreo, simula un turno bajo una política de despacho y muestra el throughput (toneladas), el match factor y ' +
-        'la espera de camiones, respondiendo "¿qué asignación camión→pala maximiza toneladas y minimiza colas?". Eliges ' +
-        'un caso, una flota y una política y el turno completo se re-corre en vivo.\n\n' +
+        'la espera de camiones, respondiendo "¿qué asignación camión→pala maximiza toneladas y minimiza colas?". Al elegir ' +
+        'un caso, una flota y una política, el turno completo se re-corre en vivo.\n\n' +
         'Es un sistema real, no un demo. Una simulación de eventos discretos en centésimas (frontend/src/sim/) se ' +
         're-corre con cada control; el viaje del camión es físico (velocidad por pendiente, resistencia a la rodadura y ' +
         'carga); las palas cargan en un ciclo real y se forman colas en ambos extremos. Las políticas heurísticas ' +
@@ -39,30 +39,30 @@ export const architecture: ArchitectureConfig = {
       svg: 'svg/tech/06-haul-road-traffic.svg',
       body_en:
         'Trucks travel a real road network, not straight magic lines. Every haul leaves the pit through a single ' +
-        'PORTAL onto a shared surface TRUNK to a junction, then a curved SPUR to its destination (crusher, waste ' +
+        'portal onto a shared surface trunk to a junction, then a curved spur to its destination (crusher, waste ' +
         'dump or stockpile); the empty return reverses it. The 2D map and the 3D view both draw and travel these roads.\n\n' +
-        'Travel time EMERGES from traffic, it is not a fixed rimpull value. Per directed road: (1) a posted SPEED LIMIT ' +
-        'caps every truck; (2) FIFO CAR-FOLLOWING with a security-distance headway, so a fast truck caught behind a slow ' +
-        'one is held and bunches, never overtaking; (3) a passing-bay MEETING slowdown on opposing traffic. The live ' +
+        'Travel time emerges from traffic, it is not a fixed rimpull value. Per directed road: (1) a posted speed limit ' +
+        'caps every truck; (2) FIFO car-following with a security-distance headway, so a fast truck caught behind a slow ' +
+        'one is held and bunches, never overtaking; (3) a passing-bay meeting slowdown on opposing traffic. The live ' +
         'engine (model.ts) and the forkable rollout sim (rolloutSim.ts) apply these identically, checked by a ' +
         'byte-for-byte parity test, and the capacity oracle respects the same speed limit so it stays a valid bound.\n\n' +
         'The full-fidelity model (direction zones, per-section capacity, per-segment rimpull/retarder curves) lives in ' +
-        'the minehaulsim PyPI package; its samples ship the REAL network as topo.json roads/v1, which the app renders and ' +
+        'the minehaulsim PyPI package; its samples ship the real network as topo.json roads/v1, which the app renders and ' +
         'can mirror. So the synthetic cases carry a faithful per-road approximation and the structure-real samples carry ' +
         'minehaulsim’s exact roads.',
       body_es:
         'Los camiones recorren una red de caminos real, no líneas rectas mágicas. Cada acarreo sale del rajo por un ' +
-        'PORTAL único a un TRONCO de superficie compartido hasta un empalme, y luego un RAMAL curvo a su destino ' +
+        'portal único a un tronco de superficie compartido hasta un empalme, y luego un ramal curvo a su destino ' +
         '(chancador, botadero o acopio); el retorno vacío lo invierte. El mapa 2D y la vista 3D dibujan y recorren estos ' +
         'caminos.\n\n' +
-        'El tiempo de viaje EMERGE del tráfico, no es un valor de rimpull fijo. Por camino dirigido: (1) un LÍMITE DE ' +
-        'VELOCIDAD posteado acota a todo camión; (2) SEGUIMIENTO FIFO con distancia de seguridad, un camión rápido ' +
-        'atrapado tras uno lento se retiene y forma pelotón, sin adelantar; (3) una demora de CRUCE en la berma ante ' +
+        'El tiempo de viaje emerge del tráfico, no es un valor de rimpull fijo. Por camino dirigido: (1) un límite de ' +
+        'velocidad posteado acota a todo camión; (2) seguimiento FIFO con distancia de seguridad, un camión rápido ' +
+        'atrapado tras uno lento se retiene y forma pelotón, sin adelantar; (3) una demora de cruce en la berma ante ' +
         'tráfico opuesto. El motor en vivo (model.ts) y el simulador de rollout (rolloutSim.ts) los aplican idénticos, ' +
         'verificado por un test de paridad byte a byte, y el oráculo de capacidad respeta el mismo límite para seguir ' +
         'siendo cota válida.\n\n' +
         'El modelo de fidelidad plena (zonas de dirección, capacidad por tramo, curvas rimpull/retardador por segmento) ' +
-        'vive en el paquete minehaulsim (PyPI); sus muestras traen la red REAL como topo.json roads/v1, que la app ' +
+        'vive en el paquete minehaulsim (PyPI); sus muestras traen la red real como topo.json roads/v1, que la app ' +
         'renderiza y puede reflejar. Así los casos sintéticos llevan una aproximación fiel por camino y las muestras ' +
         'estructura-real llevan los caminos exactos de minehaulsim.',
     },
@@ -72,20 +72,20 @@ export const architecture: ArchitectureConfig = {
       es: 'Carriles, web / offline / cómputo',
       svg: 'svg/tech/02-lanes.svg',
       body_en:
-        'Three lanes, and the split is the point. WEB (live, in the browser): the TypeScript discrete-event simulation ' +
+        'Three lanes, and the split is the point. Web (live, in the browser): the TypeScript discrete-event simulation ' +
         '(frontend/src/sim/) re-runs on every control and onnxruntime-web runs dl-policy.onnx + dl-bcbest.onnx in the ' +
-        'decision inspector, no server. OFFLINE / COMPUTE (your machine, isolated .venv): the Python pipeline bakes ' +
+        'decision inspector, no server. Offline / compute (a local machine, isolated .venv): the Python pipeline bakes ' +
         'the canonical case artifacts (the policy comparisons + replays) and the heavy lane (--retrain, .venv-precompute, ' +
-        'torch) trains the learned dispatch policy + the behaviour-clone and exports them to ONNX. REPLAY: the small, ' +
+        'torch) trains the learned dispatch policy + the behaviour-clone and exports them to ONNX. Replay: the small, ' +
         'committed artifacts in data/derived are overlaid into the SPA by copy-data.mjs and loaded live; the typed ' +
         'mirror (contract.types.ts) fails the build if the web and the pipeline shapes ever diverge.',
       body_es:
-        'Tres carriles, y la división es lo central. WEB (en vivo, en el navegador): la simulación de eventos discretos ' +
+        'Tres carriles, y la división es lo central. Web (en vivo, en el navegador): la simulación de eventos discretos ' +
         'en TypeScript (frontend/src/sim/) se re-corre con cada control y onnxruntime-web ejecuta dl-policy.onnx + ' +
-        'dl-bcbest.onnx en el inspector de decisión, sin servidor. OFFLINE / CÓMPUTO (tu máquina, .venv aislado): el ' +
-        'pipeline Python hornea los artefactos canónicos por caso (las comparaciones de políticas + replays) y el carril ' +
+        'dl-bcbest.onnx en el inspector de decisión, sin servidor. Offline / cómputo (máquina local, .venv aislado): el ' +
+        'pipeline Python precalcula los artefactos canónicos por caso (las comparaciones de políticas + replays) y el carril ' +
         'pesado (--retrain, .venv-precompute, torch) entrena la política de despacho aprendida + el clon de comportamiento ' +
-        'y los exporta a ONNX. REPLAY: los artefactos pequeños y versionados en data/derived se superponen al SPA con ' +
+        'y los exporta a ONNX. Replay: los artefactos pequeños y versionados en data/derived se superponen al SPA con ' +
         'copy-data.mjs y se cargan en vivo; el espejo tipado (contract.types.ts) rompe el build si la web y el pipeline divergen.',
     },
     {
@@ -94,7 +94,7 @@ export const architecture: ArchitectureConfig = {
       es: 'Flujo de la web',
       svg: 'svg/tech/03-web-flow.svg',
       body_en:
-        'The App page recomputes live: inputs (the case selector or your own mine/fleet, plus the policy and seed ' +
+        'The App page recomputes live: inputs (the case selector or a custom mine/fleet, plus the policy and seed ' +
         'controls) feed the TypeScript discrete-event simulation and the onnxruntime-web decision inspector, which feed ' +
         'the interactive viz, the pit map, the throughput/match-factor/wait KPIs, the policy Pareto front and the ' +
         'per-decision scoring, each reading values back on hover/click. The six sibling pages (App · Introduction · ' +
@@ -102,7 +102,7 @@ export const architecture: ArchitectureConfig = {
         'gated by the contract-type mirror, the artifacts are overlaid by copy-data, vite builds the static output, and ' +
         'GitHub Pages serves it at dispatchlab.fasl-work.com.',
       body_es:
-        'La página App recalcula en vivo: las entradas (el selector de casos o tu propia mina/flota, más los controles ' +
+        'La página App recalcula en vivo: las entradas (el selector de casos o una mina/flota propia, más los controles ' +
         'de política y semilla) alimentan la simulación de eventos discretos en TypeScript y el inspector de decisión ' +
         'onnxruntime-web, que alimentan la visualización interactiva, el mapa del rajo, los KPIs de throughput/match ' +
         'factor/espera, el frente de Pareto de políticas y el scoring por decisión, cada uno devolviendo valores al ' +
@@ -147,18 +147,18 @@ export const architecture: ArchitectureConfig = {
       body_en:
         'Two validated data contracts bracket the pipeline. Contract 1 (ingestion) defines a valid mine + fleet, the ' +
         'shovels, roads (distance/grade/rolling resistance), truck specs and shift length, with range/NaN guards, so ' +
-        'the app accepts your data, not just the built-in cases. Contract 2 (artifact) defines the output the web reads ' +
+        'the app accepts external data, not just the built-in cases. Contract 2 (artifact) defines the output the web reads ' +
         '(per-case policy comparisons + replays, the learned imitation accuracy, the model index), mirrored exactly by ' +
         'contract.types.ts. Between them the staged, deterministic pipeline runs the lane gate (numpy-light by default, ' +
         '--retrain for the heavy torch lane) and writes a provenance manifest, so every result is reproducible and the ' +
         'web can never silently drift.',
       body_es:
-        'Dos contratos de datos validados encierran el pipeline. El Contrato 1 (ingesta) define una mina + flota válida ' +
-        ',  las palas, caminos (distancia/pendiente/resistencia a la rodadura), specs de camión y largo de turno, con ' +
-        'guardas de rango/NaN, para que la app acepte tus datos, no sólo los casos incluidos. El Contrato 2 (artefacto) ' +
+        'Dos contratos de datos validados encierran el pipeline. El Contrato 1 (ingesta) define una mina + flota válida, ' +
+        'las palas, caminos (distancia/pendiente/resistencia a la rodadura), specs de camión y largo de turno, con ' +
+        'guardas de rango/NaN, para que la app acepte datos propios, no solo los casos incluidos. El Contrato 2 (artefacto) ' +
         'define la salida que lee la web (comparaciones de políticas + replays por caso, la precisión de imitación ' +
         'aprendida, el índice de modelos), espejada exactamente por contract.types.ts. Entre ambos, el pipeline por ' +
-        'etapas y determinista corre el lane gate (numpy-light por defecto, --retrain para el carril pesado de torch) y ' +
+        'etapas y determinista ejecuta el lane gate (numpy-light por defecto, --retrain para el carril pesado de torch) y ' +
         'escribe un manifest de procedencia, de modo que cada resultado es reproducible y la web nunca diverge en silencio.',
     },
   ],

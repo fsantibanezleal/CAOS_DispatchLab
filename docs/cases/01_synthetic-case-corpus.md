@@ -7,7 +7,7 @@ is built to that shape, round 2 of issue #67 rebuilt it to be domain-correct rat
 
 ## The material-flow model (domain-correct)
 
-A **stockpile is mined ORE held TEMPORARILY** to be sent to the plant later. It is **not** a dump. The only
+A **stockpile is mined ore held temporarily** to be sent to the plant later. It is **not** a dump. The only
 legal movements are:
 
 **Loaded (a truck carrying material), exactly three:**
@@ -16,7 +16,7 @@ legal movements are:
 2. `shovel(ore)  -> stockpile`       buffer ore temporarily (**rehandle**)
 3. `shovel(waste)-> waste dump`      waste, terminal
 
-**Empty (the only empty movement):** `delivery-point -> a SHOVEL of the same material lane`. From a crusher or
+**Empty (the only empty movement):** `delivery-point -> a shovel of the same material lane`. From a crusher or
 stockpile the empty truck returns to an **ore** face; from a waste dump it returns to a **waste** face.
 
 **Reclaim (non-truck):** `stockpile -> plant` is the **reclaimer / conveyor**, continuous and active; it
@@ -30,11 +30,11 @@ the baked trace.
 
 ## The pit portal + internal road network
 
-Every pit has a single **EXIT / PORTAL**. A haul is a **polyline**, never a straight shovel-to-destination
+Every pit has a single **exit / portal**. A haul is a **polyline**, never a straight shovel-to-destination
 line:
 
-- **Loaded:** `shovel -> internal pit roads (the ramp climb) -> PORTAL -> a direct surface haul -> destination`.
-- **Empty:**  `destination -> direct surface haul -> PORTAL -> internal pit roads -> shovel`.
+- **Loaded:** `shovel -> internal pit roads (the ramp climb) -> portal -> a direct surface haul -> destination`.
+- **Empty:**  `destination -> direct surface haul -> portal -> internal pit roads -> shovel`.
 
 The DES leg time is the **sum of the two rimpull segments** (`sim/haul.ts`): the internal `pitRoad[shovel]`
 (carries the ramp grade) plus the surface `portalHaul[dump]` (flatter). This is why an empty truck visibly
@@ -66,14 +66,14 @@ point; below it the shovel starves, above it trucks queue and throughput saturat
 
 Each has an intermediate ore **stockpile** that genuinely cycles: the crusher is the binding bottleneck, so
 ore trucks constantly **rehandle** onto the pile (path 2) and the **reclaimer** draws it back down (reclaim).
-The axis gate asserts, on the deterministic baked trace, that each pile **fills to >= 30 % of capacity AND
+The axis gate asserts, on the deterministic baked trace, that each pile **fills to >= 30 % of capacity and
 draws back down** (max drawdown >= 10 %), with both rehandle legs and active reclaim present. A dead / never
 filled stockpile fails the build.
 
 | id | config | geometry + dynamics |
 |---|---|---|
-| **C04** | 6 shovels, 2-bay crusher + waste dump + stockpile | **DEEP narrow pit**: long 8-9 % internal ramps, per-truck productivity far below a shallow pit; high load/travel variance (the bunching a rollout can hedge) |
-| **C05** | 8 shovels, 2-bay crusher + waste dump + stockpile | **SHALLOW wide pit**: short flat roads, the shovels bind; the slow crusher cannot take all the ore, so the pile fills through the shift and the reclaimer + a mid-shift break draw it down |
+| **C04** | 6 shovels, 2-bay crusher + waste dump + stockpile | **deep narrow pit**: long 8-9 % internal ramps, per-truck productivity far below a shallow pit; high load/travel variance (the bunching a rollout can hedge) |
+| **C05** | 8 shovels, 2-bay crusher + waste dump + stockpile | **shallow wide pit**: short flat roads, the shovels bind; the slow crusher cannot take all the ore, so the pile fills through the shift and the reclaimer + a mid-shift break draw it down |
 | **C06** | 8 shovels, 2-bay Plant A (buffered) + 1-bay Plant B + waste dump + stockpile | **two plants**, a near ore shovel that **fails on a Poisson clock**, and a mixed 793F + 930E fleet |
 | **C07** | 8 shovels, slow 2-bay crusher + waste dump + stockpile | a **throughput-limited plant** forces heavy rehandle, under a blend window and a mid-shift break |
 
@@ -101,11 +101,11 @@ The round-2 corpus has **no 1-source tiles**. The determinism anchors live as fi
 
 - exactly **2-3 simple cases** (>= 4 src, >= 2 dest); every **other** case >= 6 src, >= 2 dest, >= 1 stockpile;
 - source counts **scale** (6, 8, >= 12), the showcase C08 is large;
-- each stockpile **fills to >= 30 % AND draws down**, with rehandle legs + active reclaim;
+- each stockpile **fills to >= 30 % and draws down**, with rehandle legs + active reclaim;
 - the route table + every baked leg is a **valid material-flow path only**;
 - **empty trucks return to a same-lane shovel on a road**; none render at the origin;
-- **no two cases share an identical node layout**, and the corpus has both a DEEP steep-ramp pit and a PLANE
-  flat-ramp pit (distinct topographies in layout AND physics), so a templated corpus fails;
+- **no two cases share an identical node layout**, and the corpus has both a deep steep-ramp pit and a plane
+  flat-ramp pit (distinct topographies in layout and physics), so a templated corpus fails;
 - every primitive appears (>= 4 shovels, multi-dump, waste dump, multiple crushers, stockpile + reclaim,
   crusher bays 1 & 2, mixed fleet).
 

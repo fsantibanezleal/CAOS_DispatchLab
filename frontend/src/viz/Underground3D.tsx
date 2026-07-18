@@ -1,11 +1,11 @@
-// Underground 3D (#21): renders the REAL generated mine skeleton from minehaulsim.minetopo/v1 , 
+// Underground 3D (#21): renders the real generated mine skeleton from minehaulsim.minetopo/v1,
 // the decline as a tube, level platforms, drawpoints, ore-pass tips→chute drops and the shaft
-// bin, and animates the truck fleet along the DECLINE for haul legs (queued/serving trucks sit
-// at their marker). Same compute discipline as Pit3D: render ON DEMAND only (playback tick,
+// bin, and animates the truck fleet along the decline for haul legs (queued/serving trucks sit
+// at their marker). Same compute discipline as Pit3D: render on demand only (playback tick,
 // camera interaction, theme change); no free-running rAF; halts on a hidden tab.
 //
-// Honesty (stated in the panel note): cycle TIMES come from the replayed log; the 3D decides
-// only WHERE a truck is drawn along its leg. Shovel markers map to chutes (or level drawpoints)
+// Honesty (stated in the panel note): cycle times come from the replayed log; the 3D decides
+// only where a truck is drawn along its leg. Shovel markers map to chutes (or level drawpoints)
 // in id order, representational when the sample carries more loading points than the topo.
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
@@ -123,7 +123,7 @@ export function Underground3D({ c, result, t, lang }: { c: CaseSpec; result: Sim
       }
     }
 
-    // ORE PASSES: vertical drop lines tips → chute + chute box; SHAFT bin box
+    // ore passes: vertical drop lines tips → chute + chute box; shaft bin box
     for (const op of topo.ore_passes) {
       const chute = toThree(op.chute);
       for (const tip of op.tips) {
@@ -254,8 +254,8 @@ export function Underground3D({ c, result, t, lang }: { c: CaseSpec; result: Sim
       <div ref={mountRef} style={{ width: '100%' }} />
       <p className="dl-note" style={{ marginTop: '0.4rem' }}>
         {es
-          ? 'Mina subterránea REAL generada (minetopo/v1): rampa de acceso, niveles, puntos de extracción, piques de traspaso y bin. Los TIEMPOS son del log reproducido; el 3D solo decide dónde se dibuja el camión en su tramo (marcadores representacionales). Arrastra para orbitar.'
-          : 'REAL generated underground mine (minetopo/v1): access decline, levels, drawpoints, ore passes and bin. TIMES come from the replayed log; the 3D only decides where the truck is drawn along its leg (markers representational). Drag to orbit.'}
+          ? 'Mina subterránea real generada (minetopo/v1): rampa de acceso, niveles, puntos de extracción, piques de traspaso y bin. Los tiempos son del log reproducido; el 3D solo decide dónde se dibuja el camión en su tramo (marcadores representacionales). Arrastrar para orbitar.'
+          : 'Real generated underground mine (minetopo/v1): access decline, levels, drawpoints, ore passes and bin. Times come from the replayed log; the 3D only decides where the truck is drawn along its leg (markers representational). Drag to orbit.'}
       </p>
     </div>
   );

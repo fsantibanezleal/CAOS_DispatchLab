@@ -1,5 +1,5 @@
 // Shared haul-road traffic constants + helpers (#87). model.ts, the forkable rolloutSim.ts and the
-// capacity oracle MUST use the SAME values, so the two sims stay byte-for-byte in parity and the
+// capacity oracle must use the same values, so the two sims stay byte-for-byte in parity and the
 // oracle stays a valid upper bound (it has to respect the same posted speed limit the sim runs on).
 export const SECURITY_M = 60;   // minimum spacing between consecutive trucks on a haul road (metres)
 export const POSTED_KMH = 50;   // posted haul-road speed limit, independent of the truck's rimpull

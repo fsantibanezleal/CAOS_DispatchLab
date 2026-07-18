@@ -15,10 +15,10 @@ theory the simulator reproduces.
 * **fixed**, static truck→shovel assignment (the baseline that ignores state).
 
 `minTruckWait` and `minShovelWait` genuinely conflict on an asymmetric pit (they trade tonnes for balance), which is
-why the honest summary is a Pareto frontier + a TIE rule, not a single winner.
+why the honest summary is a Pareto frontier + a tie rule, not a single winner.
 
 ## Match factor
 
 `MF = trucks / (shovels × cycle ratio)` (a coarse balance). Throughput scales ~linearly while MF<1 (shovel idle) then
-SATURATES as MF crosses 1 (over-trucked, queues form). The fleet-size sweep validates this: the over-trucking knee
+saturates as MF crosses 1 (over-trucked, queues form). The fleet-size sweep validates this: the over-trucking knee
 (Kneedle) lands at MF=1. Contract 1 flags scenarios far from MF=1 (dispatch barely matters there).

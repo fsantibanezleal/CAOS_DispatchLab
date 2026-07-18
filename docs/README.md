@@ -3,17 +3,17 @@
 The navigable wiki for DispatchLab (ADR-0056), authored as the product is built. DispatchLab is a public, didactic
 **truck-shovel dispatch bench**: a deterministic discrete-event simulation (DES) of an open-pit haul cycle, six
 classical dispatch policies (five heuristics + Hungarian joint assignment) + two **learned** ONNX policies, an
-animated pit map, a multi-objective policy comparison (Pareto + TIE rule), and a match-factor theory-validation
+animated pit map, a multi-objective policy comparison (Pareto + tie rule), and a match-factor theory-validation
 sweep, all running **live in the browser**.
 
-## What it is / what it is NOT
+## What it is / what it is not
 
 * **Is:** a real, interactive dispatch sandbox, pick one of 12 cases (single-shovel MF sweep, multi-shovel pits,
   geometry & constraints, the 1×1 oracle), run any of 8 policies in the DES, compare them on a Pareto frontier with a
-  TIE rule, and see the
+  tie rule, and see the
   learned policies recovered from logged DES decisions run live (onnxruntime-web).
-* **Is NOT:** a production dispatch system. The DES is a **deterministic simulation**, NOT a real fleet. The two
-  learned policies are **competitive** (within ~1% of the best heuristic that taught them), NOT a fabricated RL win.
+* **Is not:** a production dispatch system. The DES is a **deterministic simulation**, not a real fleet. The two
+  learned policies are **competitive** (within ~1% of the best heuristic that taught them), not a fabricated RL win.
   No real fleet-management data is used.
 
 ## Map

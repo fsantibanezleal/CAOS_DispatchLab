@@ -1,27 +1,27 @@
 // Synthetic-but-physics-grounded cases. No public ground-truthed dispatch benchmark exists (real DISPATCH/
 // Wenco cycle logs are proprietary), so each mine is generated from documented physics (rimpull/grade
-// kinematics, Erlang load times) and VALIDATED against the closed-form match factor + the oracle controls
+// kinematics, Erlang load times) and validated against the closed-form match factor + the oracle controls
 // (the 1x1 oracle + tie/positive controls live as fixtures in the test suite, not as user tiles).
 //
 // Round-2 corpus (#67), Felipe's exact design:
-//   * 2-3 SIMPLE teaching cases: >= 4 shovels, >= 2 destinations, kept simple (routing + match factor).
-//   * ALL OTHER cases are COMPLEX and DYNAMIC: >= 6 shovels (scaling to 12), an intermediate ore STOCKPILE
-//     that is ACTIVELY CYCLED (the crusher is the binding bottleneck so ore trucks constantly rehandle onto
+//   * 2-3 simple teaching cases: >= 4 shovels, >= 2 destinations, kept simple (routing + match factor).
+//   * all other cases are complex and dynamic: >= 6 shovels (scaling to 12), an intermediate ore stockpile
+//     that is actively cycled (the crusher is the binding bottleneck so ore trucks constantly rehandle onto
 //     the pile and the reclaimer draws it back down), multiple plants + waste dump(s), plus breakdowns /
 //     stochastic cycle times / blend windows / shift breaks / phases. The showcase C08 is a 12-shovel,
 //     3-phase network with every node type and every dynamic.
 //
-// PIT PORTAL + INTERNAL ROADS (#67 round 2): every pit has a single EXIT/PORTAL. A haul is a POLYLINE, a
-// LOADED truck runs shovel -> internal pit road (`pitRoad`, the ramp climb) -> portal -> a DIRECT surface
-// haul (`portalHaul`) -> destination; an EMPTY truck runs the reverse (destination -> portal -> pit road ->
+// Pit portal + internal roads (#67 round 2): every pit has a single exit/portal. A haul is a polyline, a
+// loaded truck runs shovel -> internal pit road (`pitRoad`, the ramp climb) -> portal -> a direct surface
+// haul (`portalHaul`) -> destination; an empty truck runs the reverse (destination -> portal -> pit road ->
 // shovel), always on drawn roads, never a straight shovel->destination line and never to the origin. The DES
-// leg time is the SUM of the two rimpull segments (`sim/haul.ts`). This portal + internal-road layout, varied
-// per pit (deep pit = long steep internal ramps to a deep portal; plane pit = short flat internal roads), IS
+// leg time is the sum of the two rimpull segments (`sim/haul.ts`). This portal + internal-road layout, varied
+// per pit (deep pit = long steep internal ramps to a deep portal; plane pit = short flat internal roads), is
 // the distinct topography, so no two cases look alike.
 //
-// Material-flow model (domain-correct): the only LOADED legs are shovel(ore)->crusher, shovel(ore)->stockpile
-// (rehandle), shovel(waste)->waste dump; the only EMPTY move is delivery-point->a SHOVEL of the same lane;
-// stockpile->plant is the RECLAIMER (a non-truck conveyor). Invalid paths are never authored; every authored
+// Material-flow model (domain-correct): the only loaded legs are shovel(ore)->crusher, shovel(ore)->stockpile
+// (rehandle), shovel(waste)->waste dump; the only empty move is delivery-point->a shovel of the same lane;
+// stockpile->plant is the reclaimer (a non-truck conveyor). Invalid paths are never authored; every authored
 // road carries real traffic in the baked trace.
 import { TRUCKS } from './kinematics';
 import { type CaseSpec, type MineSpec, type FleetSpec, type ShovelSpec, type DumpSpec, type Route, type PitTopoSpec, type NodePos } from './types';
@@ -43,12 +43,12 @@ function crusher(id: number, name: string, p: NodePos, opts: Partial<DumpSpec> =
 function waste(id: number, name: string, p: NodePos, opts: Partial<DumpSpec> = {}): DumpSpec {
   return { id, name, pos: p, kind: 'waste', dumpMeanSec: 45, accepts: ['waste'], ...opts };
 }
-/** A stockpile is reached only by REHANDLE (accepts: [], never a normal-routing destination); a reclaimer
+/** A stockpile is reached only by rehandle (accepts: [], never a normal-routing destination); a reclaimer
  *  draws it down to feed its target crusher. */
 function stock(id: number, name: string, p: NodePos, opts: Partial<DumpSpec> = {}): DumpSpec {
   return { id, name, pos: p, kind: 'stockpile', dumpMeanSec: 40, accepts: [], areaCapacityT: 16000, reclaimRateTph: 2400, rehandleAtQueue: 2, ...opts };
 }
-/** An internal pit-road / surface-haul segment: distance [m], LOADED (climb-out) grade %, rolling resistance %. */
+/** An internal pit-road / surface-haul segment: distance [m], loaded (climb-out) grade %, rolling resistance %. */
 function seg(distM: number, gradePct: number, rrPct = 3): Route { return { distM, gradePct, rrPct }; }
 
 interface PitDef {
@@ -90,10 +90,10 @@ function mixedOn(a793: number[], b930: number[]): FleetSpec {
 }
 
 // ============================================================================================
-// SIMPLE tier (2-3 cases): >= 4 shovels, >= 2 destinations, kept simple (the teaching tier)
+// simple tier (2-3 cases): >= 4 shovels, >= 2 destinations, kept simple (the teaching tier)
 // ============================================================================================
 
-// ---- C01 SHALLOW compact pit, ore + waste routing (teach: the 'which dump' decision + match factor) ----
+// ---- C01 shallow compact pit, ore + waste routing (teach: the 'which dump' decision + match factor) ----
 const C01c = { x: 300, y: 300 };
 export const C01: CaseSpec = {
   id: 'C01', name: 'Ore + waste routing (shallow pit)', shiftSec: SHIFT,
@@ -114,7 +114,7 @@ export const C01: CaseSpec = {
   }),
 };
 
-// ---- C02 TWO PLANTS on a round pit (teach: two plants, each with its own feed; the lane balances them) ----
+// ---- C02 two plants on a round pit (teach: two plants, each with its own feed; the lane balances them) ----
 const C02c = { x: 300, y: 290 };
 export const C02: CaseSpec = {
   id: 'C02', name: 'Two plants (independent feeds)', shiftSec: SHIFT,
@@ -157,10 +157,10 @@ export const C03: CaseSpec = {
 };
 
 // ============================================================================================
-// COMPLEX / DYNAMIC tier: >= 6 shovels, an ACTIVELY-CYCLED ore stockpile, multi-destination, dynamics
+// complex / dynamic tier: >= 6 shovels, an actively-cycled ore stockpile, multi-destination, dynamics
 // ============================================================================================
 
-// ---- C04 DEEP NARROW pit (haul-bound): long 8-9% internal ramps, an active stockpile, stochastic cycles ----
+// ---- C04 deep narrow pit (haul-bound): long 8-9% internal ramps, an active stockpile, stochastic cycles ----
 const C04c = { x: 300, y: 300 };
 export const C04: CaseSpec = {
   id: 'C04', name: 'Deep narrow pit (stockpile + stochastic cycles)', shiftSec: SHIFT,
@@ -189,7 +189,7 @@ export const C04: CaseSpec = {
   }),
 };
 
-// ---- C05 SHALLOW WIDE pit (shovel-bound): short flat roads, a SLOW crusher, an active stockpile ----
+// ---- C05 shallow wide pit (shovel-bound): short flat roads, a slow crusher, an active stockpile ----
 const C05c = { x: 300, y: 290 };
 export const C05: CaseSpec = {
   id: 'C05', name: 'Shallow wide pit (shovel-bound, active stockpile)', shiftSec: SHIFT,
@@ -220,7 +220,7 @@ export const C05: CaseSpec = {
   }),
 };
 
-// ---- C06 TWO-PLANT network with a shovel BREAKDOWN + a mixed fleet + an active stockpile ----
+// ---- C06 two-plant network with a shovel breakdown + a mixed fleet + an active stockpile ----
 const C06c = { x: 300, y: 290 };
 export const C06: CaseSpec = {
   id: 'C06', name: 'Two-plant network (breakdown + mixed fleet + stockpile)', shiftSec: SHIFT,
@@ -285,10 +285,10 @@ export const C07: CaseSpec = {
 };
 
 // ============================================================================================
-// The BOSS / showcase: a large 12-shovel, 3-phase network with every node type + every dynamic
+// The boss / showcase: a large 12-shovel, 3-phase network with every node type + every dynamic
 // ============================================================================================
 
-// ---- C08 THE BOSS: 12 shovels across 3 phases, 2 crushers (2-bay + 1-bay), 2 waste dumps, a stockpile ----
+// ---- C08 the boss: 12 shovels across 3 phases, 2 crushers (2-bay + 1-bay), 2 waste dumps, a stockpile ----
 const C08c = { x: 320, y: 300 };
 export const C08: CaseSpec = {
   id: 'C08', name: 'Boss: 12 shovels, 3 phases, all node types + dynamics', shiftSec: SHIFT,
@@ -338,6 +338,6 @@ export const C08: CaseSpec = {
 export const CASES: CaseSpec[] = [C01, C02, C03, C04, C05, C06, C07, C08];
 export const caseById = (id: string): CaseSpec => CASES.find((c) => c.id === id) ?? C08;
 
-// SIMPLE teaching cases (>= 4 shovels, >= 2 destinations, no stockpile required); every OTHER case is
+// simple teaching cases (>= 4 shovels, >= 2 destinations, no stockpile required); every other case is
 // complex/dynamic with an actively-cycled ore stockpile. Kept as a named set for the axis-coverage gate.
 export const SIMPLE_CASE_IDS = new Set(['C01', 'C02', 'C03']);

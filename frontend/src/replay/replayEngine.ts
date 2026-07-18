@@ -1,8 +1,8 @@
 // The REPLAY engine (#15): folds a validated real cycle log (RealSample) into the exact SimResult shape the
 // whole App already consumes (legs for PitMap/Pit3D, ShovelKpi, crusherFeed, waits, MF), so every tab renders
-// a MEASURED shift with zero changes to the DES (des.ts/model.ts untouched; they generate, this reads).
+// a measured shift with zero changes to the DES (des.ts/model.ts untouched; they generate, this reads).
 //
-// Event semantics (cyclelog/v1): each event marks the START of its phase , 
+// Event semantics (cyclelog/v1): each event marks the start of its phase,
 //   load@t  -> loading at the shovel     [load, haul)   = atShovel (serving)
 //   haul@t  -> loaded travel             [haul, dump)   = haulFull shovel->dump
 //   dump@t  -> dumping                   [dump, return) = atDump

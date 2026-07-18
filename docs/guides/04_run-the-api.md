@@ -1,4 +1,4 @@
-# 04, The `app/` backend (DORMANT)
+# 04, The `app/` backend (dormant)
 
 DispatchLab is static deterministic-replay: the SPA + the committed artifacts serve from GitHub Pages with **no
 backend at request time** (the DES + the ONNX run entirely in the browser). The `app/` FastAPI module ships dormant

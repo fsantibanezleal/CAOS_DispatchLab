@@ -1,5 +1,5 @@
 // Hungarian (Kuhn–Munkres) assignment solver, the OR tier's core (#22). Pure TS, O(n^3),
-// no dependencies. Solves min-cost assignment of workers (trucks) to tasks (shovel SLOTS);
+// no dependencies. Solves min-cost assignment of workers (trucks) to tasks (shovel slots);
 // rectangular matrices are padded to square with a large-but-finite cost so extra workers get
 // dummy tasks (never Infinity, it breaks the potentials).
 //
