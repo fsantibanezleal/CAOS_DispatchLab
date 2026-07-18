@@ -1,7 +1,7 @@
-// COUNTERFACTUAL dispatch analysis (#18): at every REAL dump-complete in a measured shift, reconstruct the
+// Counterfactual dispatch analysis (#18): at every real dump-complete in a measured shift, reconstruct the
 // dispatch state the real dispatcher faced (from the log itself) and re-decide it under each policy, "would
 // this policy have sent the truck where the real dispatcher did?" The App reports per-policy AGREEMENT on the
-// real decision points (honest: decision-point agreement, NOT tonnes, counterfactual tonnes need a calibrated
+// real decision points (honest: decision-point agreement, not tonnes, counterfactual tonnes need a calibrated
 // re-simulation and live in Benchmark, #19).
 //
 // State reconstruction (all from the log, same estimates as the replay engine, stated in the UI):
@@ -17,7 +17,7 @@ export interface CfDecision {
   t: number;
   truck: number;
   fromDump: number;
-  chosen: number;              // the REAL dispatcher's choice (next load shovel)
+  chosen: number;              // the real dispatcher's choice (next load shovel)
   state: DispatchState;        // reconstructed decision state (policies + ONNX features run on this)
 }
 

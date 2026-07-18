@@ -1,10 +1,10 @@
 // A FORKABLE truck-shovel discrete-event simulator, the internal MODEL the Monte-Carlo rollout dispatcher
 // looks ahead with. It reproduces model.ts's cycle EXACTLY (same kinematics, same integer-tick clock, same
-// event order, same RNG streams) but stores the future-event list and all state as PLAIN DATA (no closures),
+// event order, same RNG streams) but stores the future-event list and all state as plain data (no closures),
 // so a running simulation can be cloned mid-decision (`fork()`), the branch reseeded with independent noise
 // (`reseedFutures()`), and rolled out to a horizon under a base policy. model.ts keeps its closure-based form
 // for the live app; this engine is validated byte-for-byte against it on the deterministic corpus
-// (test/rolloutSim.test.ts) so the look-ahead is the SAME physics, not a rigged surrogate.
+// (test/rolloutSim.test.ts) so the look-ahead is the same physics, not a rigged surrogate.
 //
 // Refs for the rollout it powers: Bertsekas, Tsitsiklis & Wu 1997 (rollout as one policy-improvement step,
 // DOI 10.1023/A:1009635226865); Bertsekas & Castanon 1999 (the stochastic-scheduling variant,
@@ -29,7 +29,7 @@ interface St {
   nowTick: number; seq: number;
   fel: Ev[];
   sh: Record<number, ShRT>;
-  dumpServers: Record<number, number>;   // BUSY bays per dump (c-server); 1-bay = single-server FIFO
+  dumpServers: Record<number, number>;   // busy bays per dump (c-server); 1-bay = single-server FIFO
   dumpQ: Record<number, number[]>;
   stockLevel: Record<number, number>;    // stockpile tonnes stacked (rehandle raises, reclaim lowers)
   truckArr: Record<number, number>;
@@ -186,7 +186,7 @@ export class RolloutSim {
     this.schedule(tt, 'arriveDump', truckId, dumpId, 1);
   }
 
-  // haul-road traffic (#87), MUST mirror model.ts exactly: posted speed limit + FIFO security-distance
+  // haul-road traffic (#87), must mirror model.ts exactly: posted speed limit + FIFO security-distance
   // headway (no overtaking, bunching) + two-way meeting slowdown. Effective tt >= free-flow.
   private carFollow(dirKey: string, oppKey: string, freeFlowTt: number, distM: number): number {
     const depart = this.nowSec;
@@ -351,7 +351,7 @@ export class RolloutSim {
     const truck = this.truckById.get(dec.truckId)!;
     const feasibleAll = feasibleShovels(state.shovels, cons, { now, truck, crusherTphTrailing: this.trailingTph() });
     // material-lane empty-return (#67 round 2): mirror of model.ts decide() so the two engines stay byte-parity.
-    // The empty move is delivery-point -> a SHOVEL of the same lane (crusher/stockpile -> ore; waste -> waste).
+    // The empty move is delivery-point -> a shovel of the same lane (crusher/stockpile -> ore; waste -> waste).
     const lane: 'ore' | 'waste' = this.dumpSpec(dec.dumpId).kind === 'waste' ? 'waste' : 'ore';
     const feasible = feasibleAll.filter((v) => v.spec.faceType === lane);
     if (feasible.length === 0) { this.st.truckWaitSec += 60; this.schedule(60, 'reDecide', dec.truckId, dec.dumpId, 2); this.st.decision = null; return 'held'; }

@@ -21,7 +21,7 @@ function levelAt(series: { t: number; level: number }[] | undefined, t: number):
 }
 
 type Pt = { x: number; y: number };
-/** The 2D surface road network (#87): a shared TRUNK from the portal to a junction, then curved SPURS to
+/** The 2D surface road network (#87): a shared trunk from the portal to a junction, then curved spurs to
  *  each destination. Mirrors the 3D topo network so hauls follow real roads, never a straight rim->dump line. */
 function surfaceNet(c: CaseSpec): { junction: Pt; trunk: Pt[]; spurs: Record<number, Pt[]> } | null {
   const portal = c.mine.portal;
@@ -49,8 +49,8 @@ function nearestDumpId(c: CaseSpec, p: Pt): number | null {
   for (const d of c.mine.dumps) { const dd = Math.hypot(d.pos.x - p.x, d.pos.y - p.y); if (dd < bd) { bd = dd; best = d.id; } }
   return best;
 }
-/** The haul POLYLINE for a leg: shovel -> portal -> trunk -> junction -> spur -> destination (loaded), or its
- *  reverse (empty), so the truck travels the drawn ROAD NETWORK, never a straight line. No portal (real
+/** The haul polyline for a leg: shovel -> portal -> trunk -> junction -> spur -> destination (loaded), or its
+ *  reverse (empty), so the truck travels the drawn road network, never a straight line. No portal (real
  *  sample) -> legacy straight segment. */
 function legPoly(c: CaseSpec, l: Leg): { x: number; y: number }[] {
   const portal = c.mine.portal;
@@ -123,7 +123,7 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
       // internal pit roads (thicker, the ramp network to the exit)
       g.lineWidth = 6;
       for (const s of c.mine.shovels) { g.beginPath(); g.moveTo(sx(s.pos.x), sy(s.pos.y)); g.lineTo(sx(portal.x), sy(portal.y)); g.stroke(); }
-      // surface road network: shared TRUNK (portal -> junction) + curved SPURS (junction -> each dump)
+      // surface road network: shared trunk (portal -> junction) + curved spurs (junction -> each dump)
       const drawPoly = (pts: Pt[]) => { g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(sx(p.x), sy(p.y)) : g.moveTo(sx(p.x), sy(p.y)))); g.stroke(); };
       g.lineWidth = 8;
       if (net) {
@@ -138,7 +138,7 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
         g.beginPath(); g.moveTo(sx(s.pos.x), sy(s.pos.y)); g.lineTo(sx(d.pos.x), sy(d.pos.y)); g.stroke();
       }
     }
-    // reclaim conveyors (dashed): a stockpile feeds its target crusher (the SOURCE side of the buffer)
+    // reclaim conveyors (dashed): a stockpile feeds its target crusher (the source side of the buffer)
     g.save(); g.setLineDash([6, 6]); g.strokeStyle = '#e3b341'; g.lineWidth = 2.5;
     for (const sp of c.mine.dumps.filter((d) => d.kind === 'stockpile')) {
       const tgt = c.mine.dumps.find((d) => d.id === (sp.reclaimTargetId ?? -1) && d.kind === 'crusher')
@@ -163,7 +163,7 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
       truckDraw.push({ x: sx(p.x), y: sy(p.y), color: STATE_COLOR[active.state] });
     }
 
-    // shovels (squares), fill by queue, OUTLINE by face type (ore = amber, waste = slate)
+    // shovels (squares), fill by queue, outline by face type (ore = amber, waste = slate)
     for (const s of c.mine.shovels) {
       const q = qShovel.get(s.id) ?? 0; const x = sx(s.pos.x), y = sy(s.pos.y);
       const oreFace = s.faceType === 'ore';
@@ -173,7 +173,7 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
       g.fillText(s.name.split('(')[0].trim(), x, y - 20);
       g.fillStyle = '#0d1117'; g.font = '700 12px ui-monospace, monospace'; g.fillText(String(q), x, y + 4);
     }
-    // dumps: crusher (red diamond) + waste dump (slate diamond) + stockpile (amber pile with a FILL level)
+    // dumps: crusher (red diamond) + waste dump (slate diamond) + stockpile (amber pile with a fill level)
     for (const d of c.mine.dumps) {
       const x = sx(d.pos.x), y = sy(d.pos.y);
       if (d.kind === 'stockpile') {
@@ -200,7 +200,7 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
       g.fillText(d.name + (isCr && (d.bays ?? 1) > 1 ? ` (${d.bays})` : ''), x, y - 22);
       g.fillStyle = '#0d1117'; g.font = '700 12px ui-monospace, monospace'; g.fillText(String(q), x, y + 4);
     }
-    // pit PORTAL / exit: the single node all hauls pass through (drawn as a gateway chevron + label)
+    // pit portal / exit: the single node all hauls pass through (drawn as a gateway chevron + label)
     if (portal) {
       const px = sx(portal.x), py = sy(portal.y);
       g.fillStyle = surface; g.strokeStyle = fg; g.lineWidth = 2;

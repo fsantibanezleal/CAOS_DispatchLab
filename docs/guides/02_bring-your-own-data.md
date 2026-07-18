@@ -1,6 +1,6 @@
 # 02, Bring your own pit scenario
 
-DispatchLab is not limited to the 8 baked cases, Contract 1 is the gate that lets it evaluate a NEW pit.
+DispatchLab is not limited to the 8 baked cases, Contract 1 is the gate that lets it evaluate a new pit.
 
 ## 1. Describe the scenario (Contract 1)
 

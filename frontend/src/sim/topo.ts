@@ -2,7 +2,7 @@
 // pit geometry every case's 3D view uses: bench rings at descending elevations, the spiral ramp polyline
 // connecting the rim to the floor, 3D positions for shovels (on their bench) and dumps (at the rim), and an
 // arc-length-parametrised 3D haul path per route. HONESTY: representational geometry, cycle TIMES always come
-// from the DES kinematics (route distM/grade); the 3D path only decides WHERE a truck is drawn at fraction f
+// from the DES kinematics (route distM/grade); the 3D path only decides where a truck is drawn at fraction f
 // of its leg, so trucks depart/arrive exactly when the (validated) DES says.
 import { type MineSpec, type NodePos, type PitTopoSpec } from './types';
 
@@ -22,7 +22,7 @@ export interface PitTopo {
   ramp: Vec3[];                       // spiral polyline rim → floor (descending)
   shovelPos3: Record<number, Vec3>;   // shovels projected onto their bench
   dumpPos3: Record<number, Vec3>;     // dumps at rim elevation (z=0)
-  paths: Record<string, Path3D>;      // `${shovelId}->${dumpId}`, the LOADED direction (shovel → dump)
+  paths: Record<string, Path3D>;      // `${shovelId}->${dumpId}`, the loaded direction (shovel → dump)
   roads: { portal: Vec3; junction: Vec3; trunk: Vec3[]; spurs: Record<number, Vec3[]> };  // surface network (#87)
   realRoads: RealRoads | null;  // minehaulsim.roads/v1 from a structure-real sample, when present (#28)
 }
@@ -134,7 +134,7 @@ export function defaultTopo(mine: MineSpec): PitTopoSpec {
 }
 
 /** Build the full topo: rings + ramp + node positions + a 3D haul path per route.
- *  Haul path (LOADED, shovel → dump): along the shovel's bench to the ramp entry at that level, up the spiral
+ *  Haul path (loaded, shovel → dump): along the shovel's bench to the ramp entry at that level, up the spiral
  *  to the rim, then across the surface to the dump pad. The empty return renders the same path reversed. */
 export function buildPitTopo(mine: MineSpec): PitTopo {
   const spec0 = mine.topo ?? defaultTopo(mine);
@@ -160,8 +160,8 @@ export function buildPitTopo(mine: MineSpec): PitTopo {
     dumpPos3[d.id] = { x: spec.center.x + dx * push, y: spec.center.y + dy * push, z: 0 };
   }
 
-  // ---- surface road network (#87): hauls leave the portal on a shared TRUNK road to a junction, then
-  // take a curved SPUR to each destination. Real roads outside the pit, never a straight magic line from
+  // ---- surface road network (#87): hauls leave the portal on a shared trunk road to a junction, then
+  // take a curved spur to each destination. Real roads outside the pit, never a straight magic line from
   // the rim to the waste/stockpile/plant. Distances follow the road polyline. ----
   const portalPt: Vec3 = ramp[0] ?? { x: spec.center.x, y: spec.center.y - spec.rimRy, z: 0 };
   const dcx = mine.dumps.reduce((a, d) => a + dumpPos3[d.id].x, 0) / (mine.dumps.length || 1);
@@ -207,19 +207,19 @@ export function buildPitTopo(mine: MineSpec): PitTopo {
     }
     // up the ramp: from the entry index back to the rim (index 0)
     const up = ramp.slice(0, iEntry + 1).reverse();
-    // Build a path for EVERY (shovel, dump) pair, not only authored haul routes. The route table
+    // Build a path for every (shovel, dump) pair, not only authored haul routes. The route table
     // gates DISPATCH (which shovel feeds which dump in the DES); the 3D geometry is purely positional
     // (bench arc -> ramp -> portal/rim -> surface -> dump). An empty truck re-dispatched to a shovel
     // that has no authored route to the dump it just left still needs a portal-routed return path,
     // without one it fell back to a straight line that cut through the terrain and vanished (#74).
     for (const d of mine.dumps) {
-      // surface leg follows the ROAD NETWORK: portal -> trunk -> junction -> spur -> dump (never a
+      // surface leg follows the road network: portal -> trunk -> junction -> spur -> dump (never a
       // straight rim->dump line). up ends at the portal, so append the trunk then this dump's spur.
       paths[`${s.id}->${d.id}`] = toPath([...benchArc, ...up, ...trunk.slice(1), ...spurs[d.id].slice(1)]);
     }
   }
 
-  // structure-real samples (minehaulsim >= 0.12) ship the REAL road network as roads/v1: expose its segment
+  // structure-real samples (minehaulsim >= 0.12) ship the real road network as roads/v1: expose its segment
   // polylines (in the sample's own metre frame, same frame as center/rim) so the 3D view draws minehaulsim's
   // actual roads instead of the derived trunk+spur approximation (#28).
   const rv1 = mine.topo?.roads;

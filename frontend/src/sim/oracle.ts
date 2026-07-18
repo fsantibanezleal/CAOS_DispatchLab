@@ -1,4 +1,4 @@
-// Capacity oracle (#22 P2): a queue-free UPPER BOUND on shift tonnes from the transportation-LP
+// Capacity oracle (#22 P2): a queue-free upper bound on shift tonnes from the transportation-LP
 // relaxation aggregated per resource family, the offline yardstick the Benchmark scores every
 // policy against ("% of oracle").
 //
@@ -9,8 +9,8 @@
 //                                                             no earlier than (k−1)·minCycle)
 //   bound_tonnes  = min(loads_shovels, loads_trucks) × payload
 //
-// Honesty: this is a RELAXATION over the MEAN dynamics, it ignores queueing, interference and
-// integrality. It bounds DETERMINISTIC runs exactly (asserted strictly in tests); STOCHASTIC
+// Honesty: this is a relaxation over the mean dynamics, it ignores queueing, interference and
+// integrality. It bounds deterministic runs exactly (asserted strictly in tests); stochastic
 // runs draw leg/service durations with mean-1 noise, so a lucky seed can graze or slightly
 // exceed it (the trivial 1×1 oracle case exists precisely to sit at the bound), the Benchmark
 // therefore reports "% of oracle" on medians and tests allow a 2% noise margin per seed. The gap
@@ -30,7 +30,7 @@ export interface OracleBound {
 export function capacityOracle(c: CaseSpec): OracleBound {
   const rk = (s: number, d: number) => `${s}->${d}`;
   // ore can also be REHANDLED onto a stockpile (a possibly nearer, faster destination); the relaxation
-  // includes it so the bound stays a valid UPPER bound on shift tonnes even when trucks divert to the pile.
+  // includes it so the bound stays a valid upper bound on shift tonnes even when trucks divert to the pile.
   const dumpsFor = (faceType: 'ore' | 'waste') =>
     c.mine.dumps.filter((d) => d.accepts.includes(faceType) || (faceType === 'ore' && d.kind === 'stockpile'));
 

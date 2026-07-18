@@ -1,6 +1,6 @@
 // The OR tier's dispatch policy (#22): DISPATCH-style instantaneous OPTIMAL assignment.
 // At each decision the policy solves the joint truck→shovel-slot assignment (Hungarian) over the
-// fleet view (every truck that will ask for dispatch within the window) and returns THIS truck's
+// fleet view (every truck that will ask for dispatch within the window) and returns this truck's
 // assigned shovel. Where the fleet view is unavailable (replay/counterfactual contexts build a
 // single-truck state), it falls back to solo earliest-completion, stated in the docs: agreement
 // numbers for `hungarian` reflect that fallback, tonnes comparisons use the full joint solve.
@@ -21,8 +21,8 @@ export function hungarianPolicy(s: DispatchState): number {
   const trucks = s.fleet.map((t) => ({ id: t.id, readyInSec: t.readyInSec, atDumpId: t.atDumpId }));
   const shovels = s.shovels.map((v) => ({
     id: v.id,
-    // COMMITTED backlog priced into the first slot: queued + already-dispatched inbound trucks
-    // (they are not in the pending fleet, but they WILL be served first, omitting inbound
+    // committed backlog priced into the first slot: queued + already-dispatched inbound trucks
+    // (they are not in the pending fleet, but they will be served first, omitting inbound
     // re-creates the herding the joint assignment exists to avoid)
     freeInSec: v.freeInSec + (v.queueLen + v.inbound) * v.loadMeanSec,
     loadMeanSec: v.loadMeanSec,

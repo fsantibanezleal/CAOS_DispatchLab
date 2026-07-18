@@ -6,9 +6,9 @@ the TypeScript DES (`ts-des`) + `onnxruntime-web` (the learned policies in the d
 
 A case is classified **live** iff:
 
-1. it is **client-side** (no server needed), AND
-2. its runtimes ⊆ `{ts-des, onnxruntime-web}` (the deployed client set), AND
-3. a shift simulation over a few seeds fits the interaction budget (`run_ms ≤ 1500`), AND
+1. it is **client-side** (no server needed), and
+2. its runtimes ⊆ `{ts-des, onnxruntime-web}` (the deployed client set), and
+3. a shift simulation over a few seeds fits the interaction budget (`run_ms ≤ 1500`), and
 4. its replay trace is small (`trace_bytes ≤ 256 KB`).
 
 A full-shift DES over a handful of seeds is milliseconds-to-seconds and the traces are small, so **every** DispatchLab

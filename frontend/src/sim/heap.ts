@@ -1,4 +1,4 @@
-// Binary min-heap (flat-array) for the future-event list. Generic over a comparator that MUST impose a
+// Binary min-heap (flat-array) for the future-event list. Generic over a comparator that must impose a
 // strict total order so simultaneous events never resolve by heap-internal accident (the determinism
 // keystone is the (time, priority, seq) key in des.ts, not this structure).
 export class MinHeap<T> {

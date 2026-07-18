@@ -1,18 +1,18 @@
-// The beyond-SOTA dispatcher: a receding-horizon Monte-Carlo ROLLOUT over the discrete-event model itself.
-// At each dispatch decision, for every feasible candidate shovel, the current simulation is FORKED, the
+// The beyond-SOTA dispatcher: a receding-horizon Monte-Carlo rollout over the discrete-event model itself.
+// At each dispatch decision, for every feasible candidate shovel, the current simulation is forked, the
 // candidate applied, and the rest of the horizon simulated forward K times under a base policy (the best
 // myopic heuristic); the candidate minimising the simulated objective (here: maximising simulated tonnes) is
-// chosen. This is ONE policy-improvement step over the base heuristic (Bertsekas, Tsitsiklis & Wu 1997,
-// DOI 10.1023/A:1009635226865): on the DETERMINISTIC model, with a base policy that is a fixed function of
-// state, the one-step rollout is provably NO WORSE than the base on the simulated objective (asserted in
-// test/cases23.test.ts). Under cycle-time uncertainty the K samples estimate the EXPECTED objective, the
+// chosen. This is one policy-improvement step over the base heuristic (Bertsekas, Tsitsiklis & Wu 1997,
+// DOI 10.1023/A:1009635226865): on the deterministic model, with a base policy that is a fixed function of
+// state, the one-step rollout is provably no worse than the base on the simulated objective (asserted in
+// test/cases23.test.ts). Under cycle-time uncertainty the K samples estimate the expected objective, the
 // stochastic-scheduling rollout of Bertsekas & Castanon 1999 (DOI 10.1023/A:1009634810396); the guarantee
 // weakens to empirical-with-CI, so the Benchmark reports Monte-Carlo confidence intervals, never a bare win.
 //
-// Live-browser split (AlphaGo-style): the TRUE rollout is heavy (K x horizon DES steps per decision), so it
-// runs OFFLINE over the corpus (science/rollout_bench.mjs) and its chosen actions are DISTILLED into a small
+// Live-browser split (AlphaGo-style): the true rollout is heavy (K x horizon DES steps per decision), so it
+// runs offline over the corpus (science/rollout_bench.mjs) and its chosen actions are distilled into a small
 // per-shovel MLP -> dl-rollout.onnx, run live via onnxruntime-web exactly like the RWR/BC nets. The live App
-// also runs a BOUNDED rollout on demand in the "Rollout inspector" panel (this module), never on autoplay.
+// also runs a bounded rollout on demand in the "Rollout inspector" panel (this module), never on autoplay.
 import { RolloutSim } from '../sim/rolloutSim';
 import { shovelFeats } from './learned';
 import { type CaseSpec, type Policy, type DispatchState } from '../sim/types';

@@ -1,7 +1,7 @@
 # 04, The live lane (client-side)
 
 DispatchLab's live lane is the **pure-TypeScript DES + onnxruntime-web**, not Pyodide. The archetype permits either
-("Pyodide + lightweight wheels, OR a small TS engine"), DispatchLab's DES is the SAME logic the offline dataset
+("Pyodide + lightweight wheels, OR a small TS engine"), DispatchLab's DES is the same logic the offline dataset
 generator logged, so the live lane is faithful.
 
 ## The DES engine (`frontend/src/sim/`)
@@ -10,7 +10,7 @@ generator logged, so the live lane is faithful.
   future-event list keyed on a total-order `(time, priority, seq)` tuple.
 * `kinematics.ts`, truck haul times from rimpull/grade physics (793F anchored at 218 t / ~1976 kW / 60 km/h).
 * `matchfactor.ts`, closed-form match-factor theory (the over-trucking knee at MF=1).
-* `model.ts` / `cases.ts`, the pit model + the 12 case specs; `compare.ts`, the multi-policy comparison (Pareto + TIE).
+* `model.ts` / `cases.ts`, the pit model + the 12 case specs; `compare.ts`, the multi-policy comparison (Pareto + tie).
 
 ## Policies (`frontend/src/policies/`)
 

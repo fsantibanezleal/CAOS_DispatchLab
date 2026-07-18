@@ -1,7 +1,7 @@
 # Engine, the discrete-event truck-shovel simulator
 
-**What:** the live, deterministic discrete-event simulation (DES), the SOURCE OF TRUTH the learned policies imitate.
-Pure TypeScript (`frontend/src/sim/`), so the SAME engine runs live in the browser AND logs the offline decision
+**What:** the live, deterministic discrete-event simulation (DES), the source of truth the learned policies imitate.
+Pure TypeScript (`frontend/src/sim/`), so the same engine runs live in the browser and logs the offline decision
 dataset (via `node --import tsx`), which is why no Python re-port exists (a re-port would diverge).
 
 ## The model
@@ -12,15 +12,15 @@ dataset (via `node --import tsx`), which is why no Python re-port exists (a re-p
   seed (ADR-0054 reproducibility); validated by a 1×1 closed-form **oracle test** (throughput = ⌊·⌋·payload exactly).
 * **Truck kinematics** (`kinematics.ts`), haul times from rimpull/grade physics (total resistance = grade + rolling
   resistance; 793F anchored at 218 t / ~1976 kW / 60 km/h).
-* **Haul-road traffic** (`traffic.ts` + `carFollow` in `model.ts`/`rolloutSim.ts`), travel time is NOT free-flow
-  rimpull, it EMERGES from the road. Per directed road: a posted **speed limit** clamps the leg
+* **Haul-road traffic** (`traffic.ts` + `carFollow` in `model.ts`/`rolloutSim.ts`), travel time is not free-flow
+  rimpull, it emerges from the road. Per directed road: a posted **speed limit** clamps the leg
   (`speedLimitedSec`); **FIFO car-following** holds a follower to `max(own arrival, leader arrival + h)` with the
   headway `h = SECURITY_M / avg leg speed`, so order is preserved (no overtaking) and bunching lengthens the cycle
   (Soofastaei et al. 2016); a **two-way meeting** adds a passing-bay delay `τ_m` when opposing traffic overlaps the
   leg. `model.ts` and the forkable `rolloutSim.ts` apply this identically, held by a **byte-for-byte parity test**,
   and the **capacity oracle** clamps by the same speed limit so it stays a valid upper bound. Full fidelity
   (direction zones, per-section capacity, per-segment rimpull/retarder) lives in the `minehaulsim` package, whose
-  samples carry the REAL network as `topo.json` `roads/v1`.
+  samples carry the real network as `topo.json` `roads/v1`.
 * **Surface road network** (`topo.ts`), hauls route shovel -> bench -> ramp -> **portal** -> shared **trunk** ->
   junction -> curved **spur** -> destination (and the reverse for the empty return), drawn and travelled in both the
   2D map and the 3D view. No straight rim-to-dump magic lines.

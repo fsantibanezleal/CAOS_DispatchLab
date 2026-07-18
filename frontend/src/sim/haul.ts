@@ -1,7 +1,7 @@
-// Portal-aware haul timing (#67 round 2). A pit has a single EXIT/PORTAL; a haul between a shovel and an
-// external facility (crusher / stockpile / waste dump) is a POLYLINE: shovel <-> portal on the internal pit
+// Portal-aware haul timing (#67 round 2). A pit has a single exit/portal; a haul between a shovel and an
+// external facility (crusher / stockpile / waste dump) is a polyline: shovel <-> portal on the internal pit
 // roads, then portal <-> destination on a direct surface haul. The DES leg time is the SUM of the two rimpull
-// segments (never a single straight shovel->destination line). The authored grade is the LOADED (climb-out)
+// segments (never a single straight shovel->destination line). The authored grade is the loaded (climb-out)
 // direction; the empty return negates it (descend into the pit / roll back on the surface). When a mine has
 // no portal (a replayed real sample), we fall back to the legacy single-segment route. One function, used by
 // model.ts, rolloutSim.ts and the capacity oracle, so the physics is identical everywhere.

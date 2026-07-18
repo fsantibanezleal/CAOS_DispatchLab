@@ -2,7 +2,7 @@
 
 **What:** trains the two learned dispatch policies on the logged DES decisions and exports them to ONNX.
 **Why binding:** the learned tier (a single fast dispatcher recovered from data) is the SOTA complement to the
-classical criteria. Training is tiny (small nets over a few tens of thousands of logged decisions, seconds on CPU) , 
+classical criteria. Training is tiny (small nets over a few tens of thousands of logged decisions, seconds on CPU),
 no GPU.
 
 **Lane:** offline only (`dlab/science/train_policy.py`). Never shipped to the browser.
