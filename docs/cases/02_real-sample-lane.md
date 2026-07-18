@@ -2,7 +2,7 @@
 
 The App's first-level **Source selector** (`Synthetic | Real sample`) is the Faena workbench requirement: the
 same tools that run on the synthetic corpus also run, unchanged, on a **real cycle log**. In Real-sample mode
-the scenario knobs are hidden (you do not "design" a real shift, you replay it); you pick which logged shift
+the scenario knobs are hidden (a real shift is replayed, not designed); the selector chooses which logged shift
 to load, and every analysis (per-shovel utilisation, crusher feed, queueing, decision share, cycle time, and
 the counterfactual re-decision) runs on it live. This page documents where those samples come from, the
 contract they satisfy, and exactly what is and is not real about them.
@@ -58,8 +58,8 @@ log from an independent tool.
   tier, and the two live-ONNX learned policies), reporting an agreement % per decision point. This answers
   "what would each dispatcher have done on this real shift?" without pretending to know the counterfactual
   tonnage, which the log cannot provide.
-- Honest framing (in-app): *"MEASURED shift replayed from a cycle log; map geometry schematic (logs carry no
-  coordinates); NOT a production dispatch system."*
+- Honest framing (in-app): *"Measured shift replayed from a cycle log; map geometry schematic (logs carry no
+  coordinates); not a production dispatch system."*
 
 ## The honest boundary: why "structure-real", not "real"
 

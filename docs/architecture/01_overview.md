@@ -5,7 +5,7 @@ bound by two data contracts. The committed compact artifacts under `data/derived
 outputs and the SPA's replay payload.
 
 ```
-12 dispatch scenarios (CONTRACT 1) ─► Node DES dataset gen (science/gen_dataset.mjs, the SAME TS DES) ──► decisions (jsonl, git-ignored)
+12 dispatch scenarios (CONTRACT 1) ─► Node DES dataset gen (science/gen_dataset.mjs, the same TS DES) ──► decisions (jsonl, git-ignored)
                                                                                                             │
                                                           torch train policies (science/train_policy.py) ──►├─► dl-policy.onnx, dl-bcbest.onnx ┐
                                                           held-out imitation accuracy ──────────────────────►├─► dl-learned.json                │ data/derived/
@@ -31,5 +31,5 @@ frontend (copy-data.mjs overlays data/derived) ──► the TS DES + onnxruntim
 
 * **Default (numpy-only):** `python -m dlab.pipeline all` rebuilds every per-case replay trace + manifest from the
   committed `case-results.json` + `dl-learned.json`, no torch, no Node. A clone replays immediately.
-* **Heavy (`--retrain`, two-language):** Node generates the DES decision dataset (the SAME TS DES the browser runs)
+* **Heavy (`--retrain`, two-language):** Node generates the DES decision dataset (the same TS DES the browser runs)
   → torch trains the two learned policies → exports ONNX + dl-learned.json → re-bakes `case-results.json`. Local-only.

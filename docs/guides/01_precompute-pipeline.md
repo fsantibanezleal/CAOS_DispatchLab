@@ -1,7 +1,7 @@
 # 01, Regenerate the policies (`--retrain`, two-language)
 
 The heavy lane reproduces `dl-policy.onnx`, `dl-bcbest.onnx`, `dl-learned.json`, and `case-results.json`, from the
-SAME TS DES the browser runs. Local-only (CI never retrains). Deterministic.
+same TS DES the browser runs. Local-only (CI never retrains). Deterministic.
 
 ```bash
 # 1) install the heavy engines (torch CPU + onnx) into .venv-pipeline (also needs Node 20+)

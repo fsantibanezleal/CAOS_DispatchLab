@@ -1,7 +1,7 @@
-// Benchmark (#19): the OFFLINE aggregate comparisons. Everything here is PRECOMPUTED by the
-// pipeline (data-pipeline/dlab/science/bench_synthetic.mjs + bench_real.mjs) and committed , 
+// Benchmark (#19): the offline aggregate comparisons. Everything here is precomputed by the
+// pipeline (data-pipeline/dlab/science/bench_synthetic.mjs + bench_real.mjs) and committed,
 // the page only reads /data/bench/*.json. No heavy compute in the browser.
-// Layout rule (#49): no giant scrolls, per-case and per-shift detail renders ONE selection at a
+// Layout rule (#49): no giant scrolls, per-case and per-shift detail renders one selection at a
 // time behind a chip picker, with a compact collapsible overview table for the whole set.
 import { useEffect, useState } from 'react';
 import { Refs, Tabs, useShellLang } from '@fasl-work/caos-app-shell';
@@ -50,8 +50,8 @@ export default function Benchmark() {
       <div className="page-head">
         <h1>Benchmark</h1>
         <p className="lede">{es
-          ? `Comparaciones agregadas OFFLINE, ${syn.nCases} casos sintéticos × ${syn.aggregate.length} políticas (5 heurísticas + OR/Hungarian + 2 aprendidas + el rollout destilado) × ${syn.nSeeds} seeds, más el rollout Monte-Carlo beyond-SOTA (pestaña Rollout) y el counterfactual CALIBRADO sobre los ${real.samples.filter((s) => s.ok).length} turnos reales, todo contra el ORÁCULO de capacidad (cota superior sin colas). Cada corrida es bajo el modelo de tráfico en la ruta (límite de velocidad, seguimiento con bunching, cruce en doble vía), así el tiempo de ciclo EMERGE, no es de flujo libre. Todo precomputado por el pipeline y commiteado; esta página solo lee los artefactos. Números honestos, los resultados nulos y las discrepancias se muestran.`
-          : `OFFLINE aggregate comparisons, ${syn.nCases} synthetic cases × ${syn.aggregate.length} policies (5 heuristics + OR/Hungarian + 2 learned + the distilled rollout) × ${syn.nSeeds} seeds, plus the beyond-SOTA Monte-Carlo rollout (Rollout tab) and the CALIBRATED counterfactual over the corpus of ${real.samples.filter((s) => s.ok).length} real shifts, all scored against the capacity ORACLE (queue-free upper bound). Every run is under the haul-road traffic model (speed limit, car-following bunching, two-way meeting), so cycle times are emergent, not free-flow. Everything precomputed by the pipeline and committed; this page only reads the artifacts. Honest numbers, null results and discrepancies are shown.`}</p>
+          ? `Comparaciones agregadas offline, ${syn.nCases} casos sintéticos × ${syn.aggregate.length} políticas (5 heurísticas + OR/Hungarian + 2 aprendidas + el rollout destilado) × ${syn.nSeeds} seeds, más el rollout Monte-Carlo beyond-SOTA (pestaña Rollout) y el counterfactual calibrado sobre los ${real.samples.filter((s) => s.ok).length} turnos reales, todo contra el oráculo de capacidad (cota superior sin colas). Cada corrida es bajo el modelo de tráfico en la ruta (límite de velocidad, seguimiento con bunching, cruce en doble vía), así el tiempo de ciclo emerge, no es de flujo libre. Todo precomputado por el pipeline y commiteado; esta página solo lee los artefactos. Números honestos, los resultados nulos y las discrepancias se muestran.`
+          : `Offline aggregate comparisons, ${syn.nCases} synthetic cases × ${syn.aggregate.length} policies (5 heuristics + OR/Hungarian + 2 learned + the distilled rollout) × ${syn.nSeeds} seeds, plus the beyond-SOTA Monte-Carlo rollout (Rollout tab) and the calibrated counterfactual over the corpus of ${real.samples.filter((s) => s.ok).length} real shifts, all scored against the capacity oracle (queue-free upper bound). Every run is under the haul-road traffic model (speed limit, car-following bunching, two-way meeting), so cycle times are emergent, not free-flow. Everything precomputed by the pipeline and committed; this page only reads the artifacts. Honest numbers, null results and discrepancies are shown.`}</p>
       </div>
       <Tabs tabs={tabs} />
       <Refs ids={['noriega2024', 'peters2007', 'mnih2015']} label="Refs" />
@@ -84,8 +84,8 @@ function CorpusTab({ syn, es }: { syn: SyntheticDoc; es: boolean }) {
       <h2>{es ? 'Ranking agregado (rango medio por toneladas medianas, 1 = mejor)' : 'Aggregate ranking (mean rank by median tonnes, 1 = best)'}</h2>
       <div className="tw-stats">{syn.aggregate.slice(0, 4).map((a) => <Stat key={a.id} v={a.meanRank.toFixed(2)} l={a.id} />)}</div>
       <p className="tw-note">{es
-        ? 'greedy (menor tiempo de compleción esperado) lidera el corpus; las políticas aprendidas son competitivas pero NO superan a sus maestras, se dice claramente.'
-        : 'greedy (earliest expected completion) leads the corpus; the learned policies are competitive but do NOT beat their teachers, stated plainly.'}</p>
+        ? 'greedy (menor tiempo de compleción esperado) lidera el corpus; las políticas aprendidas son competitivas pero no superan a sus maestras, y así se reporta.'
+        : 'greedy (earliest expected completion) leads the corpus; the learned policies are competitive but do not beat their teachers, stated plainly.'}</p>
 
       <details className="dl-fold">
         <summary>{es ? `Panorama de los ${caseIds.length} casos (líder · % del oráculo · empates)` : `Overview of all ${caseIds.length} cases (leader · % of oracle · ties)`}</summary>
@@ -154,7 +154,7 @@ function MfTab({ syn, es }: { syn: SyntheticDoc; es: boolean }) {
     <section>
       <h2>{es ? 'Validación del match factor a escala' : 'Match-factor validation at scale'}</h2>
       <p>{es
-        ? 'Para cada caso multi-pala, el codo del barrido de flota (rendimiento marginal decreciente) debería caer donde el match factor analítico cruza 1. Comprobado sobre el banco de seeds del sweep:'
+        ? 'Para cada caso multi-pala, el codo del barrido de flota (rendimiento marginal decreciente) debería caer donde el match factor analítico cruza 1. Comprobado sobre el banco de semillas del barrido:'
         : 'For every multi-shovel case, the fleet-sweep knee (diminishing marginal return) should land where the analytical match factor crosses 1. Checked over the sweep seed bank:'}</p>
       <table><thead><tr><th>{es ? 'Caso' : 'Case'}</th><th>{es ? 'Codo (N camiones)' : 'Knee (N trucks)'}</th><th>N @ MF=1</th><th>{es ? 'Concuerda (±2)' : 'Agrees (±2)'}</th></tr></thead>
         <tbody>{rows.map(([cid, c]) => (
@@ -206,8 +206,8 @@ function CfTab({ real, es }: { real: RealDoc; es: boolean }) {
         : `actual: ${(s.actualTonnes! / 1000).toFixed(1)}k t (${s.realDispatcher}${s.actualPctOfOracle != null ? `, ${s.actualPctOfOracle.toFixed(0)}% of the empirical oracle` : ''}) · ${s.nDecisions} decisions · calibration bias ${s.calibrationBiasPct != null ? `${s.calibrationBiasPct > 0 ? '+' : ''}${s.calibrationBiasPct.toFixed(1)}% (via ${s.mostSimilarPolicy})` : 'n/a'}`}</p>
       <Bars es={es} max={maxT} rows={ord.map((p) => ({ ...p, med: p.cfTonnes, lo: p.loT, hi: p.hiT, mark: p.agreePct != null ? ` · ${p.agreePct.toFixed(0)}%↔` : '' }))} />
       <p className="tw-note">{es
-        ? '↔ = acuerdo de decisiones con el despachador real. Compara políticas ENTRE SÍ (cf-vs-cf); el delta vs real carga el sesgo de calibración mostrado arriba.'
-        : '↔ = decision agreement with the real dispatcher. Compare policies AGAINST EACH OTHER (cf-vs-cf); the delta vs actual carries the calibration bias shown above.'}</p>
+        ? '↔ = acuerdo de decisiones con el despachador real. Compara políticas entre sí (cf-vs-cf); el delta vs real carga el sesgo de calibración mostrado arriba.'
+        : '↔ = decision agreement with the real dispatcher. Compare policies against each other (cf-vs-cf); the delta vs actual carries the calibration bias shown above.'}</p>
     </section>
   );
 }
@@ -217,7 +217,7 @@ function RolloutTab({ roll, es }: { roll: RollDoc; es: boolean }) {
   const verdictLabel = (v: string): string => {
     const map: Record<string, [string, string]> = {
       'control-tie-ok': ['tie (control) OK', 'empate (control) OK'],
-      'control-tie-VIOLATED': ['CONTROL VIOLATED', 'CONTROL VIOLADO'],
+      'control-tie-VIOLATED': ['control violated', 'control violado'],
       'rollout-win': ['rollout win', 'gana rollout'],
       'rollout-ahead': ['rollout ahead', 'rollout adelante'],
       'tie-within-CI': ['tie (within CI)', 'empate (dentro del IC)'],
@@ -229,13 +229,13 @@ function RolloutTab({ roll, es }: { roll: RollDoc; es: boolean }) {
     <section>
       <h2>{es ? 'El dispatcher beyond-SOTA: rollout Monte-Carlo de horizonte deslizante' : 'The beyond-SOTA dispatcher: receding-horizon Monte-Carlo rollout'}</h2>
       <div className={`dl-verdict ${roll.win ? 'ok' : 'null'}`} style={{ padding: '0.6rem 0.8rem', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-surface)', margin: '0.5rem 0' }}>
-        <strong>{roll.win ? (es ? `VICTORIA en ${roll.winCount} casos objetivo` : `WIN on ${roll.winCount} target cases`) : (es ? 'RESULTADO NULO (honesto)' : 'NULL RESULT (honest)')}</strong>
+        <strong>{roll.win ? (es ? `Victoria en ${roll.winCount} casos objetivo` : `Win on ${roll.winCount} target cases`) : (es ? 'Resultado nulo (honesto)' : 'Null result (honest)')}</strong>
         <p className="tw-note" style={{ marginBottom: 0 }}>{es
-          ? `Un rollout es UN paso de mejora de política (Bertsekas, Tsitsiklis y Wu 1997): sobre el modelo determinista es demostrablemente >= su base. Regla de victoria: superar a la MEJOR heurística Y a Hungarian fuera del IC en >= ${roll.winThreshold} casos objetivo (${roll.winCount}/${roll.winThreshold}). Base: ${roll.base}. Eval: ${roll.nEval} seeds held-out (disjuntos del entrenamiento).`
-          : `A rollout is ONE policy-improvement step (Bertsekas, Tsitsiklis & Wu 1997): on the deterministic model it is provably >= its base. Win rule: beat the BEST heuristic AND Hungarian outside the CI on >= ${roll.winThreshold} target cases (${roll.winCount}/${roll.winThreshold}). Base: ${roll.base}. Eval: ${roll.nEval} held-out seeds (disjoint from training).`}</p>
+          ? `Un rollout es un paso de mejora de política (Bertsekas, Tsitsiklis y Wu 1997): sobre el modelo determinista es demostrablemente >= su base. Regla de victoria: superar a la mejor heurística y a Hungarian fuera del IC en >= ${roll.winThreshold} casos objetivo (${roll.winCount}/${roll.winThreshold}). Base: ${roll.base}. Eval: ${roll.nEval} seeds held-out (disjuntos del entrenamiento).`
+          : `A rollout is one policy-improvement step (Bertsekas, Tsitsiklis & Wu 1997): on the deterministic model it is provably >= its base. Win rule: beat the best heuristic and Hungarian outside the CI on >= ${roll.winThreshold} target cases (${roll.winCount}/${roll.winThreshold}). Base: ${roll.base}. Eval: ${roll.nEval} held-out seeds (disjoint from training).`}</p>
       </div>
 
-      <h3>{es ? 'Cota de mejora DETERMINISTA (garantía exacta)' : 'DETERMINISTIC improvement bound (exact guarantee)'}</h3>
+      <h3>{es ? 'Cota de mejora determinista (garantía exacta)' : 'Deterministic improvement bound (exact guarantee)'}</h3>
       <table><thead><tr><th>{es ? 'Caso' : 'Case'}</th><th>base (kt)</th><th>rollout (kt)</th><th>Δ%</th><th>{es ? '>= base' : '>= base'}</th></tr></thead>
         <tbody>{ids.map((id) => { const d = roll.cases[id].deterministic; return (
           <tr key={id}><td className="mono">{id}</td><td className="mono">{(d.base / 1000).toFixed(1)}</td><td className="mono">{(d.rollout / 1000).toFixed(1)}</td>
@@ -256,8 +256,8 @@ function RolloutTab({ roll, es }: { roll: RollDoc; es: boolean }) {
         ? roll.honestVerdict
         : roll.honestVerdict}</p>
       <p className="tw-note">{es
-        ? 'La política en vivo es una DESTILACIÓN del rollout (dl-rollout.onnx), corre con onnxruntime-web como las redes RWR/BC; sus números verdaderos offline son estos. El «Rollout inspector» de la App muestra los K futuros por candidato en una decisión.'
-        : 'The live policy is a DISTILLATION of the rollout (dl-rollout.onnx), run via onnxruntime-web like the RWR/BC nets; its true offline numbers are these. The App\'s "Rollout inspector" shows the K futures per candidate at one decision.'}</p>
+        ? 'La política en vivo es una destilación del rollout (dl-rollout.onnx), corre con onnxruntime-web como las redes RWR/BC; sus números verdaderos offline son estos. El «Rollout inspector» de la App muestra los K futuros por candidato en una decisión.'
+        : 'The live policy is a distillation of the rollout (dl-rollout.onnx), run via onnxruntime-web like the RWR/BC nets; its true offline numbers are these. The App\'s "Rollout inspector" shows the K futures per candidate at one decision.'}</p>
       <Refs ids={['bertsekas1997', 'bertsekas1999', 'seiler2022', 'mininggym2025', 'meng2025']} label="Refs" />
     </section>
   );
@@ -278,8 +278,8 @@ function CrossTab({ real, es }: { real: RealDoc; es: boolean }) {
           <tr key={c.id}><td>{c.id}</td><td>{c.generator}</td><td className="mono">{c.realRank.slice(0, 3).join(' > ')}</td><td className="mono">{c.tauVsSynthetic?.toFixed(2) ?? ', '}</td></tr>
         ))}</tbody></table>
       <p className="tw-note">{es
-        ? `Mediana τ = ${medTau?.toFixed(2)}, el orden sintético transfiere en general. Discrepancias honestas: ${low.length ? low.map((c) => `${c.id} (τ=${c.tauVsSynthetic?.toFixed(2)})`).join(', ') : 'ninguna'}, turnos generados con despachadores tipo nearest reordenan las políticas queue-aware; hallazgo válido, no se esconde. El tier OR (hungarian) se EXCLUYE del τ: dentro del counterfactual corre su fallback solo (sin vista de flota), así que compararlo entre fuentes sería comparar dos algoritmos distintos.`
-        : `Median τ = ${medTau?.toFixed(2)}, the synthetic ordering largely transfers. Honest discrepancies: ${low.length ? low.map((c) => `${c.id} (τ=${c.tauVsSynthetic?.toFixed(2)})`).join(', ') : 'none'}, shifts generated by nearest-style dispatchers reorder the queue-aware policies; a valid finding, not hidden. The OR tier (hungarian) is EXCLUDED from τ: inside the counterfactual it runs its solo fallback (no fleet view), so ranking it across sources would compare two different algorithms.`}</p>
+        ? `Mediana τ = ${medTau?.toFixed(2)}, el orden sintético transfiere en general. Discrepancias honestas: ${low.length ? low.map((c) => `${c.id} (τ=${c.tauVsSynthetic?.toFixed(2)})`).join(', ') : 'ninguna'}, turnos generados con despachadores tipo nearest reordenan las políticas queue-aware; hallazgo válido, no se esconde. El tier OR (hungarian) se excluye del τ: dentro del counterfactual corre su fallback solo (sin vista de flota), así que compararlo entre fuentes sería comparar dos algoritmos distintos.`
+        : `Median τ = ${medTau?.toFixed(2)}, the synthetic ordering largely transfers. Honest discrepancies: ${low.length ? low.map((c) => `${c.id} (τ=${c.tauVsSynthetic?.toFixed(2)})`).join(', ') : 'none'}, shifts generated by nearest-style dispatchers reorder the queue-aware policies; a valid finding, not hidden. The OR tier (hungarian) is excluded from τ: inside the counterfactual it runs its solo fallback (no fleet view), so ranking it across sources would compare two different algorithms.`}</p>
     </section>
   );
 }

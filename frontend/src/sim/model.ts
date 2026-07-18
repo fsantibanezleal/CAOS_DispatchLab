@@ -76,7 +76,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
 
   const sh = new Map<number, ShovelRT>();
   for (const s of mine.shovels) sh.set(s.id, { id: s.id, spec: s, queue: [], loading: false, serviceEndsAt: 0, inbound: 0, served: 0, queueWaitSec: 0, busySec: 0, idleSec: 0, lastChange: 0, down: false, repairEndsAt: 0 });
-  // dumps are c-servers (bays): `dumpServers` counts BUSY bays, `baysOf` the capacity. A 1-bay dump is a
+  // dumps are c-servers (bays): `dumpServers` counts busy bays, `baysOf` the capacity. A 1-bay dump is a
   // single-server FIFO (servers in {0,1}), byte-identical to the legacy boolean.
   const dumpById = new Map(mine.dumps.map((d) => [d.id, d]));
   const baysOf = (id: number) => Math.max(1, dumpById.get(id)?.bays ?? 1);
@@ -97,18 +97,18 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   // ---- haul-road car-following (baseline, #87): same-direction trucks on one road hold FIFO order and a
   // security-distance headway. A faster truck caught behind a slower one is HELD to arrive no earlier than
   // (leader arrival + headway), so order is preserved (no overtaking) and bunching emerges (effective
-  // travel time rises above free-flow). Truck bunching: Soofastaei et al. 2016. Keyed per DIRECTED road
+  // travel time rises above free-flow). Truck bunching: Soofastaei et al. 2016. Keyed per directed road
   // (loaded shovel->dump and empty dump->shovel are separate corridors). Headway = security distance /
   // the leg's average speed, so it scales with the road (short/fast legs pack tighter than long/slow ones).
   const roadLastArrival = new Map<string, number>();
   const carFollow = (dirKey: string, oppKey: string, departSec: number, freeFlowTt: number, distM: number): number => {
-    // (1) SPEED LIMIT: no truck exceeds the posted road limit, however capable its rimpull.
+    // (1) speed limit: no truck exceeds the posted road limit, however capable its rimpull.
     const limitedTt = speedLimitedSec(freeFlowTt, distM);
-    // (2) CAR-FOLLOWING: FIFO + security-distance headway (same direction, no overtaking, bunching).
+    // (2) car-following: FIFO + security-distance headway (same direction, no overtaking, bunching).
     const headway = distM > 0 ? SECURITY_M * (limitedTt / distM) : 0;   // = SECURITY_M / avg leg speed
     const prev = roadLastArrival.get(dirKey);
     let arrival = prev == null ? departSec + limitedTt : Math.max(departSec + limitedTt, prev + headway);
-    // (3) TWO-WAY MEETING: if opposing traffic on this road is still arriving after we set off, we meet
+    // (3) two-way meeting: if opposing traffic on this road is still arriving after we set off, we meet
     // it on a single-lane section and slow at the passing bay.
     const opp = roadLastArrival.get(oppKey);
     if (opp != null && opp > departSec) arrival += MEETING_S;
@@ -201,7 +201,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   const onFailure = (s: ShovelRT) => {
     if (s.down) return;
     const now = sim.now();
-    // the failure blocks STARTING new services; a load already in progress finishes normally, then the
+    // the failure blocks starting new services; a load already in progress finishes normally, then the
     // shovel sits down (queued trucks wait, accruing queue wait) until the repair completes.
     s.down = true;
     const bd = s.spec.breakdown!;
@@ -288,7 +288,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     decide(truckId, dumpId);
   };
 
-  // ---- stockpile reclaim (a SINK becomes a SOURCE): draw the pile down at reclaimRateTph to feed its
+  // ---- stockpile reclaim (a sink becomes a source): draw the pile down at reclaimRateTph to feed its
   //      target crusher, on a fixed deterministic time grid (no RNG). The reclaimer feeds even when the
   //      pit cannot, so a full stockpile keeps the plant fed. ----
   const scheduleReclaim = (sp: DumpSpec) => { sim.schedule(RECLAIM_DT, () => onReclaim(sp), 0); };
@@ -308,8 +308,8 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
   let invalidChoices = 0;
   let oreInFlightT = 0;                        // dispatched-but-not-yet-dumped ore commitment
   const trailingTph = (now: number): number => {
-    // crusher feed over the trailing hour PLUS the committed in-flight ore: gating on delivered
-    // tonnage alone is bang-bang (the window drains, then the WHOLE held fleet releases at once
+    // crusher feed over the trailing hour plus the committed in-flight ore: gating on delivered
+    // tonnage alone is bang-bang (the window drains, then the whole held fleet releases at once
     // and overshoots the cap, field-found by the C10 case test). Counting commitments releases
     // trucks a few at a time and keeps the ceiling a ceiling.
     const t0 = now - 3600;
@@ -332,7 +332,7 @@ export function runSimulation(c: CaseSpec, policy: Policy, seed: number, opts: R
     const state = buildState(truckId, dumpId, now);
     const truck = truckById.get(truckId)!;
     const feasibleAll = feasibleShovels(state.shovels, cons, { now, truck, crusherTphTrailing: trailingTph(now) });
-    // material-lane empty-return (#67 round 2): the ONLY empty move is delivery-point -> a SHOVEL of the SAME
+    // material-lane empty-return (#67 round 2): the only empty move is delivery-point -> a shovel of the same
     // material lane (crusher/stockpile -> an ore face; waste dump -> a waste face). This keeps every empty leg
     // ON a DRAWN loaded road (its reverse) instead of interpolating across empty space, and it is domain-true
     // (an ore hauler stays in the ore lane). Single-material cases are unaffected (the lane is every shovel),

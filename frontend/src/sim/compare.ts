@@ -1,6 +1,6 @@
 // Multi-objective policy comparison. A policy's outcome is a DISTRIBUTION over seeds, not one number, so we
 // run every policy over the same seed set and report medians + p10–p90 bands. Dispatch is genuinely
-// multi-objective (tonnes vs truck wait), so the honest summary is a Pareto frontier, plus a TIE rule: if a
+// multi-objective (tonnes vs truck wait), so the honest summary is a Pareto frontier, plus a tie rule: if a
 // rival's tonnes band overlaps the leader's, the difference is "not significant", no overconfident winner.
 import { runSimulation } from './model';
 import { POLICIES, type PolicyDef } from '../policies/heuristics';
@@ -34,7 +34,7 @@ export function paretoFront(stats: PolicyStats[]): Set<string> {
   return f;
 }
 
-/** TIE rule on tonnes: the leader plus any policy whose tonnes band overlaps the leader's. */
+/** Tie rule on tonnes: the leader plus any policy whose tonnes band overlaps the leader's. */
 export function tieVerdict(stats: PolicyStats[]): { leader: string; tied: string[] } {
   const leader = [...stats].sort((a, b) => b.medTonnes - a.medTonnes)[0];
   const tied = stats.filter((s) => s.id !== leader.id && s.hiT >= leader.loT && s.loT <= leader.hiT).map((s) => s.id);

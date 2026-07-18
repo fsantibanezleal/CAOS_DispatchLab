@@ -4,10 +4,10 @@ This page ties the corpus together: which problem axis each case covers, how the
 into a **verdict** (not just a number), and how cross-case aggregation works so a policy is judged on the
 whole corpus rather than a cherry-picked case.
 
-The round-2 corpus is 8 cases: three SIMPLE teaching cases (C01-C03, >= 4 shovels, >= 2 destinations) and five
-COMPLEX / DYNAMIC cases (C04-C08, >= 6 shovels scaling to 12, an actively-cycled ore stockpile, multiple
+The round-2 corpus is 8 cases: three simple teaching cases (C01-C03, >= 4 shovels, >= 2 destinations) and five
+complex / dynamic cases (C04-C08, >= 6 shovels scaling to 12, an actively-cycled ore stockpile, multiple
 plants + waste dumps, plus breakdowns / stochastic cycle times / blend windows / phases). Every haul runs
-through a single pit EXIT / PORTAL (shovel -> internal pit roads -> portal -> a direct surface haul ->
+through a single pit exit / portal (shovel -> internal pit roads -> portal -> a direct surface haul ->
 destination; the empty return reverses it), and the only material paths are the four domain-correct ones
 (shovel-ore -> crusher, shovel-ore -> stockpile rehandle, shovel-waste -> waste dump, and the reclaimer
 stockpile -> plant). See [01](01_synthetic-case-corpus.md) for the per-case detail.
@@ -41,10 +41,10 @@ regression).
 The App does not just print tonnes; each case carries a **verdict** baked from the deterministic run, so the
 reader gets the interpretation, not raw numbers to guess at:
 
-- **TIE**: all policies land within a small tolerance, so the honest report is "dispatch barely matters here",
-  not a spurious ranking. A method that reports a win on a TIE case is flagged.
+- **Tie**: all policies land within a small tolerance, so the honest report is "dispatch barely matters here",
+  not a spurious ranking. A method that reports a win on a tie case is flagged.
 - **Pareto**: two or more policies are non-dominated on the (tonnes, wait) objectives, reported as a Pareto
-  front plus a TIE rule, never collapsed to one winner.
+  front plus a tie rule, never collapsed to one winner.
 - **Oracle** (the 1x1 test fixture): the run must equal the closed-form value exactly; any drift fails the
   determinism check. It lives in the test suite, not as a user tile, so no 1-source case ships.
 - **Binding side**: the verdict names the limiting resource (trucks, shovels, or the plant / stockpile), so the

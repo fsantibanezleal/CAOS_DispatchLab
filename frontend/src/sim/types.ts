@@ -27,7 +27,7 @@ export interface DumpSpec {
   /** Receiving BAYS: a c-server. A crusher with 2 bays serves 2 trucks in parallel (double-side tip).
    *  Absent = 1 (single-server FIFO, identical to the legacy behaviour). */
   bays?: number;
-  /** Stockpile-only. A stockpile is a SINK that becomes a SOURCE: ore trucks REHANDLE onto it when the
+  /** Stockpile-only. A stockpile is a sink that becomes a source: ore trucks rehandle onto it when the
    *  crusher is backed up (all bays busy + a queue), and a reclaimer draws it down at `reclaimRateTph` to
    *  feed its target crusher when the pit cannot. `areaCapacityT` is the finite stacking capacity (tonnes);
    *  a full stockpile stops accepting rehandle. `rehandleAtQueue` is the crusher queue length that triggers
@@ -41,9 +41,9 @@ export interface DumpSpec {
 /** Loaded-direction route (shovel → dump): distance, grade %, rolling resistance %. Empty return negates grade. */
 export interface Route { distM: number; gradePct: number; rrPct: number; }
 
-/** Parametric 2.5D pit topography: a terraced (benched) elliptical pit with a spiral ramp. Optional , 
- *  cases without one get a derived default (topo.ts). Purely REPRESENTATIONAL for the 3D view: cycle TIMES
- *  always come from the DES kinematics over the case's route distM/grade; the 3D path only shows WHERE the
+/** Parametric 2.5D pit topography: a terraced (benched) elliptical pit with a spiral ramp. Optional,
+ *  cases without one get a derived default (topo.ts). Purely representational for the 3D view: cycle times
+ *  always come from the DES kinematics over the case's route distM/grade; the 3D path only shows where the
  *  truck is along its leg. */
 export interface PitTopoSpec {
   center: NodePos;              // pit centre in case world coords (treated as metres)
@@ -55,7 +55,7 @@ export interface PitTopoSpec {
   rampWidthM?: number;          // spiral ramp width (default 25)
   shovelBench: Record<number, number>; // shovelId -> bench index (1..nBenches; deeper = larger)
   // dumps (crusher/waste) sit at the rim (z=0) at their case position
-  roads?: RoadsV1;              // minehaulsim.roads/v1 (structure-real samples, minehaulsim >= 0.12): the REAL network
+  roads?: RoadsV1;              // minehaulsim.roads/v1 (structure-real samples, minehaulsim >= 0.12): the real network
 }
 
 /** `minehaulsim.roads/v1`: the real constrained road network shipped in a structure-real sample's topo.json,
@@ -82,9 +82,9 @@ export interface MineSpec {
   shovels: ShovelSpec[];
   dumps: DumpSpec[];
   routes: Record<string, Route>;  // key `${shovelId}->${dumpId}` (adjacency + ranking; combined distance)
-  /** Pit PORTAL / exit node (#67 round 2). When present, every haul between the pit and an external facility
-   *  passes through this single portal: a LOADED truck runs shovel -> internal pit road(s) -> portal -> a
-   *  DIRECT surface haul -> destination; an EMPTY truck runs destination -> portal -> internal roads -> shovel.
+  /** Pit portal / exit node (#67 round 2). When present, every haul between the pit and an external facility
+   *  passes through this single portal: a loaded truck runs shovel -> internal pit road(s) -> portal -> a
+   *  direct surface haul -> destination; an empty truck runs destination -> portal -> internal roads -> shovel.
    *  The DES leg time is the SUM of the two rimpull segments (`pitRoad` + `portalHaul`), never a single
    *  straight shovel->destination line. Absent (e.g. replayed real samples) = legacy single-segment route. */
   portal?: NodePos;
@@ -102,7 +102,7 @@ export interface CaseSpec {
   mine: MineSpec; fleet: FleetSpec;
   shiftSec: number;
   blendWindow?: { min: number; max: number };  // crusher grade window (binding-blend cases)
-  /** Operational constraints (#22): enforced by the DES BEFORE any policy sees the state. */
+  /** Operational constraints (#22): enforced by the DES before any policy sees the state. */
   constraints?: import('./constraints').OperationalConstraints;
   /** Per-case stochastic amplitude (C15/C16). travelCv overrides the default 0.08 lognormal travel
    *  noise; a higher CV is the regime where variance-driven bunching makes myopic assignment

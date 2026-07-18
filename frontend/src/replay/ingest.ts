@@ -1,4 +1,4 @@
-// CONTRACT 1 (client-side) for REAL cycle logs, `dispatchlab.cyclelog/v1`. The bring-your-own-shift gate.
+// Contract 1 (client-side) for real cycle logs, `dispatchlab.cyclelog/v1`. The bring-your-own-shift gate.
 // Validates event rows (t, truck_id, shovel_id, event, payload_t), REJECTS structural violations with a reason
 // (never silently coerces), FLAGS plausible-but-suspicious rows, and DERIVES the RealSample: rosters, observed
 // shift, a synthesized schematic layout (real logs carry no coordinates, labelled as such) and the empirical
@@ -16,7 +16,7 @@ export interface Geology {
   engine: string;                 // "oreblocks"
   archetype: string;              // porphyry | vein | layered | core_halo
   cutoffGrade: number;            // economic cutoff (mass fraction)
-  stampedPitValue: number;        // the EXACT ultimate-pit value the deposit was solved to
+  stampedPitValue: number;        // the exact ultimate-pit value the deposit was solved to
   gradeUnit: string;
   faces: GeologyFace[];           // per-shovel face stamp (grade/bench/ore-fraction at its bench)
   note: string;

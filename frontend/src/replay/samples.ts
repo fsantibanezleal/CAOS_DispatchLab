@@ -1,7 +1,7 @@
 // Real-sample loading (#14): list the shipped cycle-log samples (public/data/real/index.json), load one through
-// CONTRACT 1 (ingest), and accept a bring-your-own-data CSV file through the SAME gate. Everything the App uses
+// Contract 1 (ingest), and accept a bring-your-own-data CSV file through the same gate. Everything the App uses
 // in real mode flows through ingestCycleLog, shipped and user data alike.
-// minehaulsim samples (#30) additionally ship `<id>.topo.json`: the PitTopoSpec of the REAL generated
+// minehaulsim samples (#30) additionally ship `<id>.topo.json`: the PitTopoSpec of the real generated
 // geometry, attached to the ingested mine so the 3D view renders it instead of the derived default.
 // Underground samples ship minehaulsim.minetopo/v1 instead (#21): levels + decline + passes.
 import type { MineTopo, PitTopoSpec } from '../sim/types';
@@ -49,7 +49,7 @@ export async function loadSample(meta: SampleMeta): Promise<IngestReport> {
   return report;
 }
 
-/** BYOD: a user-provided cyclelog CSV goes through the SAME contract; rejects surface in the UI. */
+/** BYOD: a user-provided cyclelog CSV goes through the same contract; rejects surface in the UI. */
 export async function loadUserFile(file: File): Promise<IngestReport> {
   const text = await file.text();
   const provenance: Provenance = {

@@ -8,7 +8,7 @@ the weights for the synchronous TS forward + the `featOrder` encoding contract.
 
 ## The version pin (load-bearing)
 
-`frontend/src/lib/ort.ts` pins both the npm package AND the WASM CDN to the SAME version:
+`frontend/src/lib/ort.ts` pins both the npm package and the WASM CDN to the same version:
 ```ts
 ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/';
 ort.env.wasm.numThreads = 1;

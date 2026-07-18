@@ -1,6 +1,6 @@
 // Deterministic, seedable PRNG for the DES, the determinism contract requires NO Math.random and a
-// reproducible stream. xoshiro128** over Uint32 (NOT splitmix64→u64: JS float64 cannot represent u64
-// exactly). Per-purpose, per-entity NAMED streams (load/travel/dump/breakdown/tie-break) seeded by hashing
+// reproducible stream. xoshiro128** over Uint32 (not splitmix64→u64: JS float64 cannot represent u64
+// exactly). Per-purpose, per-entity named streams (load/travel/dump/breakdown/tie-break) seeded by hashing
 // (masterSeed, streamName) so adding a truck does not shift the draws feeding the others, this is what
 // makes common-random-numbers policy comparisons valid (same arrivals/services across policies).
 
@@ -37,14 +37,14 @@ export class Stream {
   }
 
   /** Deep copy of the stream's exact state (words + gauss spare); the rollout forks the DES and must
-   *  carry the noise state so a forked future continues the SAME stream, not a fresh one. */
+   *  carry the noise state so a forked future continues the same stream, not a fresh one. */
   clone(): Stream {
     const s = Object.create(Stream.prototype) as Stream;
     s.s0 = this.s0; s.s1 = this.s1; s.s2 = this.s2; s.s3 = this.s3; s.gaussSpare = this.gaussSpare;
     return s;
   }
 
-  /** Reseed in place (used to draw an INDEPENDENT sampled future in a rollout branch). */
+  /** Reseed in place (used to draw an independent sampled future in a rollout branch). */
   reseed(seed: number): void {
     const sm = splitmix32(seed >>> 0);
     this.s0 = sm(); this.s1 = sm(); this.s2 = sm(); this.s3 = sm(); this.gaussSpare = null;
@@ -83,7 +83,7 @@ export class Stream {
   /** exponential with the given mean (inverse-CDF; 1−u avoids log(0)) */
   exp(mean: number): number { return -mean * Math.log(1 - this.u()); }
 
-  /** lognormal parameterised by its MEAN and coefficient of variation (cv = sd/mean) */
+  /** lognormal parameterised by its mean and coefficient of variation (cv = sd/mean) */
   lognormal(mean: number, cv: number): number {
     const sigma2 = Math.log(1 + cv * cv);
     const mu = Math.log(Math.max(mean, 1e-9)) - 0.5 * sigma2;

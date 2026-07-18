@@ -5,9 +5,9 @@ import { type CaseSpec, type Leg, type SimResult } from '../sim/types';
 import { buildPitTopo, sampleAt, type PitTopo } from '../sim/topo';
 
 // The 3D pit view: the terraced pit shell (benches at their real elevations), the spiral ramp, shovels on
-// their bench, dumps at the rim, and trucks moving along the REAL 3D haul path (bench → ramp → surface) at
-// the playback time t. Times are the DES's (the 3D path only decides WHERE the truck is drawn at fraction f
-// of its leg). Compute discipline: renders ON DEMAND (playback tick / camera interaction / theme change) , 
+// their bench, dumps at the rim, and trucks moving along the real 3D haul path (bench → ramp → surface) at
+// the playback time t. Times are the DES's (the 3D path only decides where the truck is drawn at fraction f
+// of its leg). Compute discipline: renders on demand (playback tick / camera interaction / theme change),
 // zero rAF work when paused with no interaction, and it halts on a hidden tab.
 const STATE_COLOR: Record<Leg['state'], number> = { haulFull: 0xd29922, haulEmpty: 0x58a6ff, atShovel: 0x8b949e, atDump: 0x8b949e };
 
@@ -157,7 +157,7 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
       mkBox(topo.shovelPos3[s.id], 22, s.faceType === 'ore' ? 0xe3b341 : 0x9aa4ae, 0.9);
       mkLabel(`S${s.id}`, topo.shovelPos3[s.id], 42);
     }
-    // dumps by kind: crusher = red, waste = slate, stockpile = amber cone-ish box scaled by its FILL level
+    // dumps by kind: crusher = red, waste = slate, stockpile = amber cone-ish box scaled by its fill level
     const stockMeshes: { id: number; mesh: THREE.Mesh; cap: number }[] = [];
     for (const d of c.mine.dumps) {
       if (d.kind === 'stockpile') {
@@ -172,13 +172,13 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
       mkLabel(isCr ? (es ? 'chancador' : 'crusher') : (es ? 'botadero' : 'waste dump'), topo.dumpPos3[d.id], 52, 1.1);
     }
 
-    // pit PORTAL / exit: the ramp rim exit (ramp[0]) is the single node every haul funnels through,
-    // shovel -> bench -> ramp -> PORTAL -> surface haul -> destination, and the reverse for the empty return.
+    // pit portal / exit: the ramp rim exit (ramp[0]) is the single node every haul funnels through,
+    // shovel -> bench -> ramp -> portal -> surface haul -> destination, and the reverse for the empty return.
     const portalV = topo.ramp[0] ?? { x: topo.spec.center.x, y: topo.spec.center.y, z: 0 };
     { const g = new THREE.CylinderGeometry(10, 16, 10, 6); const m = new THREE.MeshStandardMaterial({ color: dark ? 0x539bf5 : 0x2f6feb, roughness: 0.5, flatShading: true }); const mesh = new THREE.Mesh(g, m); const p = toThree(portalV); mesh.position.set(p.x, p.y + 5, p.z); scene.add(mesh); disposables.push(g, m); }
     mkLabel(es ? 'salida del rajo' : 'pit exit', portalV, 26, 0.95);
-    // Road network. Structure-real samples (minehaulsim >= 0.12) ship the REAL network as roads/v1, draw
-    // those exact segment polylines. Synthetic cases draw the derived shared TRUNK + curved SPURS. Either
+    // Road network. Structure-real samples (minehaulsim >= 0.12) ship the real network as roads/v1, draw
+    // those exact segment polylines. Synthetic cases draw the derived shared trunk + curved spurs. Either
     // way hauls follow visible roads, never straight magic lines (#87, #28).
     {
       const roadM = new THREE.LineBasicMaterial({ color: dark ? 0xc89b6a : 0x6b512f, transparent: true, opacity: 0.95 });
@@ -323,8 +323,8 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
       <div ref={mountRef} style={{ width: '100%' }} />
       <p className="dl-note" style={{ marginTop: '0.4rem' }}>
         {es
-          ? 'Topografía 2.5D representativa (bancos, bermas y rampa espiral). Los TIEMPOS de ciclo son los del DES (cinemática rimpull sobre distM/pendiente del caso); la vista 3D solo decide dónde se dibuja el camión en su tramo. Arrastra para orbitar.'
-          : 'Representative 2.5D topography (benches, berms, spiral ramp). Cycle TIMES are the DES’s (rimpull kinematics over the case’s distM/grade); the 3D view only decides where the truck is drawn along its leg. Drag to orbit.'}
+          ? 'Topografía 2.5D representativa (bancos, bermas y rampa espiral). Los tiempos de ciclo son los del DES (cinemática rimpull sobre distM/pendiente del caso); la vista 3D solo decide dónde se dibuja el camión en su tramo. Arrastrar para orbitar.'
+          : 'Representative 2.5D topography (benches, berms, spiral ramp). Cycle times are the DES’s (rimpull kinematics over the case’s distM/grade); the 3D view only decides where the truck is drawn along its leg. Drag to orbit.'}
       </p>
     </div>
   );

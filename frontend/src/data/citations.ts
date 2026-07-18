@@ -1,7 +1,7 @@
 import { type Citation } from '@fasl-work/caos-app-shell';
 
 // DOI-verified references (from the adversarial deep-research pass; the refuters corrected several DOIs and
-// venues). EVERY entry resolves to a clickable, checkable source: a DOI (https://doi.org/...) where one
+// venues). Every entry resolves to a clickable, checkable source: a DOI (https://doi.org/...) where one
 // exists, else an explicit `url` (arXiv abstract, IEEE Xplore, WorldCat-by-ISBN for books, or a Scholar
 // record lookup for the pre-DOI Mining Engineering articles). No entry is a dead label.
 export const CITATIONS: Citation[] = [
