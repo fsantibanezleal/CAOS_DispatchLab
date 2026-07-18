@@ -74,7 +74,7 @@ banks, Monte-Carlo 95% CIs, the eval bank disjoint from `bench_synthetic`'s). Re
 
 ## Live: AlphaGo-style distillation
 
-The true rollout (`K x horizon` DES steps per decision) is too heavy for the browser. So it runs OFFLINE over
+The true rollout (`K x horizon` DES steps per decision) is too heavy for the browser. So it runs offline over
 the corpus and its chosen actions are **distilled** into a small per-shovel MLP,
 `dl-rollout.onnx` (`science/train_policy.py`, behaviour-clone of the rollout action, held-out imitation accuracy
 `~0.84`), run live via `onnxruntime-web` exactly like the RWR/BC nets. The App's **Rollout inspector** panel

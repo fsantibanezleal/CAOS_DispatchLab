@@ -39,7 +39,7 @@ function Pipeline({ es }: { es: boolean }) {
         <li>{es ? <><b>Política (imitación ponderada por recompensa, RWR):</b> reproduce las decisiones de referencia ponderadas por las toneladas del episodio → aprende los patrones de los buenos episodios.</> : <><b>Policy (reward-weighted imitation, RWR):</b> reproduces the reference decisions weighted by episode tonnes → learns the good-episode patterns.</>}</li>
         <li>{es ? <><b>BC-best:</b> clona la mejor heurística por toneladas medianas.</> : <><b>BC-best:</b> behaviour-clones the best heuristic by median tonnes.</>}</li>
       </ul>
-      <p>{es ? 'Ambas se exportan a ONNX. El encoding de features es la ÚNICA fuente de verdad: el navegador reconstruye los mismos features antes de inferir.' : 'Both export to ONNX. The feature encoding is the single source of truth: the browser rebuilds the same features before inference.'}</p>
+      <p>{es ? 'Ambas se exportan a ONNX. El encoding de features es la única fuente de verdad: el navegador reconstruye los mismos features antes de inferir.' : 'Both export to ONNX. The feature encoding is the single source of truth: the browser rebuilds the same features before inference.'}</p>
       <Refs ids={['peters2007', 'mnih2015', 'hasselt2016', 'noriega2024']} label="Refs" />
     </>
   );

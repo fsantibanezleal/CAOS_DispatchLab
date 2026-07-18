@@ -323,7 +323,7 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
       <div ref={mountRef} style={{ width: '100%' }} />
       <p className="dl-note" style={{ marginTop: '0.4rem' }}>
         {es
-          ? 'Topografía 2.5D representativa (bancos, bermas y rampa espiral). Los TIEMPOS de ciclo son los del DES (cinemática rimpull sobre distM/pendiente del caso); la vista 3D solo decide dónde se dibuja el camión en su tramo. Arrastra para orbitar.'
+          ? 'Topografía 2.5D representativa (bancos, bermas y rampa espiral). Los TIEMPOS de ciclo son los del DES (cinemática rimpull sobre distM/pendiente del caso); la vista 3D solo decide dónde se dibuja el camión en su tramo. Arrastrar para orbitar.'
           : 'Representative 2.5D topography (benches, berms, spiral ramp). Cycle TIMES are the DES’s (rimpull kinematics over the case’s distM/grade); the 3D view only decides where the truck is drawn along its leg. Drag to orbit.'}
       </p>
     </div>

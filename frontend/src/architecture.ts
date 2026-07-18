@@ -74,7 +74,7 @@ export const architecture: ArchitectureConfig = {
       body_en:
         'Three lanes, and the split is the point. WEB (live, in the browser): the TypeScript discrete-event simulation ' +
         '(frontend/src/sim/) re-runs on every control and onnxruntime-web runs dl-policy.onnx + dl-bcbest.onnx in the ' +
-        'decision inspector, no server. OFFLINE / COMPUTE (your machine, isolated .venv): the Python pipeline bakes ' +
+        'decision inspector, no server. offline / COMPUTE (your machine, isolated .venv): the Python pipeline bakes ' +
         'the canonical case artifacts (the policy comparisons + replays) and the heavy lane (--retrain, .venv-precompute, ' +
         'torch) trains the learned dispatch policy + the behaviour-clone and exports them to ONNX. REPLAY: the small, ' +
         'committed artifacts in data/derived are overlaid into the SPA by copy-data.mjs and loaded live; the typed ' +
@@ -82,7 +82,7 @@ export const architecture: ArchitectureConfig = {
       body_es:
         'Tres carriles, y la división es lo central. WEB (en vivo, en el navegador): la simulación de eventos discretos ' +
         'en TypeScript (frontend/src/sim/) se re-corre con cada control y onnxruntime-web ejecuta dl-policy.onnx + ' +
-        'dl-bcbest.onnx en el inspector de decisión, sin servidor. OFFLINE / CÓMPUTO (tu máquina, .venv aislado): el ' +
+        'dl-bcbest.onnx en el inspector de decisión, sin servidor. offline / CÓMPUTO (tu máquina, .venv aislado): el ' +
         'pipeline Python hornea los artefactos canónicos por caso (las comparaciones de políticas + replays) y el carril ' +
         'pesado (--retrain, .venv-precompute, torch) entrena la política de despacho aprendida + el clon de comportamiento ' +
         'y los exporta a ONNX. REPLAY: los artefactos pequeños y versionados en data/derived se superponen al SPA con ' +
