@@ -1,4 +1,4 @@
-// Benchmark (#19): the OFFLINE aggregate comparisons. Everything here is PRECOMPUTED by the
+// Benchmark (#19): the offline aggregate comparisons. Everything here is PRECOMPUTED by the
 // pipeline (data-pipeline/dlab/science/bench_synthetic.mjs + bench_real.mjs) and committed , 
 // the page only reads /data/bench/*.json. No heavy compute in the browser.
 // Layout rule (#49): no giant scrolls, per-case and per-shift detail renders ONE selection at a
@@ -50,7 +50,7 @@ export default function Benchmark() {
       <div className="page-head">
         <h1>Benchmark</h1>
         <p className="lede">{es
-          ? `Comparaciones agregadas OFFLINE, ${syn.nCases} casos sintéticos × ${syn.aggregate.length} políticas (5 heurísticas + OR/Hungarian + 2 aprendidas + el rollout destilado) × ${syn.nSeeds} seeds, más el rollout Monte-Carlo beyond-SOTA (pestaña Rollout) y el counterfactual CALIBRADO sobre los ${real.samples.filter((s) => s.ok).length} turnos reales, todo contra el ORÁCULO de capacidad (cota superior sin colas). Cada corrida es bajo el modelo de tráfico en la ruta (límite de velocidad, seguimiento con bunching, cruce en doble vía), así el tiempo de ciclo EMERGE, no es de flujo libre. Todo precomputado por el pipeline y commiteado; esta página solo lee los artefactos. Números honestos, los resultados nulos y las discrepancias se muestran.`
+          ? `Comparaciones agregadas offline, ${syn.nCases} casos sintéticos × ${syn.aggregate.length} políticas (5 heurísticas + OR/Hungarian + 2 aprendidas + el rollout destilado) × ${syn.nSeeds} seeds, más el rollout Monte-Carlo beyond-SOTA (pestaña Rollout) y el counterfactual CALIBRADO sobre los ${real.samples.filter((s) => s.ok).length} turnos reales, todo contra el ORÁCULO de capacidad (cota superior sin colas). Cada corrida es bajo el modelo de tráfico en la ruta (límite de velocidad, seguimiento con bunching, cruce en doble vía), así el tiempo de ciclo EMERGE, no es de flujo libre. Todo precomputado por el pipeline y commiteado; esta página solo lee los artefactos. Números honestos, los resultados nulos y las discrepancias se muestran.`
           : `OFFLINE aggregate comparisons, ${syn.nCases} synthetic cases × ${syn.aggregate.length} policies (5 heuristics + OR/Hungarian + 2 learned + the distilled rollout) × ${syn.nSeeds} seeds, plus the beyond-SOTA Monte-Carlo rollout (Rollout tab) and the CALIBRATED counterfactual over the corpus of ${real.samples.filter((s) => s.ok).length} real shifts, all scored against the capacity ORACLE (queue-free upper bound). Every run is under the haul-road traffic model (speed limit, car-following bunching, two-way meeting), so cycle times are emergent, not free-flow. Everything precomputed by the pipeline and committed; this page only reads the artifacts. Honest numbers, null results and discrepancies are shown.`}</p>
       </div>
       <Tabs tabs={tabs} />

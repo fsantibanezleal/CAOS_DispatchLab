@@ -254,7 +254,7 @@ export function Underground3D({ c, result, t, lang }: { c: CaseSpec; result: Sim
       <div ref={mountRef} style={{ width: '100%' }} />
       <p className="dl-note" style={{ marginTop: '0.4rem' }}>
         {es
-          ? 'Mina subterránea REAL generada (minetopo/v1): rampa de acceso, niveles, puntos de extracción, piques de traspaso y bin. Los TIEMPOS son del log reproducido; el 3D solo decide dónde se dibuja el camión en su tramo (marcadores representacionales). Arrastra para orbitar.'
+          ? 'Mina subterránea REAL generada (minetopo/v1): rampa de acceso, niveles, puntos de extracción, piques de traspaso y bin. Los TIEMPOS son del log reproducido; el 3D solo decide dónde se dibuja el camión en su tramo (marcadores representacionales). Arrastrar para orbitar.'
           : 'REAL generated underground mine (minetopo/v1): access decline, levels, drawpoints, ore passes and bin. TIMES come from the replayed log; the 3D only decides where the truck is drawn along its leg (markers representational). Drag to orbit.'}
       </p>
     </div>

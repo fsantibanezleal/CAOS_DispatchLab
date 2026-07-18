@@ -282,7 +282,7 @@ export default function Tool() {
       </Panel>) },
     { id: 'cycle', label: es ? 'Tiempo de ciclo' : 'Cycle time', content: (
       <Panel t={realOK
-        ? (es ? 'Tiempo de ciclo MEDIDO por pala (mediana de carga vs viaje+descarga observados en el turno)' : 'MEASURED cycle time per shovel (median observed load vs haul+dump this shift)')
+        ? (es ? 'Tiempo de ciclo medido por pala (mediana de carga vs viaje+descarga observados en el turno)' : 'MEASURED cycle time per shovel (median observed load vs haul+dump this shift)')
         : (es ? 'Tiempo de ciclo ideal por pala (carga vs viaje+descarga), de la cinemática rimpull/pendiente' : 'Ideal cycle time per shovel (load vs haul+dump), from the rimpull/grade kinematics')}>
         {(() => {
           const cycleOf = (id: number): { tLoad: number; tCycle: number } => {
@@ -444,7 +444,7 @@ export default function Tool() {
           <div className="small muted" style={{ marginTop: '0.2rem', fontStyle: 'italic' }}>{es ? 'MF es una propiedad de la FLOTA (analítica), igual para todas las políticas' : 'MF is a FLEET property (analytical), the same for every policy'}</div>
         </div>
         <p className="tw-note dl-note">{realOK
-          ? (es ? 'Turno MEDIDO reproducido desde un cycle-log (contrato cyclelog/v1). La geometría del mapa es esquemática (los logs no traen coordenadas). NO es un sistema de despacho productivo.' : 'MEASURED shift replayed from a cycle log (cyclelog/v1 contract). Map geometry is schematic (logs carry no coordinates). NOT a production dispatch system.')
+          ? (es ? 'Turno medido reproducido desde un cycle-log (contrato cyclelog/v1). La geometría del mapa es esquemática (los logs no traen coordenadas). NO es un sistema de despacho productivo.' : 'MEASURED shift replayed from a cycle log (cyclelog/v1 contract). Map geometry is schematic (logs carry no coordinates). NOT a production dispatch system.')
           : (es ? 'Rajo sintético físicamente fundado (validado vs match-factor + oráculo); políticas aprendidas entrenadas offline, inferencia ONNX viva. NO es un sistema de despacho productivo.' : 'Synthetic physics-grounded pit (validated vs match-factor + oracle); learned policies trained offline, live ONNX inference. NOT a production dispatch system.')}</p>
       </aside>
       <div className="dl-main"><Tabs tabs={visibleTabs} ariaLabel="methods" /></div>

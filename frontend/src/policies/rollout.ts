@@ -10,7 +10,7 @@
 // weakens to empirical-with-CI, so the Benchmark reports Monte-Carlo confidence intervals, never a bare win.
 //
 // Live-browser split (AlphaGo-style): the TRUE rollout is heavy (K x horizon DES steps per decision), so it
-// runs OFFLINE over the corpus (science/rollout_bench.mjs) and its chosen actions are DISTILLED into a small
+// runs offline over the corpus (science/rollout_bench.mjs) and its chosen actions are DISTILLED into a small
 // per-shovel MLP -> dl-rollout.onnx, run live via onnxruntime-web exactly like the RWR/BC nets. The live App
 // also runs a BOUNDED rollout on demand in the "Rollout inspector" panel (this module), never on autoplay.
 import { RolloutSim } from '../sim/rolloutSim';
