@@ -530,7 +530,7 @@ function RolloutInspector({ c, seed, es }: { c: CaseSpec; seed: number; es: bool
       </div>
       {res == null ? (
         <p className="dl-hint small" style={{ marginTop: '0.5rem' }}>{es
-          ? 'Al pulsar Calcular: para cada pala candidata, el DES se bifurca, se aplica la pala y se simula el resto del turno K veces con la política base; se elige el mejor objetivo esperado. Nada corre solo (sin bomba de cómputo).'
+          ? 'Al pulsar Calcular: para cada pala candidata, el DES se bifurca, se aplica la pala y se simula el resto del turno K veces con la política base; se elige el mejor objetivo esperado. Nada se ejecuta solo (sin bomba de cómputo).'
           : 'Press Compute: for each candidate shovel, the DES forks, the shovel is applied, and the rest of the shift is simulated K times under the base policy; the best expected objective is chosen. Nothing runs on its own (no compute-bomb).'}</p>
       ) : cands.length === 0 ? (
         <p className="dl-hint small" style={{ marginTop: '0.5rem' }}>{es ? 'No hay una decisión en ese índice (turno más corto).' : 'No decision at that index (shorter shift).'}</p>
@@ -578,7 +578,7 @@ function DecisionInspector({ decisions, es }: { decisions: Decision[]; es: boole
         />
       ) : <p className="dl-hint small">{es ? 'Calculando puntajes ONNX en el navegador…' : 'Computing ONNX scores in the browser…'}</p>}
       <input className="range" type="range" min={0} max={decisions.length - 1} value={i} onChange={(e) => setI(+e.target.value)} style={{ width: '100%', marginTop: '0.5rem' }} />
-      <p className="dl-hint small">{es ? 'Decisión' : 'Decision'} {i + 1}/{decisions.length} · t={(d.t / 3600).toFixed(1)} h · ★ = {es ? 'pala elegida por la red (argmax). La inferencia ONNX corre en vivo en el navegador.' : 'shovel the net picks (argmax). The ONNX inference runs live in the browser.'}</p>
+      <p className="dl-hint small">{es ? 'Decisión' : 'Decision'} {i + 1}/{decisions.length} · t={(d.t / 3600).toFixed(1)} h · ★ = {es ? 'pala elegida por la red (argmax). La inferencia ONNX se ejecuta en vivo en el navegador.' : 'shovel the net picks (argmax). The ONNX inference runs live in the browser.'}</p>
     </Panel>
   );
 }
