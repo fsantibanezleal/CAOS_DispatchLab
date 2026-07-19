@@ -25,9 +25,9 @@ export const architecture: ArchitectureConfig = {
         'DispatchLab es un producto de transporte en rajo abierto: dados N camiones, M palas y distintos caminos de ' +
         'acarreo, simula un turno bajo una política de despacho y muestra el throughput (toneladas), el match factor y ' +
         'la espera de camiones, respondiendo "¿qué asignación camión→pala maximiza toneladas y minimiza colas?". Al elegir ' +
-        'un caso, una flota y una política, el turno completo se re-corre en vivo.\n\n' +
+        'un caso, una flota y una política, el turno completo se vuelve a ejecutar en vivo.\n\n' +
         'Es un sistema real, no un demo. Una simulación de eventos discretos en centésimas (frontend/src/sim/) se ' +
-        're-corre con cada control; el viaje del camión es físico (velocidad por pendiente, resistencia a la rodadura y ' +
+        'se vuelve a ejecutar con cada control; el viaje del camión es físico (velocidad por pendiente, resistencia a la rodadura y ' +
         'carga); las palas cargan en un ciclo real y se forman colas en ambos extremos. Las políticas heurísticas ' +
         'compiten con una NN de despacho aprendida y un clon de comportamiento de la mejor, ambos ONNX, en el cliente. ' +
         'El match factor analítico la ancla y un oráculo 1x1 de forma cerrada (un fixture de test) fija el determinismo.',
@@ -81,7 +81,7 @@ export const architecture: ArchitectureConfig = {
         'mirror (contract.types.ts) fails the build if the web and the pipeline shapes ever diverge.',
       body_es:
         'Tres carriles, y la división es lo central. Web (en vivo, en el navegador): la simulación de eventos discretos ' +
-        'en TypeScript (frontend/src/sim/) se re-corre con cada control y onnxruntime-web ejecuta dl-policy.onnx + ' +
+        'en TypeScript (frontend/src/sim/) se vuelve a ejecutar con cada control y onnxruntime-web ejecuta dl-policy.onnx + ' +
         'dl-bcbest.onnx en el inspector de decisión, sin servidor. Offline / cómputo (máquina local, .venv aislado): el ' +
         'pipeline Python precalcula los artefactos canónicos por caso (las comparaciones de políticas + replays) y el carril ' +
         'pesado (--retrain, .venv-precompute, torch) entrena la política de despacho aprendida + el clon de comportamiento ' +
@@ -136,7 +136,7 @@ export const architecture: ArchitectureConfig = {
         '(n_camiones·t_pala)/(n_palas·t_ciclocamión) ancla los casos balanceados.\n\n' +
         'El DES determinista + las políticas heurísticas están siempre activos y son transparentes, la referencia ' +
         'contra la que se mide toda política aprendida. El carril aprendido: una NN de despacho (dl-policy) puntúa cada ' +
-        'pala desde features, y un clon de comportamiento (dl-bcbest) imita la mejor heurística; ambos corren en el ' +
+        'pala desde features, y un clon de comportamiento (dl-bcbest) imita la mejor heurística; ambos se ejecutan en el ' +
         'cliente como ONNX en el inspector de decisión, reportados por precisión de imitación, nunca como caja negra.',
     },
     {
