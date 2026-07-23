@@ -4,6 +4,14 @@
 [![License](https://img.shields.io/github/license/fsantibanezleal/CAOS_DispatchLab)](LICENSE)
 [![Version](https://img.shields.io/github/v/tag/fsantibanezleal/CAOS_DispatchLab?label=version&sort=semver)](https://github.com/fsantibanezleal/CAOS_DispatchLab/tags)
 [![Live demo](https://img.shields.io/badge/demo-live-2ea44f)](https://dispatchlab.fasl-work.com)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21518002-blue)](https://doi.org/10.5281/zenodo.21518002)
+
+Technical report (CC-BY-4.0): *"How Much Does Truck-Shovel Dispatch Matter? A Common-Random-Numbers Bench of Six
+Policies and a Learned Rollout, on a Deterministic DES"*, concept DOI
+[10.5281/zenodo.21518002](https://doi.org/10.5281/zenodo.21518002) (source in
+[`manuscripts/dispatch-bench/`](manuscripts/dispatch-bench/)). The honest answer: dispatch matters by a few
+percent (best-vs-worst 3.8% mean, up to 11.7%), the OR-optimal Hungarian wins but simple greedy is within 1.4%,
+and a Monte-Carlo rollout imitates the best policy at 0.841.
 
 A didactic, in-browser bench that compares **truck-to-shovel dispatch policies** on a deterministic
 discrete-event simulation of an open pit, validated against closed-form match-factor theory and a 1×1
