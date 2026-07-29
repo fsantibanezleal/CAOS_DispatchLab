@@ -103,12 +103,23 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
     // Same rule as Pit3D: height comes from the space LEFT in the view, not from the width. Deriving
     // it from the width means a wider panel produces a taller canvas and pushes the controls and KPI
     // row below the fold.
+    // Measure the SIBLINGS, not `scrollHeight - ownHeight`. The latter is circular because the canvas
+    // is part of what it measures, and here it resolved to 587px in a 642px panel: the map was drawn
+    // OVER the Play button, the scrubber and the KPI cards, so the controls were visible but could not
+    // be clicked (the canvas is above them and swallows the pointer). Same defect as Pit3D had.
     const cw = cv.clientWidth || 700;
-    let ch = Math.max(300, Math.round(cw * 0.5));
+    let ch = Math.max(260, Math.round(cw * 0.5));
     const scroller = cv.closest('.dl-tabpanel') as HTMLElement | null;
     if (scroller) {
-      const others = scroller.scrollHeight - cv.getBoundingClientRect().height;
-      ch = Math.max(260, Math.min(ch, scroller.clientHeight - others - 8));
+      let used = 0;
+      for (const box of [cv.closest('.dl-panel'), cv.parentElement]) {
+        if (!box) continue;
+        for (const child of Array.from(box.children)) {
+          if (child === cv || child.contains(cv)) continue;
+          used += (child as HTMLElement).getBoundingClientRect().height + 6;
+        }
+      }
+      ch = Math.max(260, Math.min(ch, scroller.clientHeight - used - 30));
     }
     cv.style.height = ch + 'px';
     cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
