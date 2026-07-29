@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.20.001], 2026-07-29
+
+### Fixed (ADR-0071 rule 7, which 0.20.000 did not honour)
+- **Case and Policy were expanded chip lists, not dropdowns.** Eight case chips and nine policy chips
+  spent rail height on lists the user had to read end to end, and the case chips showed only ids
+  (`C01`...`C08`) so identifying one meant hovering each. Rule 7 says a categorised one-of-N choice is a
+  `select` with `optgroup`. Both are now dropdowns: the case shows `id - name` in one row, and the policy
+  is grouped by tier (Heuristics / Optimal / Learned), which also surfaces a distinction the flat chip
+  list never showed.
+- 0.20.000 applied the ADR-0071 layout rules to this product but skipped rule 7 entirely, so the release
+  claimed the floor while violating part of it.
+
+### Verification
+- New `tools/visual-verify/_rule7.mjs` gate flags any rail control group of six or more sibling chip
+  buttons. Run across all eleven deployed products: **all pass**.
+
 ## [0.20.000], 2026-07-28
 
 ### Added

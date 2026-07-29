@@ -412,7 +412,13 @@ export default function Tool() {
             so the authoring grid hides entirely instead of rendering locked-but-clickable-looking (#47) */}
         {source === 'synthetic' ? (
           <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Caso' : 'Case'}</span>
-            <div className="dl-chips">{CASES.map((x) => <button key={x.id} className={`chip ${caseId === x.id ? 'on' : ''}`} onClick={() => { setCaseId(x.id); setPlayT(0); }} title={x.name}>{x.id}</button>)}</div>
+            {/* ADR-0071 rule 7: a one-of-N choice is a select, not N buttons. Eight case chips spent
+                rail height listing ids the user then had to hover to identify; the dropdown shows the
+                id AND its name in one row. */}
+            <select className="dl-select" value={caseId} aria-label={es ? 'caso' : 'case'}
+                    onChange={(e) => { setCaseId(e.target.value); setPlayT(0); }}>
+              {CASES.map((x) => <option key={x.id} value={x.id}>{x.id} - {x.name}</option>)}
+            </select>
             <span className="dl-hint">{c.name}</span>
           </div>
         ) : (
@@ -446,7 +452,28 @@ export default function Tool() {
         )}
         {source === 'synthetic' ? (
         <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Política' : 'Policy'}</span>
-          <div className="dl-chips">{allPolicies.map((p) => <button key={p.id} className={`chip ${policyId === p.id ? 'on' : ''} ${p.tier === 'learned' ? 'dl-learned-chip' : ''}`} onClick={() => setPolicyId(p.id)} title={es ? p.es : p.en}>{(es ? p.es : p.en).replace('Learned, ', '').replace('Aprendida, ', '').split(' (')[0]}</button>)}</div>
+          {/* Same rule. Nine policy chips wrapped over several rail rows; grouped by tier a dropdown
+              also makes the heuristic / optimal / learned distinction visible, which the flat chip
+              list never did. */}
+          <select className="dl-select" value={policyId} aria-label={es ? 'politica' : 'policy'}
+                  onChange={(e) => setPolicyId(e.target.value)}>
+            {['heuristic', 'optimal', 'learned'].map((tier) => {
+              const inTier = allPolicies.filter((p) => (p.tier ?? 'heuristic') === tier);
+              if (!inTier.length) return null;
+              const label = tier === 'heuristic' ? (es ? 'Heuristicas' : 'Heuristics')
+                : tier === 'optimal' ? (es ? 'Optimas' : 'Optimal')
+                : (es ? 'Aprendidas' : 'Learned');
+              return (
+                <optgroup key={tier} label={label}>
+                  {inTier.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {(es ? p.es : p.en).replace('Learned, ', '').replace('Aprendida, ', '').split(' (')[0]}
+                    </option>
+                  ))}
+                </optgroup>
+              );
+            })}
+          </select>
           {pol.tier === 'learned' && <span className="dl-hint" style={{ color: '#f85149' }}>{es ? 'política aprendida (red entrenada offline)' : 'learned policy (net trained offline)'}</span>}
         </div>
         ) : (
