@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.20.000], 2026-07-28
+
+### Added
+- **ADR-0070 scenario focus view** at `/focus/<caseId>`, with a visible **Focus mode** entry at the top of
+  the App rail and a return that lands back on the App. Additive: the App keeps every tab and all of its
+  explanation. The stage owns 80% of the viewport; the operating state is NAMED on it (Truck-limited /
+  Matched fleet / Shovel-limited) with one plain sentence; eight KPIs are overlaid as a HUD instead of
+  stacked as cards; the rail carries the Pit-3D/Map toggle, play/reset, a shift-time scrubber, the
+  dispatch-policy selector, a basic/advanced toggle, provenance, and scenario chips. Starts PAUSED.
+
+### Changed (ADR-0071 UI floor)
+- **Full width.** The App used **75%** of a 1600px viewport because the shell caps pages at a 1200px
+  reading measure, which is right for prose and wrong for an instrument. Now 100%.
+- **One row of tabs.** Twelve sibling tabs occupied **two rows**, permanently taking vertical space from
+  the instrument on every render. Grouped into five (Operation, Throughput, Policies, Decisions,
+  Validation); a combined tab carries a caret and reveals its list on hover, chosen from the same tab.
+- **The page is the viewport.** Chrome sized by flex instead of a hardcoded constant, and the shell's
+  prose footer margin removed: the content-to-footer gap goes **48px -> 0** with no scroll to reach it.
+- Layout containment (`min-width: 0` on the tab containers), so a nowrap row cannot size the page wider
+  than the screen.
+- Shell dependency moved `^0.2.0 -> ^0.3.0` (the newest PUBLISHED version).
+
+### Result, measured at 1280x800 and 1600x900
+- viewport width **75% -> 100%**; tab rows **2 -> 1**; content-to-footer gap **48px -> 0**;
+  **instrument 23.4% -> 54.1%** of the viewport; no overflow in either axis; zero console errors.
+- Verified by driving the pointer, not by requesting URLs: focus opens by CLICK, returns by CLICK, the
+  scenario chips produce 3 distinct simulations of 3, and the tab menu survives a pixel-by-pixel pointer
+  walk (an automated `.click()` teleports and would pass a menu no hand can use).
+
 ## [0.16.000], 2026-07-09
 ### Changed, domain-correct multi-source corpus rebuild (#67 round 2)
 The v0.15 corpus met the letter but not the spirit (too many 1-source / single-destination tiles, dead

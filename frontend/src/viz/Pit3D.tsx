@@ -218,7 +218,11 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
       const radius = Math.max(size.x, size.y, size.z, 1) * 0.5;
-      const fitDist = (radius / Math.sin((cam.fov * Math.PI) / 360)) * 1.18;   // vertical-fit + padding
+      // Fits the WHOLE scene: pit rim plus the dumps, crusher and stockpile, which sit well outside
+      // the rim. The pit therefore reads smaller than the canvas, correctly, because the haul network
+      // is what the view is about. Padding trimmed 1.18 -> 1.05 so the scene uses the stage without
+      // clipping the outlying nodes.
+      const fitDist = (radius / Math.sin((cam.fov * Math.PI) / 360)) * 1.05;
       cam.position.set(center.x, center.y + fitDist * 0.62, center.z + fitDist * 0.85);   // centered, a little superior
       controls.target.copy(center);
       controls.update();

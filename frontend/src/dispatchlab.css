@@ -16,7 +16,8 @@
 .gauge-scale { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--color-fg-faint); margin-top: 0.2rem; }
 .gauge-scale .gauge-val { color: var(--color-fg); font-weight: 700; font-family: var(--font-mono); }
 
-.dl-layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem; align-items: start; }
+.dl-layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.25rem; align-items: stretch;
+  min-height: 0; max-width: 100%; overflow-x: hidden; }
 @media (max-width: 900px) { .dl-layout { grid-template-columns: 1fr; } }
 
 .dl-controls { display: flex; flex-direction: column; gap: 0.8rem; position: sticky; top: 0.5rem; }
@@ -104,3 +105,128 @@
 .dl-fold summary:hover { color: var(--color-fg); }
 .dl-fold[open] summary { margin-bottom: 0.4rem; }
 .dl-fold table { margin: 0; }
+
+/* =============================================================================================
+   ADR-0071 UI FLOOR. These are the measured minimum, not styling preference. Each rule is here
+   because its absence was a shipped defect elsewhere in the line.
+   ============================================================================================= */
+
+/* 1. The page IS the viewport: full width, sized by flex, no chrome constant to maintain.
+      The shell caps pages at a 1200px reading measure, right for prose and wrong for an
+      instrument: measured here the App used 75% of a 1600px viewport. */
+.app-shell { height: 100dvh; min-height: 100dvh; overflow: hidden; }
+.app-shell > .page { flex: 1 1 auto; min-height: 0; display: flex; }
+.page-body.dl-layout { max-width: none; width: 100%; flex: 1 1 auto; min-height: 0;
+  padding: 1rem 1.25rem; }
+html, body { overflow-x: hidden; }
+
+/* 2. The prose footer margin (3rem) is dead space in a viewport-filling app: measured as exactly
+      the 48px gap between the content and the footer. */
+.app-shell .site-footer { margin-top: 0; }
+
+/* 3. Containment. A flex or grid item defaults to `min-width: auto` and will not shrink below its
+      content, so one nowrap row silently sizes the whole page wider than the screen. */
+.dl-controls, .dl-main { min-width: 0; max-width: 100%; }
+.dl-controls { overflow-y: auto; min-height: 0; }
+
+/* 4/5. ONE row of tabs at the top. A tab combining several views carries a caret and reveals its
+        list on hover; you choose from the same tab. Two rows of chrome is permanent vertical space
+        taken from the instrument on every render (measured here: 12 tabs over 2 rows).
+        The row must NOT carry overflow-x: in CSS a box cannot keep overflow-y visible when the
+        other axis is anything else, so the declared value computes to auto and the row clips its
+        own dropdown. Grouping keeps the row short enough not to need scrolling. */
+.dl-tabrow { display: flex; flex-wrap: nowrap; gap: 0.3rem; align-items: center; min-width: 0;
+  max-width: 100%; overflow: visible; flex: 0 0 auto;
+  border-bottom: 1px solid var(--color-border); padding-bottom: 0.45rem; margin-bottom: 0.8rem; }
+.dl-tabwrap { position: relative; flex: 0 0 auto; }
+.dl-tab { white-space: nowrap; cursor: pointer; font-size: 0.88rem; font-weight: 600;
+  padding: 0.42rem 0.85rem; border-radius: 8px; border: 1px solid transparent;
+  background: transparent; color: var(--color-fg-subtle); }
+.dl-tab:hover { color: var(--color-accent); }
+.dl-tab.on { color: var(--color-bg); background: var(--color-accent); border-color: var(--color-accent); }
+.dl-caret { margin-left: 0.4rem; font-size: 0.62rem; opacity: 0.75; }
+.dl-tabmenu { position: absolute; top: 100%; left: 0; z-index: 60; min-width: 200px;
+  display: flex; flex-direction: column; gap: 0.15rem; padding: 0.5rem 0.3rem 0.3rem; margin: 0;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 0 9px 9px 9px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
+.dl-tabmenu button { text-align: left; white-space: nowrap; cursor: pointer; font-size: 0.82rem;
+  padding: 0.34rem 0.55rem; border-radius: 6px; border: none; background: transparent; color: var(--color-fg-subtle); }
+.dl-tabmenu button:hover { background: color-mix(in srgb, var(--color-accent) 14%, transparent); color: var(--color-accent); }
+.dl-tabmenu button.on { color: var(--color-accent); font-weight: 700; }
+.dl-main { display: flex; flex-direction: column; min-height: 0; }
+.dl-tabpanel { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 4px; }
+
+/* 7. A categorised one-of-N is a select, not N buttons under N headings. */
+.dl-select { width: 100%; padding: 0.45rem 0.55rem; border-radius: 8px; font-size: 0.84rem;
+  background: var(--color-bg); color: var(--color-fg); border: 1px solid var(--color-border); }
+.dl-select:focus { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+
+/* ADR-0070 entry control: without it the focus route is an orphan nobody can reach. */
+.dl-focus-enter { display: block; text-decoration: none; border: 1px solid var(--color-accent);
+  border-radius: 10px; padding: 0.55rem 0.75rem; margin-bottom: 0.9rem;
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+.dl-focus-enter:hover { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
+.dl-focus-enter-t { display: block; font-size: 0.86rem; font-weight: 700; color: var(--color-accent); }
+.dl-focus-enter-d { display: block; font-size: 0.72rem; color: var(--color-fg-subtle); margin-top: 0.15rem; line-height: 1.4; }
+
+/* =============================================================================================
+   ADR-0070 scenario focus view. Style per the spec so this is one design across the line, not
+   eleven. Fixed full viewport, stage >=80%, rail 320px right, HUD overlaid, state named on stage.
+   ============================================================================================= */
+.dlf { position: fixed; inset: 0; display: grid; grid-template-columns: 1fr 320px;
+  background: var(--color-bg); color: var(--color-fg); z-index: 40; }
+.dlf-stage { position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.dlf-stage > *:first-child { position: absolute; inset: 0; width: 100%; height: 100%; }
+.dlf-badge { position: absolute; top: 14px; left: 16px; max-width: 46ch;
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  border: 1px solid var(--color-border); border-radius: 10px; padding: 0.6rem 0.8rem;
+  backdrop-filter: blur(6px); pointer-events: none; z-index: 2; }
+.dlf-badge-t { font-size: 1.05rem; font-weight: 700; color: var(--color-accent); }
+.dlf-badge-d { font-size: 0.82rem; color: var(--color-fg-subtle); margin-top: 0.25rem; line-height: 1.45; }
+.dlf-hud { position: absolute; top: 108px; left: 16px; display: flex; flex-direction: column;
+  gap: 0.35rem; pointer-events: none; z-index: 2; }
+.dlf-hud-item { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem;
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  border: 1px solid var(--color-border); border-radius: 9px; padding: 0.35rem 0.6rem; min-width: 150px;
+  backdrop-filter: blur(6px); }
+.dlf-hud-v { font-family: var(--font-mono, monospace); font-size: 0.98rem; font-weight: 700; }
+.dlf-hud-v.accent { color: var(--color-accent); }
+.dlf-hud-v.blue { color: #4c8dff; }
+.dlf-hud-l { font-size: 0.6rem; color: var(--color-fg-faint); text-transform: uppercase;
+  letter-spacing: 0.04em; text-align: right; }
+.dlf-exit { position: absolute; top: 14px; right: 16px; z-index: 3; font-size: 0.78rem;
+  color: var(--color-fg-subtle); text-decoration: none; border: 1px solid var(--color-border);
+  border-radius: 8px; padding: 0.3rem 0.6rem;
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent); }
+.dlf-exit:hover { color: var(--color-accent); }
+.dlf-rail { border-left: 1px solid var(--color-border); background: var(--color-surface);
+  padding: 0.9rem 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6rem; min-height: 0; }
+.dlf-rail-h { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem;
+  padding-bottom: 0.4rem; border-bottom: 1px solid var(--color-border); }
+.dlf-title { font-size: 0.95rem; font-weight: 700; line-height: 1.3; }
+.dlf-sub { font-size: 0.72rem; color: var(--color-fg-faint); font-family: var(--font-mono, monospace); }
+.dlf-mode { font-size: 0.72rem; border: 1px solid var(--color-border); background: transparent;
+  color: var(--color-fg-subtle); border-radius: 7px; padding: 0.25rem 0.55rem; cursor: pointer; flex: 0 0 auto; }
+.dlf-mode:hover { color: var(--color-accent); border-color: var(--color-accent); }
+.dlf-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; }
+.dlf-seg button { cursor: pointer; font-size: 0.76rem; font-weight: 650; padding: 0.35rem 0.4rem;
+  border-radius: 8px; border: 1px solid var(--color-border); background: transparent; color: var(--color-fg-subtle); }
+.dlf-seg button:hover { color: var(--color-accent); border-color: var(--color-accent); }
+.dlf-seg button.on { color: var(--color-bg); background: var(--color-accent); border-color: var(--color-accent); }
+.dlf-ctl { display: flex; flex-direction: column; gap: 0.2rem; }
+.dlf-ctl-l { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--color-fg-subtle); }
+.dlf-ctl-l b { font-family: var(--font-mono, monospace); color: var(--color-fg); }
+.dlf-ctl input[type="range"] { width: 100%; accent-color: var(--color-accent); }
+.dlf-lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-fg-faint); }
+.dlf-select { width: 100%; padding: 0.42rem 0.5rem; border-radius: 8px; font-size: 0.82rem;
+  background: var(--color-bg); color: var(--color-fg); border: 1px solid var(--color-border); }
+.dlf-note { font-size: 0.7rem; color: var(--color-fg-faint); line-height: 1.5; margin-top: 0.3rem;
+  border-top: 1px solid var(--color-border); padding-top: 0.5rem; }
+.dlf-cases { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.dlf-cases a { font-size: 0.66rem; font-family: var(--font-mono, monospace); text-decoration: none;
+  border: 1px solid var(--color-border); border-radius: 6px; padding: 0.18rem 0.4rem; color: var(--color-fg-subtle); }
+.dlf-cases a.on, .dlf-cases a:hover { color: var(--color-accent); border-color: var(--color-accent); }
+@media (max-width: 860px) {
+  .dlf { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .dlf-rail { border-left: none; border-top: 1px solid var(--color-border); max-height: 46vh; }
+}

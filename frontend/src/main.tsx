@@ -9,6 +9,7 @@ import { CITATIONS } from './data/citations';
 import { architecture } from './architecture';
 import pkg from '../package.json';
 import Tool from './pages/Tool';
+import Focus from './pages/Focus';
 import Introduction from './pages/Introduction';
 import Methodology from './pages/Methodology';
 import Implementation from './pages/Implementation';
@@ -47,6 +48,11 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <CitationsProvider items={CITATIONS}>
+        <Routes>
+          {/* ADR-0070: outside AppShell on purpose. The header and footer are exactly the chrome the
+              focus view exists to escape. */}
+          <Route path="/focus/:caseId" element={<Focus />} />
+          <Route path="*" element={
         <AppShell config={config}>
           <Routes>
             <Route path="/" element={<Tool />} />
@@ -58,6 +64,8 @@ createRoot(document.getElementById('root')!).render(
             <Route path="*" element={<Tool />} />
           </Routes>
         </AppShell>
+          } />
+        </Routes>
       </CitationsProvider>
     </BrowserRouter>
   </StrictMode>,

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type uPlot from 'uplot';
-import { Tabs, useShellLang } from '@fasl-work/caos-app-shell';
+import { Link } from 'react-router-dom';
+import { useShellLang } from '@fasl-work/caos-app-shell';
 import { runSimulation } from '../sim/model';
 import { analyticalMatchFactor, shovelCycle } from '../sim/matchfactor';
 import { comparePolicies, paretoFront, tieVerdict, POLICY_COLOR } from '../sim/compare';
@@ -41,10 +42,26 @@ const fmt = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 0 
 
 interface Decision { feats: number[][]; ids: number[]; names: string[]; chosen: number; t: number }
 
+
+/** Twelve sibling tabs is a list, not an architecture: the user must read every label to find one
+ *  view, and measured on the deployed app they occupied TWO rows, permanently taking vertical space
+ *  from the instrument on every render. Grouped by the question being asked; the sub-views are
+ *  revealed from the same tab (ADR-0071 rules 4 and 5). */
+const TAB_GROUPS: { id: string; en: string; es: string; members: string[] }[] = [
+  { id: 'operation',  en: 'Operation',   es: 'Operacion',   members: ['pit3d', 'map', 'queue', 'cycle'] },
+  { id: 'throughput', en: 'Throughput',  es: 'Rendimiento', members: ['shovel', 'feed'] },
+  { id: 'policies',   en: 'Policies',    es: 'Politicas',   members: ['compare', 'bench', 'share'] },
+  { id: 'decisions',  en: 'Decisions',   es: 'Decisiones',  members: ['inspect', 'rollout', 'counterfactual'] },
+  { id: 'validation', en: 'Validation',  es: 'Validacion',  members: ['valid'] },
+];
+
 export default function Tool() {
   const lang = useShellLang(); const es = lang === 'es';
   const [caseId, setCaseId] = useState('C08');   // default = the showcase boss (all node types + dynamics)
   const [policyId, setPolicyId] = useState('greedy');
+  const [activeTab, setActiveTab] = useState('pit3d');
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [seed, setSeed] = useState(7);
   const [playing, setPlaying] = useState(false); // default paused (no-autoplay rule: an unattended page must not burn CPU)
   const [speed, setSpeed] = useState(600);
@@ -331,9 +348,21 @@ export default function Tool() {
   // wrap every panel in an error boundary so one failing view never blanks the whole app (#78)
   const visibleTabs = rawTabs.map((t) => ({ ...t, content: <PanelBoundary label={typeof t.label === 'string' ? t.label : undefined}>{t.content}</PanelBoundary> }));
 
+  useEffect(() => {
+    if (visibleTabs.length && !visibleTabs.some((x) => x.id === activeTab)) setActiveTab(visibleTabs[0].id);
+  }, [visibleTabs.length, activeTab]);
+
   return (
     <div className="page-body dl-layout">
       <aside className="dl-controls">
+        {/* ADR-0070 entry: without a visible control in the App the focus route is an orphan that
+            passes route tests and no user ever reaches. It carries the SELECTED scenario. */}
+        <Link className="dl-focus-enter" to={`/focus/${caseId}`}>
+          <span className="dl-focus-enter-t">{es ? 'Modo enfoque' : 'Focus mode'}</span>
+          <span className="dl-focus-enter-d">
+            {es ? 'Abrir este escenario a pantalla completa' : 'Open this scenario full screen'}
+          </span>
+        </Link>
         {/* first-level source selector (#14): the workbench runs on a synthetic scenario or a real cycle-log */}
         <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Fuente' : 'Source'}</span>
           <div className="dl-chips">
@@ -447,7 +476,45 @@ export default function Tool() {
           ? (es ? 'Turno medido reproducido desde un cycle-log (contrato cyclelog/v1). La geometría del mapa es esquemática (los logs no traen coordenadas). No es un sistema de despacho productivo.' : 'Measured shift replayed from a cycle log (cyclelog/v1 contract). Map geometry is schematic (logs carry no coordinates). Not a production dispatch system.')
           : (es ? 'Rajo sintético físicamente fundado (validado vs match-factor + oráculo); políticas aprendidas entrenadas offline, inferencia ONNX viva. No es un sistema de despacho productivo.' : 'Synthetic physics-grounded pit (validated vs match-factor + oracle); learned policies trained offline, live ONNX inference. Not a production dispatch system.')}</p>
       </aside>
-      <div className="dl-main"><Tabs tabs={visibleTabs} ariaLabel="methods" /></div>
+      <div className="dl-main">
+        <div className="dl-tabrow" role="tablist" aria-label={es ? 'vistas' : 'views'}>
+          {TAB_GROUPS.filter((g) => visibleTabs.some((x) => g.members.includes(x.id))).map((g) => {
+            const mine = visibleTabs.filter((x) => g.members.includes(x.id));
+            const activeHere = mine.some((x) => x.id === activeTab);
+            const shown = activeHere ? mine.find((x) => x.id === activeTab)! : mine[0];
+            const multi = mine.length > 1;
+            return (
+              <div key={g.id} className="dl-tabwrap"
+                   onPointerEnter={() => { if (multi) { if (closeTimer.current) clearTimeout(closeTimer.current); setOpenMenu(g.id); } }}
+                   onPointerLeave={() => {
+                     if (closeTimer.current) clearTimeout(closeTimer.current);
+                     closeTimer.current = setTimeout(() => setOpenMenu((m) => (m === g.id ? null : m)), 240);
+                   }}>
+                <button role="tab" aria-selected={activeHere}
+                        className={`dl-tab ${activeHere ? 'on' : ''}`}
+                        onClick={() => {
+                          if (!multi) { setActiveTab(mine[0].id); setOpenMenu(null); return; }
+                          setOpenMenu(openMenu === g.id ? null : g.id);
+                          if (!activeHere) setActiveTab(shown.id);
+                        }}>
+                  {activeHere ? shown.label : (es ? g.es : g.en)}{multi ? <span className="dl-caret">v</span> : null}
+                </button>
+                {multi && openMenu === g.id && (
+                  <div className="dl-tabmenu" role="menu">
+                    {mine.map((x) => (
+                      <button key={x.id} role="menuitem" className={x.id === activeTab ? 'on' : ''}
+                              onClick={() => { setActiveTab(x.id); setOpenMenu(null); }}>{x.label}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="dl-tabpanel">
+          {(visibleTabs.find((x) => x.id === activeTab) ?? visibleTabs[0])?.content}
+        </div>
+      </div>
     </div>
   );
 }
