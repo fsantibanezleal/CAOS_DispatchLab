@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.23.000], 2026-07-29
+
+### Fixed
+- **Zooming froze the trucks in focus mode.** After a mouse-wheel zoom the stage stopped updating while
+  the simulation clock kept advancing (0.10 h -> 0.13 h) and the button still read Pause, so the
+  simulation was healthy and the RENDER was being lost. The playback loop lived in a separate `[playing]`
+  effect and reached into the scene through `sceneRef`; a camera interaction detached it across that
+  indirection. The loop now runs INSIDE the effect that owns `render` and `placeTrucks`, driven by a
+  `playingRef`, so nothing can detach it. Verified: animating before the zoom and still animating after.
+- A genuine `ResizeObserver` feedback loop was found and fixed on the way (the observer wrote
+  `style.height` and called `setSize` on every callback, re-triggering itself). It was NOT the cause of
+  the freeze and is recorded as such, so the theory is not re-tested.
+
+### Changed
+- **Focus mode puts the state badge and the metrics in the bottom band**, which the 3D view leaves
+  empty, instead of overlaying the top-left where they covered the pit. One row: the named state, then
+  the eight readouts. The instrument gets the entire upper area.
+
 ## [0.22.001], 2026-07-29
 
 ### Fixed
