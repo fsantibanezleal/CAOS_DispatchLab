@@ -237,5 +237,19 @@ html, body { overflow-x: hidden; }
    given a size and the content fills it, not the reverse (ADR-0071 rule 6, same principle as the rail
    and the chrome). A single-panel view now stretches; multi-panel views keep their natural flow. */
 .dl-tabpanel > .dl-panel:only-child { display: flex; flex-direction: column; min-height: 0; height: 100%; }
-.dl-tabpanel > .dl-panel:only-child > *:last-child { flex: 1 1 auto; min-height: 0; }
+/* Stretch the CHART, never blindly the last child. In the Pit 3D view the last child is the KPI row,
+   so this rule made four readout cards absorb every spare pixel (188px tall for one number each) and
+   starved the canvas down to its 280px floor. Only elements that are actually the instrument grow. */
+.dl-tabpanel > .dl-panel:only-child > .uplot,
+.dl-tabpanel > .dl-panel:only-child > [data-fillchart],
+.dl-tabpanel > .dl-panel:only-child > .dl-map-wrap,
+.dl-tabpanel > .dl-panel:only-child > .dl-scatter-wrap { flex: 1 1 auto; min-height: 0; }
+.dl-kpis { align-self: start; flex: 0 0 auto; }
 .dl-tabpanel > .dl-panel:only-child .uplot { height: 100%; }
+
+/* KPI cards are a readout, not a panel. They were ~200px tall for a single number each, and in a
+   fixed-height view every pixel they take is a pixel the instrument loses: fitting the Pit 3D view
+   shrank the pit rather than the cards. A readout needs the number, its label, and nothing else. */
+.dl-kpis .dl-kpi { padding: 0.45rem 0.6rem; min-height: 0; }
+.dl-kpi-v { font-size: 1.15rem; line-height: 1.15; }
+.dl-kpi-l { font-size: 0.68rem; margin-top: 0.1rem; }
