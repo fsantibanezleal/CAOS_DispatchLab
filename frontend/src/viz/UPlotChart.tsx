@@ -27,9 +27,15 @@ export function UPlotChart({
     const el = ref.current;
     if (!el) return;
     const width = el.clientWidth || 600;
-    const measure = () => (fill
-      ? Math.max(minHeight, el.parentElement ? el.parentElement.clientHeight - 8 : minHeight)
-      : (height ?? minHeight));
+    // Same trap as BarChart: the immediate parent is sized by this chart, so measure the fixed-height
+    // scroll container and subtract whatever sits above the chart inside it.
+    const measure = () => {
+      if (!fill) return height ?? minHeight;
+      const scroller = el.closest('.dl-tabpanel') as HTMLElement | null;
+      if (!scroller) return minHeight;
+      const above = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+      return Math.max(minHeight, scroller.clientHeight - above - 16);
+    };
     const h0 = measure();
     const opts = build(width, h0);
     opts.plugins = [...(opts.plugins ?? []), ...plugins];

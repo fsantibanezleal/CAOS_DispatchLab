@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.21.002], 2026-07-29
+
+### Changed
+- **Real-sample selector is one grouped dropdown.** It was a row of family mini-tabs PLUS a chip list of
+  the samples in the selected family: two levels of expanded list to make a single choice, where the
+  family tabs existed only to keep the chip list short. One `select` with `optgroup` per family does
+  both, shows every sample at once, and returns the rail height. ADR-0071 rule 7, which v0.20.001 fixed
+  for Case and Policy and missed here because the rule-7 gate only ran in synthetic mode.
+
+### Fixed
+- **Charts claimed more height than the view had.** `fill` measured only the space ABOVE the chart, and
+  measured the immediate parent, which is itself sized by the chart: a feedback loop. It now measures
+  the fixed-height scroll container and subtracts ALL other content in the view, wherever it sits, and
+  only a lone chart in a view may fill.
+  Measured overflow beyond the 642px panel, before -> after: the 12-row bar views **426 -> 258px**,
+  Learned vs heuristic **334 -> 82px**, and in Real-sample mode Queues, Cycle time, Per-shovel and
+  Decision inspector now **fit completely**.
+
+### Known, not fixed
+- With 12 shovels the bar views still exceed the panel by 258px and scroll. The row height is already at
+  its 30px floor there, so the remaining content genuinely does not fit one screen at that case size.
+  A gate now measures this per view (`tools/visual-verify/_dl-fit-views.mjs`) so it cannot be lost.
+
 ## [0.21.001], 2026-07-29
 
 ### Changed
