@@ -266,6 +266,13 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
     const tg = new THREE.BoxGeometry(14, 9, 22);
     const tm = new THREE.MeshStandardMaterial({ roughness: 0.5, flatShading: true });
     const inst = new THREE.InstancedMesh(tg, tm, nT);
+    // An InstancedMesh is frustum-culled using the bounding sphere of its BASE geometry, which sits at
+    // the origin and knows nothing about where the instances actually are. The trucks are scattered
+    // across the pit, so at certain camera angles three.js decided the mesh was off-screen and skipped
+    // ALL of them: the trucks vanished at some viewpoints while everything else still drew. Instance
+    // transforms are set per frame, so culling must be disabled rather than fought with a recomputed
+    // bounding volume.
+    inst.frustumCulled = false;
     inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     const colors = new THREE.Color();
     scene.add(inst); disposables.push(tg, tm);

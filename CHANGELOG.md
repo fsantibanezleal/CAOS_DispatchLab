@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.23.001], 2026-07-29
+
+### Fixed
+- **The trucks disappeared at some camera angles.** An `InstancedMesh` is frustum-culled using the
+  bounding sphere of its BASE geometry, which sits at the origin and knows nothing about where the
+  instances actually are. The trucks are scattered across the pit, so at certain viewpoints three.js
+  decided the mesh was off-screen and skipped every one of them, while the pit and the nodes still drew.
+  Instance transforms are written per frame, so culling is disabled rather than fought with a recomputed
+  bounding volume. Fixed in both `Pit3D` and `Underground3D`, which had the same defect.
+
+### Verification
+- A new viewpoint sweep (`tools/visual-verify/_orbit.mjs`) plays the simulation and asserts the trucks
+  are still visible AND moving after orbiting right, left, to top-down and to a low angle, and after
+  zooming hard in and far out. All seven viewpoints pass.
+
 ## [0.23.000], 2026-07-29
 
 ### Fixed
