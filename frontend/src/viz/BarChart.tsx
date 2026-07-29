@@ -18,12 +18,17 @@ export interface BarDatum {
  *  arrows to move, the readout follows focus) and a screen-reader data table. Detected marks (★ learned,
  *  ◆ Pareto, knee, argmax) are drawn on the bar and labeled, never color-only. */
 export function BarChart({
-  data, unit = '', valueFmt = (v) => v.toFixed(1), height, ariaLabel, defaultBaseline = 'fit', highlightKey, note,
+  data, unit = '', valueFmt = (v) => v.toFixed(1), height, ariaLabel, defaultBaseline = 'fit', highlightKey, note, fill = false,
 }: {
   data: BarDatum[];
   unit?: string;
   valueFmt?: (v: number) => string;
   height?: number;
+  /** Grow the ROW HEIGHT to fill the available panel instead of taking a fixed 30px per row. Stretching
+   *  the SVG instead would distort the bars; taller rows are the honest way to use the space. Without
+   *  this a 5-row chart is pinned near 180px inside a full-height panel, which is how these views
+   *  measured 32% of the viewport while the panel around them was empty. */
+  fill?: boolean;
   ariaLabel: string;
   defaultBaseline?: 'fit' | 'zero';
   highlightKey?: string;
@@ -43,7 +48,22 @@ export function BarChart({
     return () => ro.disconnect();
   }, []);
 
-  const rowH = 30;
+  // Row height adapts when `fill` is set: the panel's spare height is shared across the rows, clamped
+  // so bars never become absurdly thick on a tall panel or unreadable on a short one.
+  const [availH, setAvailH] = useState(0);
+  useEffect(() => {
+    if (!fill) return;
+    const host = hostRef.current;
+    if (!host) return;
+    const measure = () => setAvailH(host.parentElement ? host.parentElement.clientHeight : 0);
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (host.parentElement) ro.observe(host.parentElement);
+    return () => ro.disconnect();
+  }, [fill]);
+  const rowH = fill && availH > 0 && data.length
+    ? Math.max(30, Math.min(64, Math.floor((availH - 6 - 26 - 28) / data.length)))
+    : 30;
   const padT = 6;
   const padB = 26; // axis row
   const labelW = Math.min(190, Math.max(96, Math.round(w * 0.32)));

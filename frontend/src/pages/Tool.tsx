@@ -245,7 +245,7 @@ export default function Tool() {
           const faces = realOK ? realReport?.sample?.provenance.geology?.faces : undefined;
           const faceOf = faces ? Object.fromEntries(faces.map((f) => [f.shovelId, f])) : null;
           return (<>
-            <BarChart
+            <BarChart fill
               ariaLabel={es ? 'Utilización por pala' : 'Per-shovel utilization'}
               unit="%" defaultBaseline="zero" valueFmt={(v) => v.toFixed(0)}
               data={result.shovels.map<BarDatum>((s) => { const f = faceOf?.[s.id]; return {
@@ -280,7 +280,7 @@ export default function Tool() {
       </Panel>) },
     { id: 'queue', label: es ? 'Colas' : 'Queues', content: (
       <Panel t={es ? 'Tiempo de espera en cola por pala (horas, esta corrida)' : 'Per-shovel queue wait (hours, this run)'}>
-        <BarChart
+        <BarChart fill
           ariaLabel={es ? 'Espera en cola por pala' : 'Per-shovel queue wait'}
           unit="h" defaultBaseline="zero" valueFmt={(v) => v.toFixed(1)}
           data={result.shovels.map<BarDatum>((s) => ({ key: String(s.id), label: s.name.split('(')[0].trim(), value: s.queueWaitSec / 3600, color: '#d29922' }))}
@@ -290,7 +290,7 @@ export default function Tool() {
     { id: 'share', label: es ? 'Reparto de decisiones' : 'Decision share', content: (
       <Panel t={es ? 'Fracción de decisiones de despacho a cada pala (la política actual, esta corrida)' : 'Fraction of dispatch decisions to each shovel (current policy, this run)'}>
         {(() => { const cnt: Record<number, number> = {}; for (const d of decisions.current) { const id = d.ids[d.chosen]; cnt[id] = (cnt[id] || 0) + 1; } const tot = decisions.current.length || 1;
-          return <BarChart
+          return <BarChart fill
             ariaLabel={es ? 'Reparto de decisiones por pala' : 'Decision share per shovel'}
             unit="%" defaultBaseline="zero" valueFmt={(v) => v.toFixed(0)}
             data={c.mine.shovels.map<BarDatum>((s) => ({ key: String(s.id), label: s.name.split('(')[0].trim(), value: ((cnt[s.id] || 0) / tot) * 100, sub: `(${cnt[s.id] || 0})`, color: 'var(--color-accent)' }))}
@@ -314,7 +314,7 @@ export default function Tool() {
             }
             const cy = shovelCycle(c, id); return { tLoad: cy.tLoad, tCycle: cy.tCycle };
           };
-          return <BarChart
+          return <BarChart fill
             ariaLabel={es ? 'Tiempo de ciclo por pala' : 'Per-shovel cycle time'}
             unit="min" defaultBaseline="zero" valueFmt={(v) => v.toFixed(1)}
             data={activeC.mine.shovels.map<BarDatum>((s) => { const cy = cycleOf(s.id); return { key: String(s.id), label: s.name.split('(')[0].trim(), value: cy.tCycle / 60, sub: es ? `carga ${(cy.tLoad / 60).toFixed(1)}` : `load ${(cy.tLoad / 60).toFixed(1)}`, color: 'var(--color-accent)' }; })}
@@ -552,7 +552,7 @@ function KPI({ v, l }: { v: string; l: string }) { return <div className="dl-kpi
 function LearnedBars({ stats, es, tn }: { stats: ReturnType<typeof comparePolicies>; es: boolean; tn: (id: string) => string }) {
   const ord = [...stats].sort((a, b) => b.medTonnes - a.medTonnes);
   return (
-    <BarChart
+    <BarChart fill
       ariaLabel={es ? 'Toneladas medianas por política, aprendidas vs heurísticas' : 'Median tonnes per policy, learned vs heuristic'}
       unit="t" defaultBaseline="fit" valueFmt={(v) => (v / 1000).toFixed(1) + 'k'}
       data={ord.map<BarDatum>((s) => ({ key: s.id, label: tn(s.id), value: s.medTonnes, ci: [s.loT, s.hiT], color: POLICY_COLOR[s.id], mark: (s.id === 'rwr' || s.id === 'bcbest') ? '★' : undefined }))}
@@ -579,7 +579,7 @@ function RealDecisionInspector({ decisions, es }: { decisions: ReturnType<typeof
     <div style={{ marginTop: '0.8rem' }}>
       <div className="dl-panel-t">{es ? 'Inspector, la red (RWR, ONNX en vivo) sobre el punto de decisión real' : 'Inspector, the net (RWR, live ONNX) on the real decision point'}</div>
       {sv ? (
-        <BarChart
+        <BarChart fill
           ariaLabel={es ? 'Puntajes de la red sobre la decisión real' : 'Net scores on the real decision'}
           defaultBaseline="fit" valueFmt={(x) => x.toFixed(2)}
           data={d.state.shovels.map<BarDatum>((v, k) => ({ key: String(v.id), label: v.spec.name, value: sv[k], color: k === argmax ? '#f85149' : 'var(--color-accent)', mark: k === argmax ? '★' : undefined, sub: v.id === d.chosen ? (es ? '(real)' : '(real)') : undefined }))}
@@ -665,7 +665,7 @@ function DecisionInspector({ decisions, es }: { decisions: Decision[]; es: boole
   return (
     <Panel t={es ? 'Inspector de decisión, puntajes de la política aprendida (RWR) vía onnxruntime-web, por pala' : 'Decision inspector, learned (RWR) policy scores via onnxruntime-web, per shovel'}>
       {sv ? (
-        <BarChart
+        <BarChart fill
           ariaLabel={es ? 'Puntajes de la red por pala' : 'Per-shovel net scores'}
           defaultBaseline="fit" valueFmt={(v) => v.toFixed(2)}
           data={d.names.map<BarDatum>((nm, k) => ({ key: String(k), label: nm, value: sv[k], color: k === argmax ? '#f85149' : 'var(--color-accent)', mark: k === argmax ? '★' : undefined, sub: k === d.chosen ? (es ? '(heur.)' : '(heur.)') : undefined }))}
