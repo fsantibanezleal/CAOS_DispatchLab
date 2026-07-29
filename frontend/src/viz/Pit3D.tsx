@@ -121,6 +121,7 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
       return Math.max(320, scroller.clientHeight - used - 30);
     };
     let H = computeH();
+    let lastW = W;
     const dark = (document.documentElement.dataset.theme ?? 'dark') !== 'light';
     const scene = new THREE.Scene();
     const cam = new THREE.PerspectiveCamera(48, W / H, 1, 30000);
@@ -324,8 +325,15 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
     const ro = new ResizeObserver(() => {
       const w = el.clientWidth || W;
       const h2 = computeH();
-      if (Math.abs(h2 - H) > 4) H = h2;
-      el.style.height = H + 'px';
+      // Act ONLY on a real change. Writing style.height and calling setSize on every callback
+      // re-triggers this very observer: a ResizeObserver feedback loop that saturates the main thread.
+      // Symptom: after a mouse-wheel zoom the trucks froze, because the animation frames were being
+      // starved by the loop, not because rendering had stopped.
+      const changedH = Math.abs(h2 - H) > 4;
+      const changedW = Math.abs(w - lastW) > 1;
+      if (!changedH && !changedW) return;
+      if (changedH) { H = h2; el.style.height = H + 'px'; }
+      lastW = w;
       renderer.setSize(w, H); cam.aspect = w / H; cam.updateProjectionMatrix(); render();
     });
     ro.observe(el);
