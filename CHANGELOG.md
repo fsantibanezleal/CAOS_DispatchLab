@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.22.000], 2026-07-29
+
+### Fixed (v0.21.003 made the Pit 3D view fit by shrinking the instrument, which is not fitting)
+- **The canvas reclaims the space instead of surrendering it.** The available height was derived from
+  `scrollHeight - ownHeight`, which is circular because the canvas is part of what it measures, so it
+  settled at the 280px floor: the canvas was **44% of its panel with the rest empty**. It now measures
+  the SIBLINGS (the panel height minus the real height of everything that is not the canvas) and
+  recomputes on resize, so it also reclaims space freed later in layout. Canvas **280 -> 420px, 44% ->
+  65% of the panel**, still zero overflow.
+- **The camera fitted a bounding sphere by vertical FOV alone**, which wastes a wide canvas: on a
+  1190x420 stage (2.8:1) the scene used about a third of the width with dead margins either side. The
+  distance now comes from whichever half-angle actually binds for the real aspect, with a small margin
+  rather than a blanket 1.05-1.18 pad. The pit and its shovel labels are legible at default zoom.
+
+### Note
+v0.21.003 was verified by reading `overflow: 0` and shipping without looking at the render. The number
+was true and the result was worse: fitting by shrinking the instrument satisfies the measurement and
+defeats its purpose.
+
 ## [0.21.003], 2026-07-29
 
 ### Fixed (Pit 3D and Pit map needed scrolling to reach their own readouts)
