@@ -92,6 +92,7 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
   }, [result]);
   // refs the render loop reads without re-building the scene
   const tRef = useRef(t); tRef.current = t;
+  const playingRef = useRef(playing); playingRef.current = playing;
   const sceneRef = useRef<{ render: () => void } | null>(null);
 
   useEffect(() => {
@@ -314,6 +315,18 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
     const onVis = () => { if (!document.hidden) render(); };
     document.addEventListener('visibilitychange', onVis);
     sceneRef.current = { render };
+
+    // Drive playback from INSIDE this effect, where render and placeTrucks are in scope. Previously the
+    // loop lived in a separate [playing] effect and reached in through sceneRef; after a wheel zoom the
+    // trucks froze while the simulation clock kept advancing, so the render path was being lost across
+    // that indirection. A loop that owns its own render cannot be detached by a camera interaction.
+    let animRaf = 0;
+    const animate = () => {
+      animRaf = requestAnimationFrame(animate);
+      if (!playingRef.current || document.hidden) return;
+      render();
+    };
+    animRaf = requestAnimationFrame(animate);
     render();
     // a lost WebGL context (GPU reset, headless resource churn) leaves the canvas blank after
     // three.js restores it, repaint on restoration (field-found via the visual verifier)
@@ -338,6 +351,7 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
     });
     ro.observe(el);
     return () => {
+      cancelAnimationFrame(animRaf);
       disposed = true; sceneRef.current = null;
       document.removeEventListener('visibilitychange', onVis);
       renderer.domElement.removeEventListener('webglcontextrestored', onRestored);

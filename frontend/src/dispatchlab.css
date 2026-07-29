@@ -253,3 +253,16 @@ html, body { overflow-x: hidden; }
 .dl-kpis .dl-kpi { padding: 0.45rem 0.6rem; min-height: 0; }
 .dl-kpi-v { font-size: 1.15rem; line-height: 1.15; }
 .dl-kpi-l { font-size: 0.68rem; margin-top: 0.1rem; }
+
+/* Badge and HUD sit in the BOTTOM band of the stage, which the 3D view leaves empty, instead of
+   overlaying the top-left where they cover the pit. One row: the named state on the left, the readouts
+   beside it, using space that was otherwise wasted. */
+.dlf-badge { top: auto; bottom: 14px; left: 16px; right: auto; max-width: 40ch; }
+.dlf-hud { top: auto; bottom: 14px; left: calc(16px + 40ch + 14px); right: 16px;
+  flex-direction: row; flex-wrap: wrap; align-items: flex-end; gap: 0.4rem; }
+.dlf-hud-item { min-width: 104px; flex-direction: column; align-items: flex-start; gap: 0; }
+.dlf-hud-l { text-align: left; }
+@media (max-width: 1100px) {
+  .dlf-hud { left: 16px; bottom: auto; top: 14px; }
+  .dlf-badge { bottom: 14px; }
+}
