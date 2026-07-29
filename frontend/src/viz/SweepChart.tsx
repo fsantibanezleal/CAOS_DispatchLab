@@ -22,7 +22,7 @@ export function SweepChart({ pts, knee, nMf1, lang }: { pts: SweepPoint[]; knee:
 
   return (
     <div className="dl-scatter-wrap" style={{ position: 'relative' }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: W, display: 'block', font: '11px var(--font-sans, sans-serif)' }} role="img"
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', font: '11px var(--font-sans, sans-serif)' }} role="img"
         aria-label={es ? 'Producción vs tamaño de flota' : 'Throughput vs fleet size'}>
         {/* left grid + axis (tonnes) */}
         {Array.from({ length: 5 }, (_, i) => { const v = yMax * i / 4; const y = syT(v); return (

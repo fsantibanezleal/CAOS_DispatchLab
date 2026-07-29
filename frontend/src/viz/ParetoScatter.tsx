@@ -26,7 +26,7 @@ export function ParetoScatter({ stats, front, lang }: { stats: PolicyStats[]; fr
 
   return (
     <div className="dl-scatter-wrap" style={{ position: 'relative' }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: W, display: 'block', font: '11px var(--font-sans, sans-serif)' }} role="img"
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', font: '11px var(--font-sans, sans-serif)' }} role="img"
         aria-label={es ? 'Dispersión de Pareto: toneladas vs espera de camión' : 'Pareto scatter: tonnes vs truck wait'}>
         {/* gridlines + axis labels */}
         {Array.from({ length: gridY + 1 }, (_, i) => { const v = yMin + (yMax - yMin) * i / gridY; const y = sy(v); return (

@@ -230,3 +230,12 @@ html, body { overflow-x: hidden; }
   .dlf { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
   .dlf-rail { border-left: none; border-top: 1px solid var(--color-border); max-height: 46vh; }
 }
+
+/* PANELS FILL THE VIEW.
+   Sub-views measured 15-32% of the viewport while the panel around them had room to spare, because the
+   charts carried hardcoded pixel heights (180-200px) inside a full-height tab panel. A container is
+   given a size and the content fills it, not the reverse (ADR-0071 rule 6, same principle as the rail
+   and the chrome). A single-panel view now stretches; multi-panel views keep their natural flow. */
+.dl-tabpanel > .dl-panel:only-child { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.dl-tabpanel > .dl-panel:only-child > *:last-child { flex: 1 1 auto; min-height: 0; }
+.dl-tabpanel > .dl-panel:only-child .uplot { height: 100%; }
