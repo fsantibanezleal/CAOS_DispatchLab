@@ -100,7 +100,17 @@ export function PitMap({ c, result, t, lang }: { c: CaseSpec; result: SimResult;
   useEffect(() => {
     const cv = ref.current; if (!cv) return;
     const dpr = window.devicePixelRatio || 1;
-    const cw = cv.clientWidth || 700, ch = Math.max(300, Math.round(cw * 0.5));
+    // Same rule as Pit3D: height comes from the space LEFT in the view, not from the width. Deriving
+    // it from the width means a wider panel produces a taller canvas and pushes the controls and KPI
+    // row below the fold.
+    const cw = cv.clientWidth || 700;
+    let ch = Math.max(300, Math.round(cw * 0.5));
+    const scroller = cv.closest('.dl-tabpanel') as HTMLElement | null;
+    if (scroller) {
+      const others = scroller.scrollHeight - cv.getBoundingClientRect().height;
+      ch = Math.max(260, Math.min(ch, scroller.clientHeight - others - 8));
+    }
+    cv.style.height = ch + 'px';
     cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
     const g = cv.getContext('2d'); if (!g) return; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, cw, ch);
     const pad = 64;

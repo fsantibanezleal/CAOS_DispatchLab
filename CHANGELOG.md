@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.21.003], 2026-07-29
+
+### Fixed (Pit 3D and Pit map needed scrolling to reach their own readouts)
+- **The 3D canvas took its height from its WIDTH** (`H = max(360, W * 0.55)`), so a wider panel produced
+  a taller canvas and pushed the description, the Play control, the scrubber and the KPI row below the
+  fold. In a fixed-height view the canvas is the flexible element; the text and controls around it are
+  fixed and must fit. Both `Pit3D` and `PitMap` now take the height that is actually left.
+  Measured: the Pit 3D view went from **+238px of overflow to 0**, Pit map from **+120px to 0**.
+- **KPI cards were absorbing the free height.** v0.21.000 added a rule stretching the last child of a
+  single-panel view, and in these views the last child is the KPI row, so four readout cards grew to
+  **188px** while the canvas was starved to its floor. Only the instrument stretches now, and the cards
+  are back to **56px**.
+
+### Known
+- The Pit 3D canvas still sits at its 280px floor: it measures once on mount, before the KPI row
+  shrinks, so it does not reclaim the freed height until a resize. The view fits and is usable; the
+  instrument could be larger.
+
 ## [0.21.002], 2026-07-29
 
 ### Changed

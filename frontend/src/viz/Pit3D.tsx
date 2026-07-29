@@ -96,7 +96,18 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
 
   useEffect(() => {
     const el = mountRef.current; if (!el) return;
-    const W = el.clientWidth || 760, H = Math.max(360, Math.round(W * 0.55));
+    // Height from the SPACE LEFT IN THE VIEW, not from the width. Deriving H from W means a wider
+    // panel makes a taller canvas, which pushed the description, the play controls, the scrubber and
+    // the KPI row below the fold: the Pit 3D view needed scrolling to reach its own readouts. The
+    // canvas is the flexible element here; the text and controls around it are fixed and must fit.
+    const W = el.clientWidth || 760;
+    const scroller = el.closest('.dl-tabpanel') as HTMLElement | null;
+    let H = Math.max(360, Math.round(W * 0.55));
+    if (scroller) {
+      const above = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+      const others = scroller.scrollHeight - el.getBoundingClientRect().height;
+      H = Math.max(280, Math.min(H, scroller.clientHeight - others - 8, scroller.clientHeight - above - 8));
+    }
     const dark = (document.documentElement.dataset.theme ?? 'dark') !== 'light';
     const scene = new THREE.Scene();
     const cam = new THREE.PerspectiveCamera(48, W / H, 1, 30000);
