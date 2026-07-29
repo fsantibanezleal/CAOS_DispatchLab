@@ -100,14 +100,27 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
     // panel makes a taller canvas, which pushed the description, the play controls, the scrubber and
     // the KPI row below the fold: the Pit 3D view needed scrolling to reach its own readouts. The
     // canvas is the flexible element here; the text and controls around it are fixed and must fit.
+    // USE the space, do not merely fit inside it. The previous formula derived the available height
+    // from `scrollHeight - ownHeight`, which is circular (the canvas is part of what it measures) and
+    // settled at the 280px floor: the canvas ended up 44% of its panel with the rest empty. Fitting by
+    // shrinking the instrument is not fitting.
+    // Measure the SIBLINGS instead: the panel's height minus the real height of everything that is not
+    // this canvas is exactly what the canvas may take.
     const W = el.clientWidth || 760;
-    const scroller = el.closest('.dl-tabpanel') as HTMLElement | null;
-    let H = Math.max(360, Math.round(W * 0.55));
-    if (scroller) {
-      const above = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
-      const others = scroller.scrollHeight - el.getBoundingClientRect().height;
-      H = Math.max(280, Math.min(H, scroller.clientHeight - others - 8, scroller.clientHeight - above - 8));
-    }
+    const computeH = () => {
+      const scroller = el.closest('.dl-tabpanel') as HTMLElement | null;
+      if (!scroller) return Math.max(360, Math.round(W * 0.55));
+      let used = 0;
+      for (const box of [el.closest('.dl-panel'), el.parentElement]) {
+        if (!box) continue;
+        for (const child of Array.from(box.children)) {
+          if (child === el || child.contains(el)) continue;
+          used += (child as HTMLElement).getBoundingClientRect().height + 6;
+        }
+      }
+      return Math.max(320, scroller.clientHeight - used - 30);
+    };
+    let H = computeH();
     const dark = (document.documentElement.dataset.theme ?? 'dark') !== 'light';
     const scene = new THREE.Scene();
     const cam = new THREE.PerspectiveCamera(48, W / H, 1, 30000);
@@ -233,7 +246,14 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
       // the rim. The pit therefore reads smaller than the canvas, correctly, because the haul network
       // is what the view is about. Padding trimmed 1.18 -> 1.05 so the scene uses the stage without
       // clipping the outlying nodes.
-      const fitDist = (radius / Math.sin((cam.fov * Math.PI) / 360)) * 1.05;
+      // Fit for the ACTUAL aspect. Fitting a bounding sphere by vertical FOV alone wastes a wide
+      // canvas: on a 1190x420 stage (2.8:1) the scene used about a third of the width with dead
+      // margins either side. The horizontal half-angle is larger than the vertical one on a wide
+      // canvas, so the binding constraint is the height; distance is set from whichever half-angle
+      // actually binds, with a small margin instead of a blanket 1.05-1.18 pad.
+      const vFov = (cam.fov * Math.PI) / 360;
+      const hFov = Math.atan(Math.tan(vFov) * cam.aspect);
+      const fitDist = (radius / Math.sin(Math.min(vFov, hFov))) * 0.92;
       cam.position.set(center.x, center.y + fitDist * 0.62, center.z + fitDist * 0.85);   // centered, a little superior
       controls.target.copy(center);
       controls.update();
@@ -299,7 +319,15 @@ export function Pit3D({ c, result, t, lang, playing = false }: { c: CaseSpec; re
     const onRestored = () => requestAnimationFrame(render);
     renderer.domElement.addEventListener('webglcontextrestored', onRestored);
 
-    const ro = new ResizeObserver(() => { const w = el.clientWidth || W; renderer.setSize(w, H); cam.aspect = w / H; cam.updateProjectionMatrix(); render(); });
+    // Recompute the HEIGHT on resize as well as the width: measuring once on mount meant the canvas
+    // never reclaimed space that layout freed later (the KPI row settling), so it stayed at its floor.
+    const ro = new ResizeObserver(() => {
+      const w = el.clientWidth || W;
+      const h2 = computeH();
+      if (Math.abs(h2 - H) > 4) H = h2;
+      el.style.height = H + 'px';
+      renderer.setSize(w, H); cam.aspect = w / H; cam.updateProjectionMatrix(); render();
+    });
     ro.observe(el);
     return () => {
       disposed = true; sceneRef.current = null;
