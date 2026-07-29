@@ -260,7 +260,7 @@ export default function Tool() {
           </>);
         })()}
       </Panel>) },
-    { id: 'feed', label: es ? 'Aliment. chancador' : 'Crusher feed', content: <Panel t={es ? 'Alimentación al chancador, toneladas acumuladas vs hora' : 'Crusher feed, cumulative tonnes vs shift hour'}><UPlotChart data={feed} build={buildFeed} height={200} /></Panel> },
+    { id: 'feed', label: es ? 'Aliment. chancador' : 'Crusher feed', content: <Panel t={es ? 'Alimentación al chancador, toneladas acumuladas vs hora' : 'Crusher feed, cumulative tonnes vs shift hour'}><UPlotChart data={feed} build={buildFeed} fill minHeight={220} /></Panel> },
     { id: 'compare', label: es ? 'Comparar políticas' : 'Compare policies', content: (
       <Panel t={es ? 'Pareto: toneladas (↑) vs espera (←), heurísticas + aprendidas, banda de semillas' : 'Pareto: tonnes (↑) vs wait (←), heuristics + learned, seed bands'}>
         <ParetoScatter stats={cmp} front={front} lang={lang} />

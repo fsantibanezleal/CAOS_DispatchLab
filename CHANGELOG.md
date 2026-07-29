@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.21.000], 2026-07-29
+
+### Changed (the charts now fill their panels, ADR-0071 rule 6 applied inside the views)
+The App's primary instrument already cleared the 50% rule, but the SUB-views did not: measured across
+all twelve, most sat at 15-32% of the viewport while the panel around them had room to spare. The cause
+was the same magic-number habit as the chrome, one level down.
+
+- **`UPlotChart` can size from its container** (`fill`) instead of taking a hardcoded pixel height.
+  A chart pinned to 180-200px inside a full-height panel leaves the rest of the panel empty.
+- **`SweepChart` and `ParetoScatter` were capped at their intrinsic width** by `maxWidth: W`, so the SVG
+  could not grow into the space available however wide the panel got.
+- A single-panel view now stretches to the tab height; multi-panel views keep their natural flow.
+
+Measured before -> after, at 1600x900:
+
+| view | before | after |
+|---|---|---|
+| Compare policies | 16.4% | **58.5%** |
+| Crusher feed | 16.5% | **52.2%** |
+| MF validation | 15.1% | **50.7%** |
+
+Pit 3D (54.1%) and Pit map (49.2%) unchanged; the bar-chart views remain at 32.4% and are the next
+target.
+
 ## [0.20.001], 2026-07-29
 
 ### Fixed (ADR-0071 rule 7, which 0.20.000 did not honour)
