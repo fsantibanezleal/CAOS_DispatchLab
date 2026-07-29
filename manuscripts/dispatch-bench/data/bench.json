@@ -1,0 +1,250 @@
+{
+ "policies": [
+  {
+   "id": "hungarian",
+   "name": "OR, optimal assignment (Hungarian)",
+   "tonnes": 165759.625,
+   "wait": 26.775
+  },
+  {
+   "id": "shortestWait",
+   "name": "Shortest expected wait",
+   "tonnes": 163371.375,
+   "wait": 27.55
+  },
+  {
+   "id": "greedy",
+   "name": "Greedy (earliest completion)",
+   "tonnes": 163366.75,
+   "wait": 28.4375
+  },
+  {
+   "id": "minShovelWait",
+   "name": "Min shovel wait (max shovels)",
+   "tonnes": 161977.625,
+   "wait": 27.075
+  },
+  {
+   "id": "minTruckWait",
+   "name": "Min truck wait (max trucks)",
+   "tonnes": 160561.25,
+   "wait": 27.3125
+  },
+  {
+   "id": "fixed",
+   "name": "Fixed assignment",
+   "tonnes": 159478,
+   "wait": 31.675
+  }
+ ],
+ "cases": {
+  "C01": {
+   "greedy": {
+    "t": 133089,
+    "w": 19.2
+   },
+   "shortestWait": {
+    "t": 131018,
+    "w": 20.2
+   },
+   "minTruckWait": {
+    "t": 132871,
+    "w": 19.4
+   },
+   "minShovelWait": {
+    "t": 133089,
+    "w": 19.2
+   },
+   "fixed": {
+    "t": 131999,
+    "w": 20.3
+   },
+   "hungarian": {
+    "t": 133089,
+    "w": 18.9
+   }
+  },
+  "C02": {
+   "greedy": {
+    "t": 133525,
+    "w": 20.1
+   },
+   "shortestWait": {
+    "t": 131781,
+    "w": 21.5
+   },
+   "minTruckWait": {
+    "t": 133852,
+    "w": 20.1
+   },
+   "minShovelWait": {
+    "t": 133525,
+    "w": 20.1
+   },
+   "fixed": {
+    "t": 126985,
+    "w": 21.3
+   },
+   "hungarian": {
+    "t": 134506,
+    "w": 19.4
+   }
+  },
+  "C03": {
+   "greedy": {
+    "t": 94830,
+    "w": 7.7
+   },
+   "shortestWait": {
+    "t": 96792,
+    "w": 7.8
+   },
+   "minTruckWait": {
+    "t": 88290,
+    "w": 6.6
+   },
+   "minShovelWait": {
+    "t": 92759,
+    "w": 7.1
+   },
+   "fixed": {
+    "t": 96247,
+    "w": 11.3
+   },
+   "hungarian": {
+    "t": 98645,
+    "w": 8.2
+   }
+  },
+  "C04": {
+   "greedy": {
+    "t": 110744,
+    "w": 38.7
+   },
+   "shortestWait": {
+    "t": 112161,
+    "w": 36.2
+   },
+   "minTruckWait": {
+    "t": 110526,
+    "w": 37
+   },
+   "minShovelWait": {
+    "t": 110744,
+    "w": 36.5
+   },
+   "fixed": {
+    "t": 108128,
+    "w": 40.5
+   },
+   "hungarian": {
+    "t": 111289,
+    "w": 37.8
+   }
+  },
+  "C05": {
+   "greedy": {
+    "t": 211569,
+    "w": 27.2
+   },
+   "shortestWait": {
+    "t": 215057,
+    "w": 25.5
+   },
+   "minTruckWait": {
+    "t": 211569,
+    "w": 27.1
+   },
+   "minShovelWait": {
+    "t": 211896,
+    "w": 27
+   },
+   "fixed": {
+    "t": 213095,
+    "w": 27.3
+   },
+   "hungarian": {
+    "t": 222687,
+    "w": 21.6
+   }
+  },
+  "C06": {
+   "greedy": {
+    "t": 252889,
+    "w": 57.9
+   },
+   "shortestWait": {
+    "t": 249983,
+    "w": 60.8
+   },
+   "minTruckWait": {
+    "t": 252344,
+    "w": 57.9
+   },
+   "minShovelWait": {
+    "t": 252707,
+    "w": 58.1
+   },
+   "fixed": {
+    "t": 236449,
+    "w": 66.2
+   },
+   "hungarian": {
+    "t": 254813,
+    "w": 56.4
+   }
+  },
+  "C07": {
+   "greedy": {
+    "t": 163064,
+    "w": 24.4
+   },
+   "shortestWait": {
+    "t": 166225,
+    "w": 21.6
+   },
+   "minTruckWait": {
+    "t": 161538,
+    "w": 23.4
+   },
+   "minShovelWait": {
+    "t": 163936,
+    "w": 23.2
+   },
+   "fixed": {
+    "t": 163827,
+    "w": 24
+   },
+   "hungarian": {
+    "t": 169168,
+    "w": 21.6
+   }
+  },
+  "C08": {
+   "greedy": {
+    "t": 207224,
+    "w": 32.3
+   },
+   "shortestWait": {
+    "t": 203954,
+    "w": 26.8
+   },
+   "minTruckWait": {
+    "t": 193500,
+    "w": 27
+   },
+   "minShovelWait": {
+    "t": 197165,
+    "w": 25.4
+   },
+   "fixed": {
+    "t": 199094,
+    "w": 42.5
+   },
+   "hungarian": {
+    "t": 201880,
+    "w": 30.3
+   }
+  }
+ }
+}

@@ -1,6 +1,6 @@
 {
   "name": "caos-dispatchlab",
-  "version": "0.19.001",
+  "version": "0.20.000",
   "private": true,
   "type": "module",
   "description": "DispatchLab, a didactic, in-browser bench that compares truck-to-shovel dispatch policies (greedy, shortest-wait, the two classic criteria, fixed, and two learned ONNX policies) on a deterministic discrete-event open-pit simulation. Policy-comparison sandbox, NOT a production dispatch system.",
@@ -14,7 +14,7 @@
     "test": "node --import tsx --test test/sim.test.ts test/topo.test.ts test/replay.test.ts test/hungarian.test.ts test/or.test.ts test/constraints.test.ts test/oracle.test.ts test/cases23.test.ts test/axisCoverage.test.ts test/geology.test.ts"
   },
   "dependencies": {
-    "@fasl-work/caos-app-shell": "^0.2.0",
+    "@fasl-work/caos-app-shell": "^0.3.0",
     "katex": "^0.16.11",
     "lucide-react": "^0.469.0",
     "onnxruntime-web": "^1.27.0",
