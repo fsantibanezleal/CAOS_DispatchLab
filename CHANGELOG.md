@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.21.001], 2026-07-29
+
+### Changed
+- **Bar-chart views fill their panel too.** `BarChart` computed its height as `rows x 30px`, so a
+  five-row chart was pinned near 180px inside a full-height panel. It now grows the ROW height to share
+  the panel's spare space, clamped between 30 and 64px. Stretching the SVG instead would have distorted
+  the bars; taller rows are the honest way to use the height.
+
+Every App view now clears or nearly clears the ADR-0071 50% instrument rule, measured at 1600x900:
+
+| view | before today | now |
+|---|---|---|
+| Queues / Cycle time / Per-shovel / Decision share / Learned vs heuristic | 32.4% | **50.2%** |
+| Compare policies | 16.4% | **58.5%** |
+| Crusher feed | 16.5% | **52.2%** |
+| MF validation | 15.1% | **50.7%** |
+| Pit 3D | 54.1% | 54.1% |
+| Pit map | 49.2% | 49.2% |
+| Decision inspector | 22.5% | **45.0%** |
+
+Rollout inspector reads 0% and is correct: it computes nothing until you press Compute, which is the
+no-compute-bomb rule being honoured, not a missing visualization.
+
 ## [0.21.000], 2026-07-29
 
 ### Changed (the charts now fill their panels, ADR-0071 rule 6 applied inside the views)
