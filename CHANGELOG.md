@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.22.001], 2026-07-29
+
+### Fixed
+- **The Pit map Play button could not be clicked.** The canvas resolved to 587px in a 642px panel and
+  was drawn OVER the Play button, the speed selector, the scrubber and the KPI cards. They were visible
+  but dead: the canvas sits above them and swallows the pointer. The cause was the same circular
+  measurement fixed in `Pit3D` for v0.22.000 and not carried across: available height taken as
+  `scrollHeight - ownHeight`, where the canvas is part of what it measures. `PitMap` now measures its
+  siblings. Canvas **587 -> 464px**.
+
+### Verification
+- The gate now HIT-TESTS the control rather than checking it exists: `document.elementFromPoint` at the
+  button's centre must return the button, and clicking it must toggle Play to Pause. A visibility check
+  passed on this bug, because the button was visible the whole time; only the pointer was blocked.
+
 ## [0.22.000], 2026-07-29
 
 ### Fixed (v0.21.003 made the Pit 3D view fit by shrinking the instrument, which is not fitting)
