@@ -97,8 +97,6 @@ export default function Tool() {
     { key: 'ug', en: 'underground', es: 'subterránea' },
     { key: 'legacy', en: 'openmines', es: 'openmines' },
   ] as const;
-  const [famTab, setFamTab] = useState<'pit' | 'ug' | 'legacy'>('pit');
-  useEffect(() => { if (sampleId) setFamTab(famOf(sampleId)); }, [sampleId]);
   const sampleLabel = (id: string) => {
     const t = id.replace('huolinhe-northpit-', '').replace(/^mhs-(pit|ug)-/, '');
     const k = t.lastIndexOf('-');
@@ -372,18 +370,25 @@ export default function Tool() {
         </div>
         {source === 'real' && (
           <div className="dl-ctl"><span className="dl-ctl-lbl">{es ? 'Muestra (turno)' : 'Sample (shift)'}</span>
-            {/* family mini-tabs (#47): one group visible at a time; • marks the family of the ACTIVE sample */}
-            <div className="dl-chips" role="tablist" aria-label={es ? 'familia de muestra' : 'sample family'} style={{ marginBottom: '0.35rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--color-border)' }}>
-              {FAMS.map((f) => (
-                <button key={f.key} role="tab" aria-selected={famTab === f.key} className={`chip ${famTab === f.key ? 'on' : ''}`}
-                        onClick={() => setFamTab(f.key)}>
-                  {es ? f.es : f.en}{sampleId && famOf(sampleId) === f.key ? ' •' : ''}
-                </button>
-              ))}
-            </div>
-            <div className="dl-chips">{samples.filter((s) => famOf(s.id) === famTab).map((s) => (
-              <button key={s.id} className={`chip ${sampleId === s.id ? 'on' : ''}`} onClick={() => setSampleId(s.id)} title={s.name}>{sampleLabel(s.id)}</button>
-            ))}</div>
+            {/* ADR-0071 rule 7. This was a row of family mini-tabs PLUS a chip list of the samples in
+                the selected family: two levels of expanded list to make one choice, and the family tabs
+                existed only to keep the chip list short. One grouped dropdown does both, shows every
+                sample at once, and gives the rail its height back. */}
+            <select className="dl-select" value={sampleId}
+                    aria-label={es ? 'muestra' : 'sample'}
+                    onChange={(e) => { setSampleId(e.target.value); }}>
+              {FAMS.map((f) => {
+                const inFam = samples.filter((s) => famOf(s.id) === f.key);
+                if (!inFam.length) return null;
+                return (
+                  <optgroup key={f.key} label={es ? f.es : f.en}>
+                    {inFam.map((s) => (
+                      <option key={s.id} value={s.id}>{sampleLabel(s.id)}</option>
+                    ))}
+                  </optgroup>
+                );
+              })}
+            </select>
             <label className="dl-hint" style={{ display: 'block', marginTop: '0.3rem' }}>
               {es ? 'o cargar un log propio (CSV cyclelog/v1): ' : 'or bring your own log (cyclelog/v1 CSV): '}
               <input type="file" accept=".csv" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUserFile(f); }} />

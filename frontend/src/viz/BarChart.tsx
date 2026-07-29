@@ -55,10 +55,29 @@ export function BarChart({
     if (!fill) return;
     const host = hostRef.current;
     if (!host) return;
-    const measure = () => setAvailH(host.parentElement ? host.parentElement.clientHeight : 0);
+    // Measure the FIXED-HEIGHT scroll container, not the immediate parent. The parent panel is sized
+    // BY this chart, so measuring it creates a feedback loop: taller rows make the parent taller, which
+    // makes the rows taller again. Measured effect of getting this wrong: the 12-shovel views overflowed
+    // their panel by 474px. The tab panel has a real height; the space left for the chart is that height
+    // minus whatever sits above the chart inside it.
+    const measure = () => {
+      const scroller = host.closest('.dl-tabpanel') as HTMLElement | null;
+      if (!scroller) { setAvailH(0); return; }
+      const hosts = scroller.querySelectorAll('[data-fillchart]');
+      if (hosts.length > 1) { setAvailH(0); return; }
+      const svg = host.querySelector('svg');
+      if (!svg) { setAvailH(0); return; }
+      // Subtract EVERYTHING else in the view, not just what sits above the chart. This chart renders an
+      // accessibility data table BELOW the SVG, and ignoring it is why the 12-row views still overflowed
+      // by 426px after two attempts: SVG 560 + table 401 + chrome = 1068 in a 642px panel. Measuring
+      // "total content minus my own height" accounts for siblings wherever they are.
+      const others = scroller.scrollHeight - svg.getBoundingClientRect().height;
+      setAvailH(Math.max(0, scroller.clientHeight - others - 8));
+    };
     measure();
     const ro = new ResizeObserver(measure);
-    if (host.parentElement) ro.observe(host.parentElement);
+    const scroller = host.closest('.dl-tabpanel');
+    if (scroller) ro.observe(scroller);
     return () => ro.disconnect();
   }, [fill]);
   const rowH = fill && availH > 0 && data.length
@@ -100,7 +119,7 @@ export function BarChart({
   const broken = baseline === 'fit' && d0 > 0;
 
   return (
-    <div ref={hostRef} style={{ width: '100%', position: 'relative' }}>
+    <div ref={hostRef} data-fillchart={fill ? '' : undefined} style={{ width: '100%', position: 'relative' }}>
       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
         <div className="dl-seg" role="group" aria-label="axis baseline">
           <button type="button" className={`chip${baseline === 'fit' ? ' on' : ''}`} onClick={() => setBaseline('fit')} aria-pressed={baseline === 'fit'}>Fit</button>

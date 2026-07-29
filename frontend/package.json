@@ -1,6 +1,6 @@
 {
   "name": "caos-dispatchlab",
-  "version": "0.21.001",
+  "version": "0.21.002",
   "private": true,
   "type": "module",
   "description": "DispatchLab, a didactic, in-browser bench that compares truck-to-shovel dispatch policies (greedy, shortest-wait, the two classic criteria, fixed, and two learned ONNX policies) on a deterministic discrete-event open-pit simulation. Policy-comparison sandbox, NOT a production dispatch system.",
