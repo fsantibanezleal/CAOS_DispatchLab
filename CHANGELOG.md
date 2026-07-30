@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.23.002] · 2026-07-30
+
+### Fixed
+- **Version coherence.** `conventions/versioning.md` requires `VERSION`, the manifests, the CHANGELOG and
+  the git tag to move together on every release; they had drifted apart here (frontend 0.23.001 against dlab 0.16.0). A line-wide sweep on
+  2026-07-30 found 79 tags across 9 CAOS repos pointing at commits that declare a different version, the
+  result of releases being tagged and deployed without a bump. The user-visible cost is that the app footer
+  reads its version from a manifest, so a deployed app reported a version older than the release it was
+  running, and the tag stopped being usable to answer "what is live right now".
+- Every version source in this repo now declares the same number. Historical tags are left untouched: a
+  published tag is the accurate record of a release that happened, so the drift is fixed by moving the files
+  forward, never by rewriting or deleting the tag.
+- Guarded going forward by `tools/version-audit/check_version_coherence.py` in CAOS_MANAGE, which fails when
+  the manifests disagree with each other, with the CHANGELOG, or when the declared version is behind the
+  latest tag.
+
 ## [0.23.001], 2026-07-29
 
 ### Fixed
