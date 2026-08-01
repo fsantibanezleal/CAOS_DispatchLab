@@ -1,6 +1,6 @@
 """CONTRACT 1 (ingestion) tests: good dispatch scenarios validate; ill-formed ones are rejected with a reason;
 severely over/under-trucked fleets are flagged; the committed example passes."""
-from dlab.io.contract import validate_records
+from pipeline.io.contract import validate_records
 
 
 def test_good_scenario_accepted():
@@ -31,7 +31,7 @@ def test_over_trucked_flagged():
 def test_committed_example_passes_contract():
     from pathlib import Path
 
-    from dlab.io.formats import read_csv_rows
+    from pipeline.io.formats import read_csv_rows
 
     csv = Path(__file__).resolve().parents[1] / "data" / "examples" / "scenarios.csv"
     rep = validate_records(read_csv_rows(csv))

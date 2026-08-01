@@ -1,5 +1,5 @@
 // Benchmark (#19): the offline aggregate comparisons. Everything here is precomputed by the
-// pipeline (data-pipeline/dlab/science/bench_synthetic.mjs + bench_real.mjs) and committed,
+// pipeline (data-pipeline/pipeline/science/bench_synthetic.mjs + bench_real.mjs) and committed,
 // the page only reads /data/bench/*.json. No heavy compute in the browser.
 // Layout rule (#49): no giant scrolls, per-case and per-shift detail renders one selection at a
 // time behind a chip picker, with a compact collapsible overview table for the whole set.

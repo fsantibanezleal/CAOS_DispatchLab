@@ -14,7 +14,7 @@ Every sample: cyclelog CSV (validated with the SAME rules the app's ingest appli
 minehaulsim port is faithful) + provenance JSON + topo JSON.
 
 Run (inside .venv-pipeline, which has minehaulsim==0.12.0 pinned):
-    python -m dlab.science.minehaulsim_gen.generate
+    python -m pipeline.science.minehaulsim_gen.generate
 """
 from __future__ import annotations
 

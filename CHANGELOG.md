@@ -23,7 +23,7 @@ asserted are TRUE BECAUSE the shell clips. A page that hides what did not fit sa
 
 ### Fixed
 - **Version coherence.** `conventions/versioning.md` requires `VERSION`, the manifests, the CHANGELOG and
-  the git tag to move together on every release; they had drifted apart here (frontend 0.23.001 against dlab 0.16.0). A line-wide sweep on
+  the git tag to move together on every release; they had drifted apart here (frontend 0.23.001 against pipeline 0.16.0). A line-wide sweep on
   2026-07-30 found 79 tags across 9 CAOS repos pointing at commits that declare a different version, the
   result of releases being tagged and deployed without a bump. The user-visible cost is that the app footer
   reads its version from a manifest, so a deployed app reported a version older than the release it was
@@ -322,7 +322,7 @@ a realistic multi-source, multi-destination dispatch network.
   a live FILL level that rises on rehandle and falls on reclaim), shovels tinted by face type, reclaim
   conveyors drawn dashed. Paused-by-default (no compute-bomb).
 - Re-baked `data/derived` (case-results, traces, manifests, index, synthetic + rollout benchmarks) for the
-  16-case corpus. Python mirror (`dlab/cases/dispatch_cases.py`) + docs (`docs/cases/`) updated to the network
+  16-case corpus. Python mirror (`pipeline/cases/dispatch_cases.py`) + docs (`docs/cases/`) updated to the network
   model. The C10 test now gates the crusher FEED (not total tonnes; waste to its own dump is uncapped).
 
 ## [0.14.000], 2026-07-07
@@ -512,7 +512,7 @@ a realistic multi-source, multi-destination dispatch network.
   ACTUAL generated geometry, least-squares rim fit, bench count/height, shovel benches);
   `loadSample` attaches it so `Pit 3D` renders the real mine instead of the derived default
   (verified: 16-bench deep spiral vs 7-bench small pit vs the 5-bench default).
-- New pipeline generator `dlab/science/minehaulsim_gen/generate.py`; sample registry built with
+- New pipeline generator `pipeline/science/minehaulsim_gen/generate.py`; sample registry built with
   minehaulsim entries FIRST (the default sample no longer comes from OpenMines).
 
 ### Changed
@@ -548,12 +548,12 @@ Refactor onto the CAOS product-repo archetype (ADR-0057), the science core is un
 contract-bounded, staged offline pipeline + a frontend SPA.
 
 ### Changed
-- **`tools/dispatch-rl/` → `data-pipeline/dlab/`**, the Node DES dataset generator + the torch policy training
-  preserved verbatim under `dlab/science/` (the heavy lane); the six named stages are thin wrappers over it.
+- **`tools/dispatch-rl/` → `data-pipeline/pipeline/`**, the Node DES dataset generator + the torch policy training
+  preserved verbatim under `pipeline/science/` (the heavy lane); the six named stages are thin wrappers over it.
 - **`src/` → `frontend/src/`**; `public/{dl-policy,dl-bcbest}.onnx` + `dl-learned.json` → **`data/derived/`** (the
   canonical artifact home). `frontend/copy-data.mjs` overlays them back into `public/` at build (the SPA's fetch paths
   are unchanged).
-- The default pipeline is **numpy-only**: `python -m dlab.pipeline all` rebuilds every per-case replay trace +
+- The default pipeline is **numpy-only**: `python data-pipeline/run.py all` rebuilds every per-case replay trace +
   manifest from the committed `case-results.json` (the 8 cases baked by the TS DES) + `dl-learned.json`. `--retrain`
   regenerates everything (Node DES dataset → torch train → ONNX → re-bake).
 

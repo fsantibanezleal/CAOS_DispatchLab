@@ -57,7 +57,7 @@ shipped policy robust:
 
 ## The honest result (measured, not asserted)
 
-Run `node --import tsx data-pipeline/dlab/science/rollout_bench.mjs` (leakage-safe: disjoint train vs eval seed
+Run `node --import tsx data-pipeline/pipeline/science/rollout_bench.mjs` (leakage-safe: disjoint train vs eval seed
 banks, Monte-Carlo 95% CIs, the eval bank disjoint from `bench_synthetic`'s). Result on this corpus:
 
 * **Deterministic model, exact improvement bound.** The rollout is `>=` its base on every case. A **real** gain

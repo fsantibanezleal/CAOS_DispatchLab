@@ -5,7 +5,7 @@
 classical criteria. Training is tiny (small nets over a few tens of thousands of logged decisions, seconds on CPU),
 no GPU.
 
-**Lane:** offline only (`dlab/science/train_policy.py`). Never shipped to the browser.
+**Lane:** offline only (`pipeline/science/train_policy.py`). Never shipped to the browser.
 
 ## Install
 

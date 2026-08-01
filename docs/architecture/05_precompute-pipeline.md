@@ -1,8 +1,8 @@
 # 05, The staged precompute pipeline (two-language)
 
-`data-pipeline/dlab/stages/`, six named steps. The offline lane is **two-language**: a Node generator logs decisions
+`data-pipeline/pipeline/stages/`, six named steps. The offline lane is **two-language**: a Node generator logs decisions
 by running the same TypeScript DES (no Python re-port, a re-port would diverge from the live engine), then Python
-fits the ONNX policies. The real science is preserved verbatim in `dlab/science/`; the stage modules name the steps
+fits the ONNX policies. The real science is preserved verbatim in `pipeline/science/`; the stage modules name the steps
 and `pipeline.retrain` orchestrates them.
 
 | Stage | What it does | Deps |
