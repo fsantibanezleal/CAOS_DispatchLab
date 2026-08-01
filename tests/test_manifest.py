@@ -1,6 +1,6 @@
 """CONTRACT 2 (artifact) tests: a manifest points to a real trace with the recorded byte size, the lane verdict is
 consistent with the gate, and the schema is the DispatchLab one. Uses the committed case-results.json (no torch/node)."""
-from dlab import pipeline, registry
+from pipeline import pipeline, registry
 
 
 def test_manifest_matches_artifact_and_gate():

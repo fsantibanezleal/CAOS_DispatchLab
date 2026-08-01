@@ -1,4 +1,4 @@
-"""dlab, the offline+live engine for DispatchLab (instantiated from the CAOS product-repo archetype, ADR-0057).
+"""pipeline, the offline+live engine for DispatchLab (instantiated from the CAOS product-repo archetype, ADR-0057).
 
 The CORE is real and SOTA-pinned: a deterministic discrete-event truck-shovel dispatch simulator (next-event
 time-advance, binary-heap FEL, seedable streams) with rimpull/grade truck kinematics and match-factor theory; five

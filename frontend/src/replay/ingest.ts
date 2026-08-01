@@ -3,7 +3,7 @@
 // (never silently coerces), FLAGS plausible-but-suspicious rows, and DERIVES the RealSample: rosters, observed
 // shift, a synthesized schematic layout (real logs carry no coordinates, labelled as such) and the empirical
 // block (per-shovel load means, travel medians, payload stats) that replaces the authored scenario knobs.
-// Mirrored offline in data-pipeline/dlab/io (the same artifacts are gated when baked).
+// Mirrored offline in data-pipeline/pipeline/io (the same artifacts are gated when baked).
 import { type MineSpec, type ShovelSpec, type DumpSpec } from '../sim/types';
 
 export type CycleEvent = 'load' | 'haul' | 'dump' | 'return';

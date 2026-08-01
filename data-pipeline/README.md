@@ -1,10 +1,10 @@
-# data-pipeline/, the offline engine (`dlab`)
+# data-pipeline/, the offline engine (`pipeline`)
 
 The staged, seeded, contract-bounded offline pipeline for DispatchLab (ADR-0057). Install editable from the repo root
-(`pip install -e .`); run with `python -m dlab.pipeline`.
+(`pip install -e .`); run with `python data-pipeline/run.py`.
 
 ```
-dlab/
+pipeline/
 ├─ __init__.py            # __version__ = "0.05.000"
 ├─ pipeline.py            # orchestrator + CLI (light replay by default; --retrain runs the two-language heavy lane)
 ├─ registry.py            # cases grouped by CATEGORY (single-shovel MF / multi-shovel / oracle)
@@ -20,7 +20,7 @@ dlab/
 
 **Two lanes:**
 
-* **Default (light, numpy-only)**, `python -m dlab.pipeline all` rebuilds every per-case replay trace + manifest
+* **Default (light, numpy-only)**, `python data-pipeline/run.py all` rebuilds every per-case replay trace + manifest
   from the committed `case-results.json` + `dl-learned.json`. No torch, no Node, a clone replays.
 * **Heavy (`--retrain`, two-language)**, `pipeline all --retrain` runs the **Node DES dataset generator**
   (`science/gen_dataset.mjs`, the SAME TS DES, no Python re-port) → torch trains the two learned policies

@@ -1,6 +1,6 @@
 # 01, Overview
 
-DispatchLab is split into a heavy **offline engine** (`data-pipeline/dlab/`) and a **frontend SPA** (`frontend/`),
+DispatchLab is split into a heavy **offline engine** (`data-pipeline/pipeline/`) and a **frontend SPA** (`frontend/`),
 bound by two data contracts. The committed compact artifacts under `data/derived/` are the offline engine's real
 outputs and the SPA's replay payload.
 
@@ -18,7 +18,7 @@ frontend (copy-data.mjs overlays data/derived) ──► the TS DES + onnxruntim
 
 ## Packages
 
-* **`data-pipeline/dlab/`**, the offline engine: `io/` (contracts, formats), `core/` (rng, trace, manifest, gate),
+* **`data-pipeline/pipeline/`**, the offline engine: `io/` (contracts, formats), `core/` (rng, trace, manifest, gate),
   `stages/` (the named pipeline, thin wrappers over the science), `cases/` + `registry.py` (the 12 cases by category),
   `science/` (the preserved verbatim Node DES dataset gen + torch policy training + the case bake, the heavy lane),
   `pipeline.py` (orchestrator + CLI), `live.py` (dormant Pyodide).
@@ -29,7 +29,7 @@ frontend (copy-data.mjs overlays data/derived) ──► the TS DES + onnxruntim
 
 ## The two lanes
 
-* **Default (numpy-only):** `python -m dlab.pipeline all` rebuilds every per-case replay trace + manifest from the
+* **Default (numpy-only):** `python data-pipeline/run.py all` rebuilds every per-case replay trace + manifest from the
   committed `case-results.json` + `dl-learned.json`, no torch, no Node. A clone replays immediately.
 * **Heavy (`--retrain`, two-language):** Node generates the DES decision dataset (the same TS DES the browser runs)
   → torch trains the two learned policies → exports ONNX + dl-learned.json → re-bakes `case-results.json`. Local-only.

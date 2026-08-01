@@ -8,7 +8,7 @@ A scenario needs: `case_id`, `n_shovels` ([1,40]), `n_trucks` ([1,400]), `truck_
 `shift_sec` ([600,86400]). See `data/examples/scenarios.csv` for passing rows.
 
 ```python
-from dlab.io.contract import validate_records
+from pipeline.io.contract import validate_records
 rep = validate_records([{ "case_id": "mine", "n_shovels": 3, "n_trucks": 12,
                           "truck_model": "793F", "shift_sec": 28800 }])
 print(rep.summary())   # accepted / rejected (with reason) / flagged

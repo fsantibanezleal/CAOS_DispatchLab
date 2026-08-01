@@ -3,11 +3,11 @@
 ```
 CAOS_DispatchLab/
 ├─ README.md · CHANGELOG.md (X.XX.XXX) · LICENSE · LICENSES.md · ATTRIBUTION.md · STRUCTURE.md
-├─ pyproject.toml (dlab) · .env.example · .gitignore · .gitattributes · .vscode/
+├─ pyproject.toml (pipeline) · .env.example · .gitignore · .gitattributes · .vscode/
 ├─ requirements.txt (live-thin numpy) · -dev · -precompute (torch/onnx) · -gpu (dormant) · -api (dormant)
 ├─ data-pipeline/
 │  ├─ README.md
-│  └─ dlab/                        # the offline engine + staged pipeline
+│  └─ pipeline/                        # the offline engine + staged pipeline
 │     ├─ __init__.py (version) · pipeline.py (orchestrator+CLI) · registry.py (cases by CATEGORY) · live.py (dormant)
 │     ├─ io/      contract.py (CONTRACT 1: dispatch-scenario schema) · schema.py · formats.py
 │     ├─ core/    rng.py · trace.py (CONTRACT 2 trace) · manifest.py (CONTRACT 2) · gate.py (lane gate)
@@ -35,6 +35,6 @@ CAOS_DispatchLab/
 ```
 
 **The base is frozen**, edits land only in the CORE (the DES engine + policies in `frontend/src/`, the training
-science in `dlab/science/`, the cases/content), never in the structure, contracts, env, or deploy. The offline lane is
+science in `pipeline/science/`, the cases/content), never in the structure, contracts, env, or deploy. The offline lane is
 two-language by design: the Node DES dataset generator runs the SAME TS DES the browser does (no re-port). The DES
 decision-dataset jsonl is NEVER committed (regenerable).
