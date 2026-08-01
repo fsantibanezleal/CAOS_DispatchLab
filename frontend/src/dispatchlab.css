@@ -266,3 +266,47 @@ html, body { overflow-x: hidden; }
   .dlf-hud { left: 16px; bottom: auto; top: 14px; }
   .dlf-badge { bottom: 14px; }
 }
+
+/* =============================================================================================
+   ADR-0071 UI FLOOR v2 (applied by tools/ui-floor/apply_ui_floor.py). Measured minimum, not styling.
+   Every rule is here because its absence was a shipped defect somewhere in this line.
+   ============================================================================================= */
+
+/* 1. The page IS the viewport. The shell caps pages at a 1200px reading measure, correct for prose
+      and wrong for an instrument: it discarded 400px on a 1600px display and over half of a 2560px
+      one, which is why the visualization read as a thumbnail across the whole line. */
+.app-shell { height: 100dvh; min-height: 100dvh; overflow: hidden; }
+.app-shell > .page { flex: 1 1 auto; min-height: 0; display: flex; }
+.page-body.dl-layout { max-width: none; width: 100%; flex: 1 1 auto; min-height: 0;
+  padding: 1rem 1.25rem; align-items: stretch; }
+html, body { overflow-x: hidden; }
+
+/* 1b. THE VIEWPORT LOCK IS FOR THE WORKBENCH ROUTE ONLY.
+      Rule 1 locks the shell so the INSTRUMENT owns the viewport. Applied to the whole shell it also
+      locks the PROSE routes, which are legitimately taller than the screen, and `overflow: hidden`
+      then deletes the overflow instead of scrolling it. Measured after v1 of this floor shipped:
+      PitForge /experiments hid 1055px of 1955px (54% of the page), /benchmark hid the MineLib
+      reproduction table that is the product's headline evidence, and ChancaDEM /benchmark hid 3700px.
+      No inner scroller existed on any of those routes, and no user gesture could reach the content.
+      ADR-0071 rule 1 says scrolling belongs INSIDE the container that owns long content: v1
+      implemented the "not on the document" half and skipped the "inside the container" half.
+      A prose route is any page-body that is NOT the app layout, so it gets the inner scroll. */
+main.page:has(> .page-body:not(.dl-layout)) { overflow-y: auto; min-height: 0; }
+
+/* 2. The prose footer margin (3rem) is dead space in a viewport-filling app: measured as exactly the
+      48px gap users saw between the content and the footer. */
+.app-shell .site-footer { margin-top: 0; }
+
+/* 3. Containment. A flex or grid item defaults to `min-width: auto` and will not shrink below its
+      content, so ONE nowrap row silently sizes the page wider than the screen (measured 1817px on a
+      1600px viewport). Every ancestor of a scrollable row must be allowed to shrink. */
+.page-body.dl-layout > * { min-width: 0; max-width: 100%; }
+.tabs, .tabpanel, .tablist { min-width: 0; max-width: 100%; }
+
+/* 4. Navigation chrome gets ONE row. `flex-wrap: wrap` let 12-to-18 tabs occupy two and three rows,
+      and every extra row is vertical space taken from the instrument on every render, forever.
+      NOTE: the row must NOT carry `overflow-x` if it hosts dropdown menus. In CSS a box cannot keep
+      `overflow-y: visible` when the other axis is anything else, so the declared value computes to
+      `auto` and the row clips its own menu. Group the tabs instead (ADR-0071 rule 5). */
+.tablist { flex-wrap: nowrap !important; }
+.tablist .tab, .tablist button { flex: 0 0 auto; white-space: nowrap; }
