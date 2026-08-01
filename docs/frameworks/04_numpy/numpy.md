@@ -13,5 +13,5 @@ torch or Node** (the learned ONNX + dl-learned.json + the engine `case-results.j
 
 ## Usage
 
-`python -m dlab.pipeline all` (numpy-only) rebuilds every per-case trace + manifest from `case-results.json` +
+`python data-pipeline/run.py all` (numpy-only) rebuilds every per-case trace + manifest from `case-results.json` +
 `dl-learned.json`.

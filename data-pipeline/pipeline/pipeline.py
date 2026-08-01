@@ -4,9 +4,9 @@ lane gate, and writes the manifest + a flat index (CONTRACT 2). The committed ON
 offline lane's real outputs, so the DEFAULT path is light (numpy/stdlib, no torch/node) and deterministic.
 `--retrain` regenerates those artifacts (Node DES dataset -> torch train -> ONNX; re-bake case-results), see science/.
 
-    python -m dlab.pipeline                 # rebuild all replay traces + manifests from committed artifacts
-    python -m dlab.pipeline C05             # one case
-    python -m dlab.pipeline all --retrain   # Node DES dataset + torch train, then rebuild
+    python data-pipeline/run.py                 # rebuild all replay traces + manifests from committed artifacts
+    python data-pipeline/run.py C05             # one case
+    python data-pipeline/run.py all --retrain   # Node DES dataset + torch train, then rebuild
 """
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ def _node(*args: str) -> None:
 
 def retrain(seed: int = 42) -> None:
     """HEAVY lane (two-language): Node DES dataset (the SAME TS DES) -> torch train policies -> ONNX; re-bake case
-    results. The science is preserved verbatim in dlab/science/."""
+    results. The science is preserved verbatim in pipeline/science/."""
     print("[retrain] node DES dataset generation (logs decisions) ...", flush=True)
     _node(str(SCIENCE / "gen_dataset.mjs"))
     print("[retrain] rollout benchmark + distillation dataset (Monte-Carlo rollout over the corpus) ...", flush=True)
@@ -89,7 +89,7 @@ def run_all(seed: int = 42) -> list[dict]:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(prog="dlab.pipeline")
+    ap = argparse.ArgumentParser(prog="pipeline.pipeline")
     ap.add_argument("case", nargs="?", default="all", help="a case id, or 'all'")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--retrain", action="store_true",

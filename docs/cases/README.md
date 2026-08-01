@@ -1,6 +1,6 @@
 # Cases, taxonomy & coverage matrix
 
-`data-pipeline/dlab/cases/dispatch_cases.py` defines 8 multi-source / multi-destination cases, mirroring the
+`data-pipeline/pipeline/cases/dispatch_cases.py` defines 8 multi-source / multi-destination cases, mirroring the
 SPA's `src/sim/cases.ts`. The corpus is **three simple teaching cases** (C01-C03: >= 4 shovels, >= 2
 destinations, routing + match factor + the multi-plant decision) and **five complex / dynamic cases** (C04-C08:
 >= 6 shovels scaling to 12, an actively-cycled ore stockpile, multiple plants + waste dumps, plus breakdowns /

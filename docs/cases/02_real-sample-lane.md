@@ -21,7 +21,7 @@ geometry shown in Real mode is schematic, and the App says so in-app.
 
 The default real samples are generated with **minehaulsim** (`pypi.org/project/minehaulsim`, Apache-2.0), a
 real published DES package (versions 0.10.0 / 0.11.0) written for this portfolio and used offline in
-`data-pipeline/dlab/science/minehaulsim_gen/generate.py`. It simulates open-pit and underground haulage as a
+`data-pipeline/pipeline/science/minehaulsim_gen/generate.py`. It simulates open-pit and underground haulage as a
 deterministic discrete-event system on a **constrained road network** with rimpull-speed-by-grade, direction
 zones and emergent bunching, from a seeded parametric mine generator. Each shipped sample carries a
 `*.provenance.json` recording the generator version, the scenario and sim seeds, the dispatcher, and the
@@ -72,7 +72,7 @@ applies: label the synthetic, never dress it as measured.
 
 ## References
 
-- minehaulsim: `pypi.org/project/minehaulsim` (Apache-2.0), used in `data-pipeline/dlab/science/minehaulsim_gen/`.
+- minehaulsim: `pypi.org/project/minehaulsim` (Apache-2.0), used in `data-pipeline/pipeline/science/minehaulsim_gen/`.
 - oreblocks geology engine: `minehaulsim[geology]` 0.11 (stamped-optimum synthetic block models).
 - OpenMines: Chen et al., *OpenMines: A Light and Comprehensive Mining Simulation Environment for Truck
   Dispatching*, arXiv:2404.00622 (MIT); config desensitised from Huolinhe open-pit coal mine.

@@ -47,7 +47,7 @@ Instantiated from the CAOS product-repo archetype (ADR-0057): a heavy **offline 
 by two data contracts. See [`STRUCTURE.md`](STRUCTURE.md) and the [`docs/`](docs/README.md) wiki.
 
 ```
-OFFLINE  data-pipeline/dlab/ (Node DES + torch)      LIVE  frontend/src/ (browser, TypeScript)
+OFFLINE  data-pipeline/pipeline/ (Node DES + torch)      LIVE  frontend/src/ (browser, TypeScript)
   science/gen_dataset.mjs  log DES decisions            sim/       the deterministic DES engine
   science/train_policy.py  learned policies -> ONNX      policies/  5 heuristics + Hungarian + 2 learned (onnxruntime-web)
   science/bake_cases.mjs   per-case comparison           viz/       PitMap / Pareto / sweep
@@ -65,7 +65,7 @@ without torch or Node. Heavy work (the Node DES dataset + torch policy training)
 
 ```bash
 ./scripts/setup.sh            # venvs + light deps + editable pkg (numpy+ruff+pytest)   [.ps1 on Windows]
-./scripts/precompute.sh       # python -m dlab.pipeline all  (rebuild the replay layer, numpy-only)
+./scripts/precompute.sh       # python data-pipeline/run.py all  (rebuild the replay layer, numpy-only)
 .venv-pipeline/bin/python -m pytest    # 8 passed     ·     ./scripts/smoke.sh   # CONTRACT 2 OK
 ./scripts/dev.sh              # cd frontend && npm install && npm run dev (vite + live DES + ONNX)
 cd frontend && npm run build  # tsc --noEmit && vite build (+ copy-data overlay + SPA 404.html)

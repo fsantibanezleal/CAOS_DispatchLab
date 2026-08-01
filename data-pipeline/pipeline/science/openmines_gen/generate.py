@@ -15,7 +15,7 @@ Runs the real OpenMines simulation (SimPy), captures its event log in memory, an
 rows: (t, truck_id, shovel_id, event=load|haul|dump|return, payload_t), seconds from shift start.
 
 Run (inside .venv-pipeline, which has openmines installed --no-deps + modern deps):
-    python -m dlab.science.openmines_gen.generate
+    python -m pipeline.science.openmines_gen.generate
 """
 from __future__ import annotations
 

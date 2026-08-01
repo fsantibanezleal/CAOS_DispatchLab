@@ -1,7 +1,7 @@
 # 01 · The synthetic case corpus
 
 The Synthetic lane runs a fixed corpus of **8 deterministic DES cases**, defined once in
-`data-pipeline/dlab/cases/dispatch_cases.py` and mirrored by the SPA in `frontend/src/sim/cases.ts`. A real
+`data-pipeline/pipeline/cases/dispatch_cases.py` and mirrored by the SPA in `frontend/src/sim/cases.ts`. A real
 truck-shovel problem is **multi-source and multi-destination with an intermediate ore buffer**, so the corpus
 is built to that shape, round 2 of issue #67 rebuilt it to be domain-correct rather than a set of thin toys.
 
