@@ -5,7 +5,7 @@
 // bands) + per-decision agreement with the real dispatcher. Cross-source: does the synthetic
 // ranking survive on real samples? (Kendall tau vs the synthetic aggregate; discrepancies are a
 // VALID finding, reported, never hidden.)
-//   node --import tsx data-pipeline/dlab/science/bench_real.mjs   (cwd: frontend/ for tsx)
+//   node --import tsx data-pipeline/pipeline/science/bench_real.mjs   (cwd: frontend/ for tsx)
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
