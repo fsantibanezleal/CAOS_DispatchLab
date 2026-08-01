@@ -2,7 +2,7 @@
 // synchronous TS forward) x every case x a 20-seed bank, through the SAME live TS DES the browser
 // runs. Writes data/derived/bench/synthetic.json, the Benchmark page only READS it (no heavy
 // compute in the browser). Deterministic: fixed seed banks, byte-stable re-runs.
-//   node --import tsx data-pipeline/dlab/science/bench_synthetic.mjs
+//   node --import tsx data-pipeline/pipeline/science/bench_synthetic.mjs
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

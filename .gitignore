@@ -32,7 +32,7 @@ frontend/public/dl-learned.json
 *.tsbuildinfo
 
 # --- the offline DES dataset (the policies' training labels) — regenerable, never committed ---
-data-pipeline/dlab/science/*.jsonl
+data-pipeline/pipeline/science/*.jsonl
 data/raw/
 
 # --- Secrets / env (public repo — only .env.example is committed) ---

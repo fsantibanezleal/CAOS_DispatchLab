@@ -3,7 +3,7 @@
 // + the capacity oracle over the corpus, on the SAME forkable DES the look-ahead uses (sim/rolloutSim.ts,
 // validated byte-for-byte against the live model.ts on the deterministic corpus), and writes:
 //   data/derived/bench/rollout.json                 the Benchmark page reads this (no heavy compute in-browser)
-//   data-pipeline/dlab/science/rollout-dataset.jsonl the (state, rollout-action) pairs to DISTILL dl-rollout.onnx
+//   data-pipeline/pipeline/science/rollout-dataset.jsonl the (state, rollout-action) pairs to DISTILL dl-rollout.onnx
 //
 // Leakage-safe protocol (per solver-rl-2026-06-20): DISJOINT train vs eval seed banks; the eval bank is also
 // disjoint from bench_synthetic's; every stochastic number is a distribution over held-out seeds with a
