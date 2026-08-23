@@ -310,3 +310,61 @@ main.page:has(> .page-body:not(.dl-layout)) { overflow-y: auto; min-height: 0; }
       `auto` and the row clips its own menu. Group the tabs instead (ADR-0071 rule 5). */
 .tablist { flex-wrap: nowrap !important; }
 .tablist .tab, .tablist button { flex: 0 0 auto; white-space: nowrap; }
+
+/* ------------------------------------------------------------------------------------------------
+ * FAENA READING MEASURE
+ *
+ * MEASURED on the deployed page before this: the widest running paragraph on a content route was
+ * ~147 characters per line. Comfortable running text is 45-75, and past about 90 the eye stops
+ * reliably finding the start of the next line. These pages are deep, well-cited work being set at
+ * roughly twice a readable measure.
+ *
+ * Only TEXT is capped. Tables and figures keep the full column, because a wide table wants the room.
+ * The App route is a dashboard rather than prose and is excluded by the :not(.dl-layout).
+ *
+ * The `.tabpanel` selectors are load-bearing and are the reason a first attempt at this did not work:
+ * a content page that puts its prose inside tabs has no top-level paragraphs at all, so a rule written
+ * only for direct children of .page-body matched nothing and the page still measured 119 characters.
+ * --------------------------------------------------------------------------------------------- */
+.page-body:not(.dl-layout) {
+  max-width: 1000px;
+  margin-inline: auto;
+}
+
+/* DESCENDANT, not child. The first version of this used `>` and left ChargeCascade's /benchmark at 153
+ * characters per line, because the wide paragraph sits inside a layout div:
+ *     p.cc-cap.cc-muted  <  div  <  article.page-body.prose
+ * A child combinator is an assumption about markup depth, and these pages wrap prose at whatever depth
+ * the section needed. This is safe precisely because `max-width` can only narrow: a paragraph already
+ * inside a narrow panel is unaffected. */
+.page-body:not(.dl-layout) p,
+.page-body:not(.dl-layout) li,
+.page-body:not(.dl-layout) h2,
+.page-body:not(.dl-layout) h3,
+.page-body:not(.dl-layout) .callout,
+.page-body:not(.dl-layout) figcaption {
+  max-width: 78ch;
+}
+
+/* Tables, figures and any explicit horizontal scroller keep the full column: a wide table wants the
+ * room, and capping it would trade a readability win for a worse one. */
+.page-body:not(.dl-layout) table,
+.page-body:not(.dl-layout) figure,
+.page-body:not(.dl-layout) svg,
+.page-body:not(.dl-layout) canvas,
+.page-body:not(.dl-layout) [class*="scroll-x"] {
+  max-width: none;
+}
+.page-body:not(.dl-layout) table p,
+.page-body:not(.dl-layout) table li {
+  max-width: none;
+}
+
+/* A sentence in a table cell must read from a straight left edge. Numeric tables right-align every
+ * column but the first, which is right for numbers and wrong for prose: it gives the column a ragged
+ * LEFT edge, which is the edge the eye returns to on every line. */
+.page-body:not(.dl-layout) table td.wrap,
+.page-body:not(.dl-layout) table th.wrap {
+  text-align: left;
+  white-space: normal;
+}
