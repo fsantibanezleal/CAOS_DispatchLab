@@ -368,3 +368,35 @@ main.page:has(> .page-body:not(.dl-layout)) { overflow-y: auto; min-height: 0; }
   text-align: left;
   white-space: normal;
 }
+
+/* APP-ROUTE RUNNING TEXT
+ *
+ * The reading-measure rule above excludes the App route, on the grounds that a dashboard is not prose.
+ * Measuring the App route showed that is only half true: it carries explanatory notes and captions
+ * under its instruments, and those are running text. MEASURED live before this, the widest line in the
+ * whole product was a note under the 3D view, at ~156 characters.
+ *
+ * Only paragraphs and list items. Safe for the dense parts of a dashboard for the same reason as
+ * before: max-width can only narrow, so a short status readout is already inside the cap and is
+ * unaffected, and tables, canvases, KPI grids and the rail are not paragraphs. */
+.page-body.dl-layout p,
+.page-body.dl-layout li {
+  max-width: 78ch;
+}
+
+/* CAPTION BLOCKS THE PARAGRAPH RULE CANNOT REACH
+ *
+ * The `p` and `li` rules above fixed the body prose and could never reach these, because they are
+ * DIVS. MEASURED live: `div.equation-caption` rendered 918px against a 512px comfortable measure at
+ * its own 13.1px size - roughly double - in ChargeCascade, FrothSeg and StockTwin alike.
+ *
+ * An equation caption is the sentence that says what the symbols mean. It is the text a reader most
+ * needs to follow, and it was the widest line on the page.
+ *
+ * Every other block the sweep reported was 5-10 percent over, which is the measuring script's `ch`
+ * estimate being conservative rather than a real miss; those elements are already at 78ch. Only the
+ * roughly-double cases are elements no rule ever touched. */
+.page-body .equation-caption,
+.page-body figcaption {
+  max-width: 78ch;
+}
