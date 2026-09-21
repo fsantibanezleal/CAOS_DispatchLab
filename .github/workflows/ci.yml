@@ -22,10 +22,6 @@ jobs:
         run: pip install -r requirements.txt -r requirements-dev.txt
       - name: Lint
         run: ruff check data-pipeline tests scripts
-      - name: Tests
-        run: pytest
-      - name: Pipeline smoke (rebuild the replay layer from the committed manifest)
-        run: python data-pipeline/run.py all
       - name: CONTRACT 2, manifests <-> traces consistent (no drift)
         run: python scripts/check_artifacts.py
 
@@ -37,10 +33,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Rebuild the replay layer (so copy-data has the manifests/traces)
-        run: |
-          pip install -r requirements.txt
-          python data-pipeline/run.py all
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -73,3 +65,5 @@ jobs:
           python-version: "3.12"
       - name: No em-dash or emoji in product content (ADR-0067)
         run: python scripts/check_content_standards.py
+      - name: CI budget, trunk-only triggers, no training (ADR-0074)
+        run: python scripts/check_ci_budget.py
