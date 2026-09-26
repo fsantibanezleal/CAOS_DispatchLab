@@ -1,6 +1,6 @@
 # Minimal-but-complete ignore for an instantiated product repo (ADR-0057).
 
-# --- Python virtualenvs (ANY name, ANY depth) — NEVER committed; recreate via scripts/setup ---
+# --- Python virtualenvs (ANY name, ANY depth): NEVER committed; recreate via scripts/setup ---
 .venv/
 .venv*
 **/.venv*
@@ -31,16 +31,16 @@ frontend/public/dl-rollout.onnx
 frontend/public/dl-learned.json
 *.tsbuildinfo
 
-# --- the offline DES dataset (the policies' training labels) — regenerable, never committed ---
+# --- the offline DES dataset (the policies' training labels): regenerable, never committed ---
 data-pipeline/pipeline/science/*.jsonl
 data/raw/
 
-# --- Secrets / env (public repo — only .env.example is committed) ---
+# --- Secrets / env (public repo: only .env.example is committed) ---
 .env
 .env.*
 !.env.example
 
-# --- Raw / heavy data — commit ONLY compact derived artifacts under data/derived/ ---
+# --- Raw / heavy data: commit ONLY compact derived artifacts under data/derived/ ---
 *.parquet
 *.h5
 *.hdf5
